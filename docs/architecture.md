@@ -17,13 +17,13 @@ Everything else (features, rules, state updates) is the same code in both modes.
 
 ```
 GameGraph.Host
-  ├── GameGraph.Nba ──► GameGraph.Engine ──► GameGraph.Models
-  └── GameGraph.Training ─────────────────► GameGraph.Models
+  ├── GameGraph.Nba ──► GameGraph.Engine ──► GameGraph.ModelFamilies
+  └── GameGraph.Training ─────────────────► GameGraph.ModelFamilies
 ```
 
-- **Models** knows nothing about sports or the engine. Each model family provides: evaluate (parameters and features to a distribution), log-likelihood, and gradient.
-- **Engine** uses Models to evaluate and sample. It knows nothing about any sport and nothing about training.
-- **Training** uses Models to fit parameters to labelled rows. It knows nothing about the engine.
+- **ModelFamilies** knows nothing about sports or the engine. Each model family provides: evaluate (parameters and features to a distribution), log-likelihood, and gradient.
+- **Engine** uses ModelFamilies to evaluate and sample. It knows nothing about any sport and nothing about training.
+- **Training** uses ModelFamilies to fit parameters to labelled rows. It knows nothing about the engine.
 - **Nba** is a sport: its state, rules, features, the mapping from real data to node outcomes, and augmentation.
 - **Host** wires them together.
 
@@ -40,7 +40,7 @@ Context is built by one piece of code for both training (historical games) and l
 
 ## Lines drawn from day one
 
-- Models are separate from the engine.
+- Model families are separate from the engine.
 - An outcome source (sample or observe) is the only difference between simulating and labelling.
 - Game context is separate from game state.
 - Every random draw comes from a seeded stream; every run is reproducible.

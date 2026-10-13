@@ -18,7 +18,7 @@ Planning. See `docs/plan.md`.
 
 | Path | What it holds |
 |---|---|
-| `src/GameGraph.Models` | Model families: evaluate, log-likelihood, gradient |
+| `src/GameGraph.ModelFamilies` | Model families: evaluate, log-likelihood, gradient |
 | `src/GameGraph.Engine` | The walk: state, nodes, outcome sources, run loop, randomness, sinks |
 | `src/GameGraph.Training` | Labelled rows, optimiser, training loop, evaluation |
 | `src/GameGraph.Nba` | The NBA: state, rules, features, data loading, augmentation |
