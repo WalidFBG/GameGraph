@@ -6,7 +6,4 @@
     <Project Path="src/GameGraph.Nba/GameGraph.Nba.csproj" />
     <Project Path="src/GameGraph.Training/GameGraph.Training.csproj" />
   </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/GameGraph.Tests/GameGraph.Tests.csproj" />
-  </Folder>
 </Solution>

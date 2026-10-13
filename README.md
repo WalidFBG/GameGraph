@@ -23,14 +23,12 @@ Planning. See `docs/plan.md`.
 | `src/GameGraph.Training` | Labelled rows, optimiser, training loop, evaluation |
 | `src/GameGraph.Nba` | The NBA: state, rules, features, data loading, augmentation |
 | `src/GameGraph.Host` | Command line: label, train, simulate |
-| `tests/GameGraph.Tests` | Tests, including the round trip |
 | `docs/` | Architecture, plan, lessons |
 
 ## Build
 
 ```
 dotnet build GameGraph.slnx
-dotnet test GameGraph.slnx
 ```
 
 Requires the .NET 10 SDK.
