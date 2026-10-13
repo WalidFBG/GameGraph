@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\GameGraph.Models\GameGraph.Models.csproj" />
+  </ItemGroup>
+</Project>

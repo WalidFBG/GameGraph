@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
+    <ProjectReference Include="..\GameGraph.Training\GameGraph.Training.csproj" />
+  </ItemGroup>
+</Project>

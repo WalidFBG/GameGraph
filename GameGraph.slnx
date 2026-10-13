@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/GameGraph.Engine/GameGraph.Engine.csproj" />
+    <Project Path="src/GameGraph.Host/GameGraph.Host.csproj" />
+    <Project Path="src/GameGraph.Models/GameGraph.Models.csproj" />
+    <Project Path="src/GameGraph.Nba/GameGraph.Nba.csproj" />
+    <Project Path="src/GameGraph.Training/GameGraph.Training.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/GameGraph.Tests/GameGraph.Tests.csproj" />
+  </Folder>
+</Solution>
