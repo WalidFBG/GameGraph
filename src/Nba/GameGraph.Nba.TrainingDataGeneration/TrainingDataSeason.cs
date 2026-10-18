@@ -9,7 +9,8 @@ namespace GameGraph.Nba.TrainingDataGeneration;
 
 public sealed class TrainingDataSeason(TrainingDataCollector<NbaState, INbaIncidentCollector> collector, GameTally tally)
 {
-    private readonly IgnoredIncidents _incidentCollector = new();
+    private readonly EmptyIncidentCollector _incidentCollector = new();
+    private int _walks;
 
     public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
     {
@@ -37,7 +38,7 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState, INbaIncid
 
     private void Generate(ObservedGame game, GameContext context)
     {
-        var state = new NbaState(Schedule(game.Possessions), context.HomeScoringRate, context.AwayScoringRate);
+        var state = new NbaState(_walks++, game.Schedule(), context.HomeScoringRate, context.AwayScoringRate);
         var decider = new ObservedOutcomeDecider(game.Possessions);
 
         collector.BeginGame(game.Id, game.StartUtc);
@@ -45,11 +46,4 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState, INbaIncid
 
         decider.EnsureAllUsed();
     }
-
-    private static PeriodSchedule[] Schedule(Possession[] possessions) =>
-        possessions
-            .GroupBy(p => p.Period)
-            .OrderBy(g => g.Key)
-            .Select(g => new PeriodSchedule(g.First().Side, g.Count()))
-            .ToArray();
 }

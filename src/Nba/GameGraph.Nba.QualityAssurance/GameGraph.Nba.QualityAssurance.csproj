@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="xunit.v3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
+    <ProjectReference Include="..\..\GameGraph.Parameters\GameGraph.Parameters.csproj" />
+    <ProjectReference Include="..\..\GameGraph.Simulation\GameGraph.Simulation.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba.Augmentation\GameGraph.Nba.Augmentation.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba.Sportradar\GameGraph.Nba.Sportradar.csproj" />
+  </ItemGroup>
+</Project>

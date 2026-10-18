@@ -2,5 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GameGraph.ModelFamilies\GameGraph.ModelFamilies.csproj" />
+    <ProjectReference Include="..\GameGraph.Parameters\GameGraph.Parameters.csproj" />
   </ItemGroup>
 </Project>

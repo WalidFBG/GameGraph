@@ -47,6 +47,9 @@ Sport-agnostic:
 GameGraph.Host
   ├── GameGraph.TrainingDataGeneration ───► GameGraph.Engine ──► GameGraph.ModelFamilies
   └── GameGraph.Training ─────────────────────────────────────► GameGraph.ModelFamilies
+
+GameGraph.Training ──► GameGraph.Parameters
+GameGraph.Simulation ──► GameGraph.Engine, GameGraph.ModelFamilies, GameGraph.Parameters
 ```
 
 The NBA, in `src/Nba/`:
@@ -59,16 +62,27 @@ GameGraph.Host
         ├── GameGraph.TrainingDataGeneration
         ├── GameGraph.Nba
         └── GameGraph.Engine
+
+GameGraph.Nba.QualityAssurance (tests)
+  ├── GameGraph.Nba.Sportradar
+  ├── GameGraph.Nba.Augmentation
+  ├── GameGraph.Simulation
+  ├── GameGraph.Parameters
+  ├── GameGraph.Nba
+  └── GameGraph.Engine
 ```
 
 - **ModelFamilies** knows nothing about sports, games or the engine. Each model family provides: evaluate (parameters and features to a distribution), log-likelihood, and gradient.
 - **Engine** owns the walk, the outcome-decider and decision-collector interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
+- **Parameters** is the contract between training and simulation: each node's intercept and weights by feature name, and their file format. It references nothing.
+- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its model with the trained parameters, decisions are discarded, and incidents go to the caller's incident collector. It lines the parameters up with each node's features and fails on any mismatch; it reads no files.
 - **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine.
 - **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
 - **Nba.TrainingDataGeneration** walks the observed games: context, then the engine's walk with the observed outcome decider, then the history advances.
+- **Nba.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
 - **Host** wires them together.
 
 Engine and Training never reference each other. They share only the model families, which is what guarantees that what is trained is what runs.

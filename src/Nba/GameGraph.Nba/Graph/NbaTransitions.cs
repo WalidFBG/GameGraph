@@ -14,14 +14,14 @@ public static class NbaTransitions
 
         var points = scored * PointsPerScore;
 
-        state.Score[state.Side] += points;
-        incidentCollector.Possession(new PossessionIncident(state.Side, state.Period, points));
+        state.Score[state.TeamInPossession] += points;
+        incidentCollector.Possession(new PossessionIncident(state.SimulationIndex, state.TeamInPossession, state.Period, points));
 
         state.RemainingInPeriod--;
 
         if (state.RemainingInPeriod > 0)
         {
-            state.Side = Sides.Opponent(state.Side);
+            state.TeamInPossession = Sides.Opponent(state.TeamInPossession);
             return NbaNodes.Possession;
         }
 
@@ -30,7 +30,7 @@ public static class NbaTransitions
         if (state.Period == state.Periods.Length)
             return NodeSpec<NbaState, INbaIncidentCollector>.End;
 
-        state.Side = state.Periods[state.Period].StartingSide;
+        state.TeamInPossession = state.Periods[state.Period].StartingTeamInPossession;
         state.RemainingInPeriod = state.Periods[state.Period].Possessions;
         return NbaNodes.Possession;
     }

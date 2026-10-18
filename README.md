@@ -20,12 +20,15 @@ Planning. See `docs/plan.md`.
 |---|---|
 | `src/GameGraph.ModelFamilies` | Model families: evaluate, log-likelihood, gradient |
 | `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
+| `src/GameGraph.Parameters` | Trained parameters by node and feature name, and their file format |
+| `src/GameGraph.Simulation` | Simulates a game many times: samples each decision from its model, reports incidents |
 | `src/GameGraph.Training` | Orchestrates training: reads training data, fits parameters, writes them |
 | `src/GameGraph.TrainingDataGeneration` | Collects what the engine's walk hands it and writes it as training data |
 | `src/Nba/GameGraph.Nba` | The NBA: state, rules, features, observed games |
 | `src/Nba/GameGraph.Nba.Sportradar` | Reads Sportradar ValidatedData into observed games |
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
+| `src/Nba/GameGraph.Nba.QualityAssurance` | Analyses as tests: simulate real games, compare, write CSVs |
 | `src/GameGraph.Host` | Command line: generate training data, train, simulate |
 | `docs/` | Architecture, plan, lessons |
 
@@ -33,6 +36,7 @@ Planning. See `docs/plan.md`.
 
 ```
 dotnet build GameGraph.slnx
+dotnet test --solution GameGraph.slnx
 ```
 
 Requires the .NET 10 SDK.

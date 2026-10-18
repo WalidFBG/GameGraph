@@ -1,3 +1,3 @@
 namespace GameGraph.Nba.Observed;
 
-public readonly record struct Possession(int Side, int Period, bool Scored);
+public readonly record struct Possession(int TeamInPossession, int Period, bool Scored);

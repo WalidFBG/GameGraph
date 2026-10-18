@@ -52,11 +52,12 @@ Augmentation runs side by side with training-data generation (and later the simu
 
 Built in two pieces: first the engine change (decision collector and incident collector, incidents reported by the NBA's transitions), then simulation itself.
 
-1. **Parameters**: `parameters\<node>.json` is the contract between training and simulation; simulation has its own reader, which orders the weights by the node's features and fails on any missing or extra name.
+1. **Parameters**: `GameGraph.Parameters` is the contract between training and simulation (intercept and weights by feature name, and the file format). Callers read the files; simulation lines the weights up with the node's features and fails on any missing or extra name.
 2. **Randomness**: one root seed constant; each simulation gets its own seed, drawn from the root up front, so results do not depend on scheduling. `System.Random(seed)` sits behind a small class of our own, to be replaced by xoshiro256** (seeded through SplitMix64) with the speed work, before outputs are pinned by a digest test.
 3. **Count**: 10,000 simulations per game.
-4. **The real schedule**: each simulation plays the real game's periods and possessions per period, overtime included; every possession's outcome is sampled. This leaks the real game into the price (overtime is known in advance, so is the pace) and is accepted until step 4 brings the clock; ties are possible and counted separately.
-5. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.QualityAssurance` (xUnit v3), each with its own season loop. The first simulates the latest generated game, writes one row per simulation (number, home points, away points) to `simulations`, and prints home win, away win, tie and mean total next to the actual result.
+4. **The simulation index**: each incident carries the index of its simulation (`SimulationIndex`), read from the game state, so one incident collector receives all simulations.
+5. **The real schedule**: each simulation plays the real game's periods and possessions per period, overtime included; every possession's outcome is sampled. This leaks the real game into the price (overtime is known in advance, so is the pace) and is accepted until step 4 brings the clock; ties are possible and counted separately.
+6. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.QualityAssurance` (xUnit v3), each with its own season loop. The first simulates the latest generated game, writes one row per simulation (simulation index, home points, away points) to `quality-assurance`, and prints home win, away win, tie and mean total next to the actual result.
 
 ## Growing the NBA
 

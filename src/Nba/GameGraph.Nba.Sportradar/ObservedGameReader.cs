@@ -39,7 +39,7 @@ public static class ObservedGameReader
         }
 
         var possessions = builder.Build();
-        var home = possessions.Count(p => p.Side == Sides.Home);
+        var home = possessions.Count(p => p.TeamInPossession == Sides.Home);
 
         if (Math.Abs(home - (possessions.Length - home)) > MaximumPossessionDifference)
             return Rejected(game, RejectionReason.UnbalancedPossessions);

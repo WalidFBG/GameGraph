@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\GameGraph.Engine\GameGraph.Engine.csproj" />
+    <ProjectReference Include="..\GameGraph.ModelFamilies\GameGraph.ModelFamilies.csproj" />
+    <ProjectReference Include="..\GameGraph.Parameters\GameGraph.Parameters.csproj" />
+  </ItemGroup>
+</Project>

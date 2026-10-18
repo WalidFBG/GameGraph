@@ -27,8 +27,9 @@ Lives in `C:\Data\GameGraph\nba\`:
 | Folder | What |
 |---|---|
 | `training-data\<node>` | Training data for one model: `examples.csv`, `games.csv` and `manifest.json` |
-| `parameters` | Trained parameters, one `<node>.json` per model: intercept, weights by feature name, best and last step, and the training and validation NLL at the best step |
+| `parameters` | Per model: `<node>.json`, the parameters (intercept and weights by feature name), and `<node>.training.json`, the training run (source, date, best and last step, training and validation NLL at the best step) |
 | `simulations` | Simulation outputs: one CSV per simulated game, one row per simulation |
+| `quality-assurance\<test>` | Output of the quality-assurance tests, for example one row per simulation of the latest game |
 
 - Parameters, settings and summaries are JSON; training data is CSV to start.
 - Each training-data folder has a `manifest.json`: node, source data, date, feature names, example count and how many games were generated, short of history or rejected, by reason.

@@ -49,7 +49,7 @@ public sealed class TeamHistory
 
     private static TeamGame Summarise(ObservedGame game, int side)
     {
-        var possessions = game.Possessions.Where(p => p.Side == side).ToArray();
+        var possessions = game.Possessions.Where(p => p.TeamInPossession == side).ToArray();
         return new TeamGame(possessions.Length, possessions.Count(p => p.Scored));
     }
 }

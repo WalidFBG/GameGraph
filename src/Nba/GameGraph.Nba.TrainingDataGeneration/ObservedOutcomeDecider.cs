@@ -19,8 +19,8 @@ public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeD
 
         var possession = possessions[_next];
 
-        if (possession.Side != state.Side || possession.Period != state.Period)
-            throw new InvalidDataException($"Possession {_next}: the data has {Sides.Name(possession.Side)} in period {possession.Period}, the rules expect {Sides.Name(state.Side)} in period {state.Period}");
+        if (possession.TeamInPossession != state.TeamInPossession || possession.Period != state.Period)
+            throw new InvalidDataException($"Possession {_next}: the data has {Sides.Name(possession.TeamInPossession)} in period {possession.Period}, the rules expect {Sides.Name(state.TeamInPossession)} in period {state.Period}");
 
         _next++;
         return possession.Scored ? 1 : 0;
