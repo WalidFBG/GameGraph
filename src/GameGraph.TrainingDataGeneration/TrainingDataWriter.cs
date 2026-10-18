@@ -4,7 +4,7 @@ using GameGraph.Engine;
 
 namespace GameGraph.TrainingDataGeneration;
 
-public sealed class TrainingDataWriter(string root, bool replace)
+public sealed class TrainingDataWriter(string root)
 {
     private static readonly JsonSerializerOptions ManifestJson = new() { WriteIndented = true };
 
@@ -14,12 +14,7 @@ public sealed class TrainingDataWriter(string root, bool replace)
         var features = node.Features.Select(f => f.Name).ToArray();
 
         if (Directory.Exists(directory))
-        {
-            if (!replace)
-                throw new IOException($"Training data already exists in {directory}; pass --replace to overwrite it");
-
             Directory.Delete(directory, recursive: true);
-        }
 
         Directory.CreateDirectory(directory);
 

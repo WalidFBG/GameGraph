@@ -33,4 +33,4 @@ Lives in `C:\Data\GameGraph\nba\`:
 - Parameters, settings and summaries are JSON; training data is CSV to start.
 - Each training-data folder has a `manifest.json`: node, source data, date, feature names, example count and how many games were generated, short of history or rejected, by reason.
 - Augmentation values are never written: they are computed in memory as the season is walked (see `plan.md`).
-- Paths come from configuration.
+- Paths are set in `src/GameGraph.Host/Program.cs`.

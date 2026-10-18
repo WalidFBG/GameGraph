@@ -39,4 +39,4 @@ Requires the .NET 10 SDK.
 
 ## Data
 
-No data is stored in this repository. Real game data stays on your machine; its location is passed in as configuration.
+No data is stored in this repository. Real game data stays on your machine; its location is set in `src/GameGraph.Host/Program.cs`.

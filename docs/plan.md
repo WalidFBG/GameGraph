@@ -60,6 +60,20 @@ Augmentation runs side by side with training-data generation (and later the simu
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
+## Model families and data shapes
+
+Agreed now, built when the second model family arrives (step 2) and when choices arrive (step 3). The current code is the "vector features, Bernoulli outcome" corner of this design.
+
+1. **Linear predictor split out**: intercept plus weighted features becomes its own piece; a family adds its link and distribution (Bernoulli, Poisson, Gamma) on top.
+2. **A model-family interface**: parameter count, negative log-likelihood, gradient and later sampling. `GradientDescent` fits through it instead of calling `Logistic`.
+3. **Scaling and the parameters file follow the linear predictor's layout**: intercept, then one weight per feature; extra family parameters (a Gamma's shape) come after.
+4. **Each node declares its family** in the sport's spec; the manifest records it and the trainer picks the family from it.
+5. **The outcome type belongs to the family**: `bool` for Bernoulli, `int` for categorical and counts, `double` for continuous. Nodes are typed by it (`Node<TState, TOutcome>` under a common `Node<TState>`); each node runs its own step, so outcomes are never boxed or stored as `double`.
+6. **Two feature shapes, not a generic one**:
+   - vector: one feature set per decision; flat `double[]` of n × f plus a typed outcome array;
+   - choice: one feature set per candidate (who shoots); flat `double[]` of all candidates × f, an offset per decision and the chosen index (long format, one CSV row per candidate).
+7. **Speed without our own codegen**: families are structs and the trainer is generic over them (`where TFamily : struct`), so the JIT specialises and inlines each family; families work on whole spans of flat arrays, ready for SIMD (`System.Numerics.Tensors`).
+
 ## Open questions
 
 - Optimiser for the first models: plain gradient descent first, Adam once it is needed.
