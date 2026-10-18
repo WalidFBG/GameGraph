@@ -48,7 +48,7 @@ GameGraph.Host
   ├── GameGraph.TrainingDataGeneration ───► GameGraph.Engine ──► GameGraph.ModelFamilies
   └── GameGraph.Training ─────────────────────────────────────► GameGraph.ModelFamilies
 
-GameGraph.Training ──► GameGraph.Parameters
+GameGraph.Training ──► GameGraph.Parameters ──► GameGraph.ModelFamilies
 GameGraph.Simulation ──► GameGraph.Engine, GameGraph.ModelFamilies, GameGraph.Parameters
 ```
 
@@ -72,9 +72,21 @@ GameGraph.Nba.QualityAssurance (tests)
   └── GameGraph.Engine
 ```
 
-- **ModelFamilies** knows nothing about sports, games or the engine. Each model family provides: evaluate (parameters and features to a distribution), log-likelihood, and gradient.
+- **ModelFamilies** knows nothing about sports, games or the engine. A model is a generalised linear model in three parts:
+  - **terms**: a feature and a basis (linear now, splines later), which expand the feature's value into design columns, one coefficient each;
+  - **linear predictors**: η = intercept + the sum of coefficients times design columns; a family needs one (Bernoulli) or several (Categorical: one per category but the reference);
+  - **the family** (a struct implementing `IModelFamily`): link and distribution only. From the predictors' η it gives the negative log-likelihood of an outcome, its gradient with respect to η, and a sample from one uniform number. It never sees features or coefficients.
+
+  The loops use only a `Model` (family and terms, bound to the feature columns) and a flat `double[]` of coefficients, which only `Model` knows how to lay out. Files hold both as data, and `Model` converts each way:
+
+  | | In memory | In a file | To file | From file |
+  |---|---|---|---|---|
+  | Structure | `Model` | `ModelDescription` (manifest) | `model.Describe()` | `description.Create(features)` |
+  | Coefficients | `double[]` | `PredictorCoefficients[]` (parameters file) | `model.Describe(parameters)` | `model.Parameters(coefficients)` |
+
+  Each node declares its family and terms in the sport's spec, and builds its `Model` from its own features. Training-data generation writes the structure to the manifest; training recreates the `Model` from it; simulation uses the node's `Model` and fails if the parameters were trained for a different model.
 - **Engine** owns the walk, the outcome-decider and decision-collector interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
-- **Parameters** is the contract between training and simulation: each node's intercept and weights by feature name, and their file format. It references nothing.
+- **Parameters** is the contract between training and simulation: each node's family and the named form of its parameters (per predictor, an intercept and each term's feature, basis and coefficients), and their file format.
 - **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its model with the trained parameters, decisions are discarded, and incidents go to the caller's incident collector. It lines the parameters up with each node's features and fails on any mismatch; it reads no files.
 - **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine.
 - **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file.
@@ -110,4 +122,4 @@ In production, augmentation runs one game at a time: the latest histories are sa
 ## Not yet
 
 - No compilation and no speed work until the full flow runs and its output is pinned by a test.
-- No generality without a second use: one decision kind and one model family until a second is needed.
+- No generality without a use: each new model family, outcome type or feature shape arrives with the node that needs it.

@@ -1,8 +1,10 @@
+using GameGraph.ModelFamilies;
+
 namespace GameGraph.Training;
 
 public sealed class TrainingData
 {
-    public TrainingData(string node, string[] features, TrainingGame[] games, double[][] examples, int[] outcomes)
+    public TrainingData(string node, ModelDescription model, string[] features, TrainingGame[] games, double[][] examples, int[] outcomes)
     {
         if (examples.Length != outcomes.Length)
             throw new ArgumentException($"{examples.Length} examples but {outcomes.Length} outcomes", nameof(outcomes));
@@ -24,6 +26,7 @@ public sealed class TrainingData
             throw new ArgumentException($"The games hold {next} examples, there are {examples.Length}", nameof(games));
 
         Node = node;
+        Model = model;
         Features = features;
         Games = games;
         Examples = examples;
@@ -31,6 +34,8 @@ public sealed class TrainingData
     }
 
     public string Node { get; }
+
+    public ModelDescription Model { get; }
 
     public string[] Features { get; }
 

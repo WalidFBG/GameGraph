@@ -25,8 +25,14 @@ public static class ParametersFile
         if (parameters.Node != node)
             throw new InvalidDataException($"{path} holds the parameters of {parameters.Node}, not {node}");
 
-        if (parameters.Weights is null)
-            throw new InvalidDataException($"{path} has no weights");
+        if (parameters.Family is null)
+            throw new InvalidDataException($"{path} has no family");
+
+        if (parameters.Predictors is null || parameters.Predictors.Length == 0)
+            throw new InvalidDataException($"{path} has no predictors");
+
+        if (parameters.Predictors.Any(p => p.Terms is null || p.Terms.Any(t => t.Feature is null || t.Basis is null || t.Coefficients is null)))
+            throw new InvalidDataException($"{path} has an incomplete term");
 
         return parameters;
     }

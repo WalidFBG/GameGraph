@@ -55,12 +55,12 @@ public static class Program
 
     private static void Train()
     {
-        var writer = new ParametersWriter(Parameters);
+        var trainer = new NodeTrainer(new ParametersWriter(Parameters));
 
         foreach (var directory in Directory.GetDirectories(TrainingData).Order(StringComparer.Ordinal))
         {
             var (training, validation) = GameSplit.ByStartTime(TrainingDataReader.Read(directory));
-            var fit = GradientDescent.Fit(training, validation);
+            var (fit, predictors, path) = trainer.Train(training, validation, directory);
 
             Console.WriteLine($"{training.Node}: training {training.Examples.Length} examples in {training.Games.Length} games, validation {validation.Examples.Length} in {validation.Games.Length}");
 
@@ -68,12 +68,18 @@ public static class Program
                 Console.WriteLine($"  Step {step,3} NLL: training {fit.TrainingNegativeLogLikelihoods[step]:F7}, validation {fit.ValidationNegativeLogLikelihoods[step]:F7}");
 
             Console.WriteLine($"  Best step {fit.BestStep} (stopped at {fit.LastStep}) NLL: training {fit.TrainingNegativeLogLikelihoods[fit.BestStep]:F7}, validation {fit.ValidationNegativeLogLikelihoods[fit.BestStep]:F7}");
-            Console.WriteLine($"  Intercept: {fit.Parameters[0]:F6}");
 
-            for (var i = 0; i < training.Features.Length; i++)
-                Console.WriteLine($"  {training.Features[i]}: {fit.Parameters[i + 1]:F6}");
+            Console.WriteLine($"  Model: {training.Model.Family.Name}");
 
-            Console.WriteLine($"  Written to {writer.Write(training, fit, directory)}");
+            foreach (var (predictor, p) in predictors.Select((predictor, p) => (predictor, p)))
+            {
+                Console.WriteLine($"  Predictor {p}: intercept {predictor.Intercept:F6}");
+
+                foreach (var term in predictor.Terms)
+                    Console.WriteLine($"    {term.Feature} ({term.Basis}): {string.Join(", ", term.Coefficients.Select(c => c.ToString("F6")))}");
+            }
+
+            Console.WriteLine($"  Written to {path}");
         }
     }
 }

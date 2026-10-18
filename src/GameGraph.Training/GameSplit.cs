@@ -32,6 +32,6 @@ public static class GameSplit
             }
         }
 
-        return new TrainingData(data.Node, data.Features, subset.ToArray(), examples.ToArray(), outcomes.ToArray());
+        return new TrainingData(data.Node, data.Model, data.Features, subset.ToArray(), examples.ToArray(), outcomes.ToArray());
     }
 }

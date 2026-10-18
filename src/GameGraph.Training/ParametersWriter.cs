@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GameGraph.ModelFamilies;
 using GameGraph.Parameters;
 
 namespace GameGraph.Training;
@@ -7,12 +8,9 @@ public sealed class ParametersWriter(string root)
 {
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
 
-    public string Write(TrainingData data, Fit fit, string source)
+    public string Write(TrainingData data, Model model, Fit fit, string source)
     {
-        var parameters = new NodeParameters(
-            data.Node,
-            fit.Parameters[0],
-            data.Features.Select((f, i) => (f, fit.Parameters[i + 1])).ToDictionary());
+        var parameters = new NodeParameters(data.Node, model.Family.Name, model.Describe(fit.Parameters));
 
         var report = new
         {

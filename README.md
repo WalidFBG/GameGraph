@@ -18,9 +18,9 @@ Planning. See `docs/plan.md`.
 
 | Path | What it holds |
 |---|---|
-| `src/GameGraph.ModelFamilies` | Model families: evaluate, log-likelihood, gradient |
+| `src/GameGraph.ModelFamilies` | Models as GLMs: terms (a feature and its basis), linear predictors, and families (Bernoulli, Categorical) |
 | `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
-| `src/GameGraph.Parameters` | Trained parameters by node and feature name, and their file format |
+| `src/GameGraph.Parameters` | Trained parameters by node, predictor and term, and their file format |
 | `src/GameGraph.Simulation` | Simulates a game many times: samples each decision from its model, reports incidents |
 | `src/GameGraph.Training` | Orchestrates training: reads training data, fits parameters, writes them |
 | `src/GameGraph.TrainingDataGeneration` | Collects what the engine's walk hands it and writes it as training data |

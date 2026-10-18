@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using GameGraph.ModelFamilies;
 
 namespace GameGraph.Training;
 
@@ -15,6 +16,11 @@ public static class TrainingDataReader
             .Select(f => f.GetString() ?? throw new InvalidDataException($"A feature without a name in the manifest in {directory}"))
             .ToArray();
         var count = manifest.RootElement.GetProperty("Examples").GetInt32();
+        var model = manifest.RootElement.GetProperty("Model").Deserialize<ModelDescription>()
+            ?? throw new InvalidDataException($"No model in the manifest in {directory}");
+
+        if (model.Family?.Name is null || model.Terms is null || model.Terms.Any(t => t.Feature is null || t.Basis is null))
+            throw new InvalidDataException($"An incomplete model in the manifest in {directory}");
 
         var lines = File.ReadLines(Path.Combine(directory, "examples.csv")).GetEnumerator();
         var header = string.Join(',', [.. features, "outcome"]);
@@ -44,7 +50,7 @@ public static class TrainingDataReader
         if (examples.Count != count)
             throw new InvalidDataException($"The manifest in {directory} says {count} examples, examples.csv has {examples.Count}");
 
-        return new TrainingData(node, features, ReadGames(directory), examples.ToArray(), outcomes.ToArray());
+        return new TrainingData(node, model, features, ReadGames(directory), examples.ToArray(), outcomes.ToArray());
     }
 
     private static TrainingGame[] ReadGames(string directory)

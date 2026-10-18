@@ -52,7 +52,7 @@ Augmentation runs side by side with training-data generation (and later the simu
 
 Built in two pieces: first the engine change (decision collector and incident collector, incidents reported by the NBA's transitions), then simulation itself.
 
-1. **Parameters**: `GameGraph.Parameters` is the contract between training and simulation (intercept and weights by feature name, and the file format). Callers read the files; simulation lines the weights up with the node's features and fails on any missing or extra name.
+1. **Parameters**: `GameGraph.Parameters` is the contract between training and simulation (the family, and per predictor an intercept and each term's coefficients, and the file format). Callers read the files; simulation rebuilds the model from them and fails if a term's feature is not one of the node's features.
 2. **Randomness**: one root seed constant; each simulation gets its own seed, drawn from the root up front, so results do not depend on scheduling. `System.Random(seed)` sits behind a small class of our own, to be replaced by xoshiro256** (seeded through SplitMix64) with the speed work, before outputs are pinned by a digest test.
 3. **Count**: 10,000 simulations per game.
 4. **The simulation index**: each incident carries the index of its simulation (`SimulationIndex`), read from the game state, so one incident collector receives all simulations.
@@ -61,31 +61,50 @@ Built in two pieces: first the engine change (decision collector and incident co
 
 ## Growing the NBA
 
-A proposal for a deeper possession tree, with every node's model family, outcome type and transitions, is in `possession-tree.html`.
+The next model is the team-level possession tree in `possession-tree.html`: every node's model family, outcome type, transitions, clock rules and incidents.
 
-1. Step 1 above (team level, one Bernoulli node).
-2. Turnovers and rebounds: possession ends in a shot or a turnover; misses are rebounded.
-3. Who: which player shoots and rebounds (categorical over the five on court, lineups taken from the real game); player-level context.
-4. Possession length (a parametric family) and the game clock.
-5. Compilation: once three decision kinds and three model families exist, so the compiler is built for real variety. Features become expressions the engine can read; every compiled node is proven identical to the plain walk by a digest test.
-6. Shot types and points (2 or 3), fouls and free throws.
-7. Substitutions: the hardest decision, done last.
+1. Step 1 above (team level, one Bernoulli node): done.
+2. The tree's action types, shots and rebounds, on the real schedule (the Categorical family).
+3. The tree's clock: `ClockCheck`, `PeriodRunsOut`, `ActionTime`, `PeriodEnds` (the truncated Count family); removes the schedule leak.
+4. The tree's fouls and free throws (rules with their own state).
+5. Compilation: once these families exist, so the compiler is built for real variety (see below).
+6. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
+### Building step 2, piece by piece
+
+Each piece builds and runs on its own and is reviewed before the next.
+
+1. Models as GLMs: terms, linear predictors and families (`Bernoulli`, `Categorical`) working on η; the trainer, the parameters file and the simulator go through the model: done.
+2. Each node declares its model (family and terms); the manifest records it; the trainer and the simulator build the model from it: done.
+3. Features as expressions (`Expression<Func<TState, double>>`, compiled once for the plain walk), while there are only two features.
+4. Reading the data: an observed possession becomes a sequence of actions (two, three, turnover), with made or missed and the offensive rebound.
+5. The NBA graph: the new nodes, state, features, transitions and incidents.
+6. End to end: training data, training and the quality-assurance simulation on the new graph.
+
 ## Model families and data shapes
 
-Agreed now, built when the second model family arrives (step 2) and when choices arrive (step 3). The current code is the "vector features, Bernoulli outcome" corner of this design.
+Agreed now, built as the families arrive. Items 1 to 4 are done.
 
-1. **Linear predictor split out**: intercept plus weighted features becomes its own piece; a family adds its link and distribution (Bernoulli, Poisson, Gamma) on top.
-2. **A model-family interface**: parameter count, negative log-likelihood, gradient and later sampling. `GradientDescent` fits through it instead of calling `Logistic`.
-3. **Scaling and the parameters file follow the linear predictor's layout**: intercept, then one weight per feature; extra family parameters (a Gamma's shape) come after.
-4. **Each node declares its family** in the sport's spec; the manifest records it and the trainer picks the family from it.
-5. **The outcome type belongs to the family**: `bool` for Bernoulli, `int` for categorical and counts, `double` for continuous. Nodes are typed by it (`Node<TState, TOutcome>` under a common `Node<TState>`); each node runs its own step, so outcomes are never boxed or stored as `double`.
+1. **Models are GLMs**: terms (a feature and its basis) expand into design columns; each linear predictor is an intercept plus a coefficient per column; the family (link and distribution) works only on η. Every coefficient belongs to one term of one predictor, so nothing has to be inferred from a layout.
+2. **A model-family interface** (`IModelFamily`): the number of predictors, the negative log-likelihood, its gradient with respect to η, and sampling from one uniform number. The gradient with respect to the coefficients is the chain rule, done once by the model.
+3. **Scaling works on design columns**: training standardises each column and converts the coefficients back afterwards, the same way for every basis. A family's own parameters (a count's dispersion) will sit outside the predictors and are not rescaled.
+4. **Each node declares its model** (family and terms) in the sport's spec; the manifest records it and training and simulation build the same model from it.
+5. **Outcomes stay `int` until the first `double`**: Bernoulli (0 or 1), categories and counts are all whole numbers, and each family rejects outcomes outside its range, loudly. Typed outcomes (`bool`, `int`, `double`) arrive with the first continuous outcome, when integers can no longer hold it: one node class per outcome type under a common base, and one decide and one collect method per type, so nothing is cast or boxed. Training data keeps 0/1 until then.
 6. **Two feature shapes, not a generic one**:
    - vector: one feature set per decision; flat `double[]` of n × f plus a typed outcome array;
    - choice: one feature set per candidate (who shoots); flat `double[]` of all candidates × f, an offset per decision and the chosen index (long format, one CSV row per candidate).
-7. **Speed without our own codegen**: families are structs and the trainer is generic over them (`where TFamily : struct`), so the JIT specialises and inlines each family; families work on whole spans of flat arrays, ready for SIMD (`System.Numerics.Tensors`).
+7. **Splines as a second basis**: `SplineTerm(feature, knots)` expands a feature into `x, max(0, x − k₁), …` columns, and training data keeps raw features. Families, predictors and scaling do not change; the parameters file records each spline term's knots next to its coefficients.
+8. **Speed without our own codegen**: for readability, `Model` holds its family behind `IModelFamily` for now, so the family's arithmetic is an interface call and cannot be inlined. Simulation loses nothing by it, because compilation writes each node's family arithmetic out directly. Training is not compiled: its speed work makes the trainer generic over the family's struct again (`where TFamily : struct, IModelFamily`, one dispatch from the family's name to its struct, in the trainer only), together with spans of flat arrays, no allocation per example and SIMD (`System.Numerics.Tensors`).
+
+## Compilation
+
+- **Training does not walk the graph**: it loops over feature arrays read from file, so its speed comes from the trainer being generic over struct families (the JIT specialises them), no allocation per example, spans and SIMD. Independent of the engine.
+- **Simulation**: a compiled node fuses its features, predictor, family sampling and transition into one method, with its parameters as constants; the plain walk stays as the reference, and a digest test proves the two identical.
+- **What keeps it possible**: rules are static methods, the state is plain arrays and numbers, families are pure functions of parameters, features and one uniform number, and features are expressions over the state (no calls into arbitrary methods) so a compiler can read them.
+- **Bases stay a closed set** (linear, spline): a compiler generates each basis's arithmetic directly, so no term may hide its logic behind an arbitrary `ITerm` implementation.
+- **Plain-walk costs to remove on the way**: the sampling decider finds parameters in a dictionary by node on every decision (an index will do), and `Categorical` allocates small arrays per call.
 
 ## Open questions
 
