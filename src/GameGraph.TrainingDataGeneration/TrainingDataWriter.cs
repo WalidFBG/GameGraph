@@ -8,7 +8,7 @@ public sealed class TrainingDataWriter(string root)
 {
     private static readonly JsonSerializerOptions ManifestJson = new() { WriteIndented = true };
 
-    public string Write<TState>(NodeSpec<TState> node, string source, IReadOnlyList<TrainingExample> examples, Dictionary<string, int> games)
+    public string Write<TState>(NodeSpec<TState> node, string source, IReadOnlyList<GameExamples> games, Dictionary<string, int> tally)
     {
         var directory = Path.Combine(root, node.Name);
         var features = node.Features.Select(f => f.Name).ToArray();
@@ -22,7 +22,7 @@ public sealed class TrainingDataWriter(string root)
         {
             writer.WriteLine(string.Join(',', [.. features, "outcome"]));
 
-            foreach (var example in examples)
+            foreach (var example in games.SelectMany(g => g.Examples))
             {
                 if (example.Features.Length != features.Length)
                     throw new InvalidDataException($"An example has {example.Features.Length} features, expected {features.Length}");
@@ -32,7 +32,15 @@ public sealed class TrainingDataWriter(string root)
             }
         }
 
-        var manifest = new TrainingDataManifest(node.Name, source, DateTime.UtcNow, features, examples.Count, games);
+        using (var writer = new StreamWriter(Path.Combine(directory, "games.csv")))
+        {
+            writer.WriteLine("game,startUtc,examples");
+
+            foreach (var game in games)
+                writer.WriteLine($"{game.GameId},{game.StartUtc.ToString("O", CultureInfo.InvariantCulture)},{game.Examples.Count.ToString(CultureInfo.InvariantCulture)}");
+        }
+
+        var manifest = new TrainingDataManifest(node.Name, source, DateTime.UtcNow, features, games.Sum(g => g.Examples.Count), tally);
         File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(manifest, ManifestJson));
 
         return directory;

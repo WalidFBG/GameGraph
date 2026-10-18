@@ -44,6 +44,34 @@ public static class TrainingDataReader
         if (examples.Count != count)
             throw new InvalidDataException($"The manifest in {directory} says {count} examples, examples.csv has {examples.Count}");
 
-        return new TrainingData(node, features, examples.ToArray(), outcomes.ToArray());
+        return new TrainingData(node, features, ReadGames(directory), examples.ToArray(), outcomes.ToArray());
+    }
+
+    private static TrainingGame[] ReadGames(string directory)
+    {
+        var lines = File.ReadLines(Path.Combine(directory, "games.csv")).GetEnumerator();
+        const string header = "game,startUtc,examples";
+
+        if (!lines.MoveNext() || lines.Current != header)
+            throw new InvalidDataException($"The header of games.csv in {directory} is not {header}");
+
+        var games = new List<TrainingGame>();
+        var next = 0;
+
+        while (lines.MoveNext())
+        {
+            var values = lines.Current.Split(',');
+
+            if (values.Length != 3)
+                throw new InvalidDataException($"Game {games.Count} in {directory} has {values.Length} columns, expected 3");
+
+            var start = DateTime.Parse(values[1], CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+            var examples = int.Parse(values[2], CultureInfo.InvariantCulture);
+
+            games.Add(new TrainingGame(values[0], start, next, examples));
+            next += examples;
+        }
+
+        return games.ToArray();
     }
 }

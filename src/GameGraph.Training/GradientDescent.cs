@@ -6,27 +6,41 @@ public static class GradientDescent
 {
     public const int Steps = 200;
     public const double LearningRate = 1.0;
+    public const int Patience = 5;
+    public const double MinimumImprovement = 1e-7;
 
-    public static Fit Fit(TrainingData data)
+    public static Fit Fit(TrainingData training, TrainingData validation)
     {
-        var scaling = new FeatureScaling(data);
-        var examples = data.Examples.Select(scaling.Scale).ToArray();
-        var parameters = new double[data.Features.Length + 1];
-        var negativeLogLikelihoods = new double[Steps + 1];
+        var scaling = new FeatureScaling(training);
+        var trainingExamples = training.Examples.Select(scaling.Scale).ToArray();
+        var validationExamples = validation.Examples.Select(scaling.Scale).ToArray();
+        var parameters = new double[training.Features.Length + 1];
+        var trainingNegativeLogLikelihoods = new List<double>();
+        var validationNegativeLogLikelihoods = new List<double>();
+        var bestParameters = parameters.ToArray();
+        var bestStep = 0;
 
-        for (var step = 0; step < Steps; step++)
+        for (var step = 0; step <= Steps; step++)
         {
-            negativeLogLikelihoods[step] = MeanNegativeLogLikelihood(parameters, examples, data.Outcomes);
+            trainingNegativeLogLikelihoods.Add(MeanNegativeLogLikelihood(parameters, trainingExamples, training.Outcomes));
+            validationNegativeLogLikelihoods.Add(MeanNegativeLogLikelihood(parameters, validationExamples, validation.Outcomes));
 
-            var gradient = MeanGradient(parameters, examples, data.Outcomes);
+            if (validationNegativeLogLikelihoods[step] < validationNegativeLogLikelihoods[bestStep] - MinimumImprovement)
+            {
+                bestParameters = parameters.ToArray();
+                bestStep = step;
+            }
+
+            if (step - bestStep == Patience || step == Steps)
+                break;
+
+            var gradient = MeanGradient(parameters, trainingExamples, training.Outcomes);
 
             for (var i = 0; i < parameters.Length; i++)
                 parameters[i] -= LearningRate * gradient[i];
         }
 
-        negativeLogLikelihoods[Steps] = MeanNegativeLogLikelihood(parameters, examples, data.Outcomes);
-
-        return new Fit(scaling.Unscale(parameters), negativeLogLikelihoods);
+        return new Fit(scaling.Unscale(bestParameters), bestStep, trainingNegativeLogLikelihoods.ToArray(), validationNegativeLogLikelihoods.ToArray());
     }
 
     private static double MeanNegativeLogLikelihood(double[] parameters, double[][] examples, int[] outcomes)

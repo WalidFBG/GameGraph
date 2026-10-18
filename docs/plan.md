@@ -76,5 +76,6 @@ Agreed now, built when the second model family arrives (step 2) and when choices
 
 ## Open questions
 
+- Regularisation (required, a vital part of training): which penalty (L2 first, L1 if sparsity is wanted), which feature scale it applies to (scaled or raw, since the fit is no longer scale-invariant once penalised), and its strength chosen on the validation set. Needed before player-level models.
 - Optimiser for the first models: plain gradient descent first, Adam once it is needed.
 - Licence for the public repository.

@@ -2,10 +2,11 @@ using GameGraph.Engine;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
+using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed class TrainingDataSeason(IWalkSink<NbaState> sink, GameTally tally)
+public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector, GameTally tally)
 {
     public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
     {
@@ -36,7 +37,8 @@ public sealed class TrainingDataSeason(IWalkSink<NbaState> sink, GameTally tally
         var state = new NbaState(Schedule(game.Possessions), context.HomeScoringRate, context.AwayScoringRate);
         var decider = new ObservedOutcomeDecider(game.Possessions);
 
-        GameWalker.Walk(NbaGameSpec.Instance, state, decider, sink);
+        collector.BeginGame(game.Id, game.StartUtc);
+        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
 
         decider.EnsureAllUsed();
     }

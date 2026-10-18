@@ -45,6 +45,7 @@ GameGraph.Host
   ├── GameGraph.Nba.Sportradar ──────────────► GameGraph.Nba ──► GameGraph.Engine
   └── GameGraph.Nba.TrainingDataGeneration
         ├── GameGraph.Nba.Augmentation ──────► GameGraph.Nba
+        ├── GameGraph.TrainingDataGeneration
         ├── GameGraph.Nba
         └── GameGraph.Engine
 ```

@@ -45,10 +45,10 @@ public static class Program
 
         foreach (var node in NbaGameSpec.Instance.Nodes)
         {
-            var examples = collector.ExamplesFor(node);
-            var directory = writer.Write(node, ValidatedData, examples, tally.ToDictionary());
+            var nodeGames = collector.GamesFor(node);
+            var directory = writer.Write(node, ValidatedData, nodeGames, tally.ToDictionary());
 
-            Console.WriteLine($"{node.Name}: {examples.Count} examples, written to {directory}");
+            Console.WriteLine($"{node.Name}: {nodeGames.Sum(g => g.Examples.Count)} examples in {nodeGames.Count} games, written to {directory}");
         }
     }
 
@@ -58,21 +58,21 @@ public static class Program
 
         foreach (var directory in Directory.GetDirectories(TrainingData).Order(StringComparer.Ordinal))
         {
-            var data = TrainingDataReader.Read(directory);
-            var fit = GradientDescent.Fit(data);
+            var (training, validation) = GameSplit.ByStartTime(TrainingDataReader.Read(directory));
+            var fit = GradientDescent.Fit(training, validation);
 
-            Console.WriteLine($"{data.Node}: {data.Examples.Length} examples");
+            Console.WriteLine($"{training.Node}: training {training.Examples.Length} examples in {training.Games.Length} games, validation {validation.Examples.Length} in {validation.Games.Length}");
 
-            for (var step = 0; step < fit.NegativeLogLikelihoods.Length; step += 20)
-                Console.WriteLine($"  Step {step,3} NLL: {fit.NegativeLogLikelihoods[step]:F6}");
+            for (var step = 0; step <= fit.LastStep; step += 5)
+                Console.WriteLine($"  Step {step,3} NLL: training {fit.TrainingNegativeLogLikelihoods[step]:F7}, validation {fit.ValidationNegativeLogLikelihoods[step]:F7}");
 
-            Console.WriteLine($"  Final NLL: {fit.NegativeLogLikelihoods[^1]:F6}");
+            Console.WriteLine($"  Best step {fit.BestStep} (stopped at {fit.LastStep}) NLL: training {fit.TrainingNegativeLogLikelihoods[fit.BestStep]:F7}, validation {fit.ValidationNegativeLogLikelihoods[fit.BestStep]:F7}");
             Console.WriteLine($"  Intercept: {fit.Parameters[0]:F6}");
 
-            for (var i = 0; i < data.Features.Length; i++)
-                Console.WriteLine($"  {data.Features[i]}: {fit.Parameters[i + 1]:F6}");
+            for (var i = 0; i < training.Features.Length; i++)
+                Console.WriteLine($"  {training.Features[i]}: {fit.Parameters[i + 1]:F6}");
 
-            Console.WriteLine($"  Written to {writer.Write(data, fit, directory)}");
+            Console.WriteLine($"  Written to {writer.Write(training, fit, directory)}");
         }
     }
 }

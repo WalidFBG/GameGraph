@@ -4,10 +4,23 @@ namespace GameGraph.TrainingDataGeneration;
 
 public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IWalkSink<TState>
 {
-    private readonly Dictionary<NodeSpec<TState>, List<TrainingExample>> _examples = spec.Nodes.ToDictionary(n => n, _ => new List<TrainingExample>());
+    private readonly Dictionary<NodeSpec<TState>, List<GameExamples>> _games = spec.Nodes.ToDictionary(n => n, _ => new List<GameExamples>());
 
-    public void Observe(NodeSpec<TState> node, double[] features, int outcome) =>
-        _examples[node].Add(new TrainingExample(features, outcome));
+    public void BeginGame(string gameId, DateTime startUtc)
+    {
+        foreach (var games in _games.Values)
+            games.Add(new GameExamples(gameId, startUtc, []));
+    }
 
-    public IReadOnlyList<TrainingExample> ExamplesFor(NodeSpec<TState> node) => _examples[node];
+    public void Observe(NodeSpec<TState> node, double[] features, int outcome)
+    {
+        var games = _games[node];
+
+        if (games.Count == 0)
+            throw new InvalidOperationException($"{nameof(BeginGame)} must be called before the walk");
+
+        games[^1].Examples.Add(new TrainingExample(features, outcome));
+    }
+
+    public IReadOnlyList<GameExamples> GamesFor(NodeSpec<TState> node) => _games[node];
 }

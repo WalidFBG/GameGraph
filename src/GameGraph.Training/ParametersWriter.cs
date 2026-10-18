@@ -17,7 +17,10 @@ public sealed class ParametersWriter(string root)
             CreatedUtc = DateTime.UtcNow,
             Intercept = fit.Parameters[0],
             Weights = data.Features.Select((f, i) => (f, fit.Parameters[i + 1])).ToDictionary(),
-            NegativeLogLikelihood = fit.NegativeLogLikelihoods[^1],
+            fit.BestStep,
+            fit.LastStep,
+            TrainingNegativeLogLikelihood = fit.TrainingNegativeLogLikelihoods[fit.BestStep],
+            ValidationNegativeLogLikelihood = fit.ValidationNegativeLogLikelihoods[fit.BestStep],
         };
 
         Directory.CreateDirectory(root);
