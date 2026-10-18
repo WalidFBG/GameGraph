@@ -1,15 +1,20 @@
+using GameGraph.Nba.Graph;
+using GameGraph.Nba.Observed;
 using OddsFactory.Sports.Data.Contracts.SportRadar;
 
-namespace GameGraph.Nba.Possessions;
+namespace GameGraph.Nba.Sportradar;
 
-public static class PossessionReader
+public static class ObservedGameReader
 {
     public const int MaximumPossessionDifference = 4;
 
-    public static PossessionReading Read(Game game)
+    public static ObservedGame Read(Game game)
     {
+        if (game.SeasonPhase != SeasonPhase.RegularSeason)
+            return Rejected(game, RejectionReason.OutsideRegularSeason);
+
         if (game.ValidationSummary.HasInvalidEvents)
-            return PossessionReading.Rejected(RejectionReason.InvalidEvents);
+            return Rejected(game, RejectionReason.InvalidEvents);
 
         var teams = TeamsByPlayer(game);
         var builder = new PossessionBuilder();
@@ -18,7 +23,7 @@ public static class PossessionReader
         {
             if (e.EventType == EventType.EndPeriod)
             {
-                builder.End();
+                builder.EndPeriod();
                 continue;
             }
 
@@ -28,19 +33,24 @@ public static class PossessionReader
             var team = ActingTeam(e, teams);
 
             if (team == TeamType.NotSet)
-                return PossessionReading.Rejected(RejectionReason.UnknownActingTeam);
+                return Rejected(game, RejectionReason.UnknownActingTeam);
 
-            builder.Act(team, e is FieldGoalAttempt { Made: true });
+            builder.Act(Side(team), e is FieldGoalAttempt { Made: true });
         }
 
         var possessions = builder.Build();
-        var home = possessions.Count(p => p.Team == TeamType.HomeOrA);
+        var home = possessions.Count(p => p.Side == Sides.Home);
 
         if (Math.Abs(home - (possessions.Length - home)) > MaximumPossessionDifference)
-            return PossessionReading.Rejected(RejectionReason.UnbalancedPossessions);
+            return Rejected(game, RejectionReason.UnbalancedPossessions);
 
-        return PossessionReading.Accepted(possessions);
+        return Observed(game, RejectionReason.NotSet, possessions);
     }
+
+    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, []);
+
+    private static ObservedGame Observed(Game game, RejectionReason rejection, Possession[] possessions) =>
+        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, possessions);
 
     private static bool IsAction(Event e) =>
         e is FieldGoalAttempt or Turnover or FreeThrow { FreeThrowType: FreeThrowType.Regular };
@@ -59,6 +69,13 @@ public static class PossessionReader
         var participant = participants?.FirstOrDefault(p => p.Type == role);
         return participant is null ? TeamType.NotSet : teams.GetValueOrDefault(participant.ParticipantId);
     }
+
+    private static int Side(TeamType team) => team switch
+    {
+        TeamType.HomeOrA => Sides.Home,
+        TeamType.AwayOrB => Sides.Away,
+        _ => throw new ArgumentOutOfRangeException(nameof(team), team, "Not a side"),
+    };
 
     private static Dictionary<long, TeamType> TeamsByPlayer(Game game) =>
         game.TeamA.Players.Select(p => (p.Player.Id, TeamType.HomeOrA))

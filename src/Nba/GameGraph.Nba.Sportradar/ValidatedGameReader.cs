@@ -1,11 +1,12 @@
 using System.Text.Json;
+using GameGraph.Nba.Observed;
 using OddsFactory.Sports.Data.Contracts.SportRadar;
 
-namespace GameGraph.Nba.Data;
+namespace GameGraph.Nba.Sportradar;
 
 public sealed class ValidatedGameReader(string directory)
 {
-    public IEnumerable<Game> ReadAll()
+    public IEnumerable<ObservedGame> ReadAll()
     {
         if (!Directory.Exists(directory))
             throw new DirectoryNotFoundException($"Validated data not found: {directory}");
@@ -13,7 +14,7 @@ public sealed class ValidatedGameReader(string directory)
         var paths = Directory.EnumerateFiles(directory, "*.json", SearchOption.AllDirectories).Order(StringComparer.Ordinal);
 
         foreach (var path in paths)
-            yield return Read(path);
+            yield return ObservedGameReader.Read(Read(path));
     }
 
     private static Game Read(string path)

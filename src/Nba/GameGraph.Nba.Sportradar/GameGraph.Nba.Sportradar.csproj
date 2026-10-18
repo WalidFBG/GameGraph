@@ -5,7 +5,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GameGraph.Engine\GameGraph.Engine.csproj" />
-    <ProjectReference Include="..\GameGraph.ModelFamilies\GameGraph.ModelFamilies.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
   </ItemGroup>
 </Project>

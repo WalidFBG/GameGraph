@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using OddsFactory.Sports.Data.Contracts.SportRadar;
 
-namespace GameGraph.Nba.Data;
+namespace GameGraph.Nba.Sportradar;
 
 public static class ValidatedDataJson
 {
