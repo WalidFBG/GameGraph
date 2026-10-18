@@ -64,11 +64,10 @@ Built in two pieces: first the engine change (decision collector and incident co
 The next model is the team-level possession tree in `possession-tree.html`: every node's model family, outcome type, transitions, clock rules and incidents.
 
 1. Step 1 above (team level, one Bernoulli node): done.
-2. The tree's action types, shots and rebounds, on the real schedule (the Categorical family).
-3. The tree's clock: `ClockCheck`, `PeriodRunsOut`, `ActionTime`, `PeriodEnds` (the truncated Count family); removes the schedule leak.
-4. The tree's fouls and free throws (rules with their own state).
-5. Compilation: once these families exist, so the compiler is built for real variety (see below).
-6. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
+2. The tree without the clock, on the real schedule: action types, shots, fouls, free throws and rebounds (the Categorical family; rules with their own state). Whether a non-shooting foul gives free throws is a Bernoulli node (`InBonus`) rather than the bonus rule, because the tree does not generate every team foul. Fouls come now because about one possession in eight has free throws: most are a fouled missed shot, which the data records as a shooting foul and free throws, with no shot.
+3. The tree's clock: `ClockCheck`, `PeriodRunsOut`, `ActionTime`, `PeriodEnds` and the clock features (the truncated Count family); removes the schedule leak. It also removes a stopgap of step 2: without a clock, a possession the period ends in the middle of (a buzzer scramble, about one period in two) cannot be walked, so the reader drops it and counts it (`PossessionsCutByPeriodEnd`); with the clock it is kept.
+4. Compilation: once these families exist, so the compiler is built for real variety (see below).
+5. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
@@ -78,10 +77,10 @@ Each piece builds and runs on its own and is reviewed before the next.
 
 1. Models as GLMs: terms, linear predictors and families (`Bernoulli`, `Categorical`) working on η; the trainer, the parameters file and the simulator go through the model: done.
 2. Each node declares its model (family and terms); the manifest records it; the trainer and the simulator build the model from it: done.
-3. Features as expressions (`Expression<Func<TState, double>>`, compiled once for the plain walk), while there are only two features.
-4. Reading the data: an observed possession becomes a sequence of actions (two, three, turnover), with made or missed and the offensive rebound.
-5. The NBA graph: the new nodes, state, features, transitions and incidents.
-6. End to end: training data, training and the quality-assurance simulation on the new graph.
+3. Features as expressions (`Expression<Func<TState, double>>`, compiled once for the plain walk), while there are only two features: done.
+4. Reading the data: an observed possession becomes a sequence of actions (two, three, turnover, non-shooting foul), with fouled or not, made or missed, the free throws and the offensive rebound.
+5. The NBA graph: the new nodes, state, features, transitions and incidents: done (the six decisions of the tree without the clock; first features are the score margin and team scoring rate plus each node's own state; the possession incident is the only incident yet).
+6. End to end: training data, training and the quality-assurance simulation on the new graph: done. `InBonus` stops at the 200-step cap and `FouledOnShot` close to it, so plain gradient descent is already too slow for some nodes (see the optimiser question).
 
 ## Model families and data shapes
 
@@ -110,5 +109,5 @@ Agreed now, built as the families arrive. Items 1 to 4 are done.
 
 - Regularisation (required, a vital part of training): which penalty (L2 first, L1 if sparsity is wanted), which feature scale it applies to (scaled or raw, since the fit is no longer scale-invariant once penalised), and its strength chosen on the validation set. Needed before player-level models.
 - Whether games outside the regular season should feed the history (they do not yet): a team's last 20 games currently skip its playoff games.
-- Optimiser for the first models: plain gradient descent first, Adam once it is needed.
+- Optimiser: plain gradient descent converges slowly on some nodes (`InBonus` hits the step cap; the synthetic Categorical fit showed the same on narrow features). Candidates: Newton's method or L-BFGS for these small models, or Adam.
 - Licence for the public repository.

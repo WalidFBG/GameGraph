@@ -40,9 +40,6 @@ public static class TrainingDataReader
 
             var outcome = int.Parse(values[^1], CultureInfo.InvariantCulture);
 
-            if (outcome is not (0 or 1))
-                throw new InvalidDataException($"Example {examples.Count} in {directory} has outcome {outcome}, expected 0 or 1");
-
             examples.Add(values[..^1].Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray());
             outcomes.Add(outcome);
         }

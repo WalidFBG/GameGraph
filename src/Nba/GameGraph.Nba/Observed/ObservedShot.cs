@@ -1,0 +1,39 @@
+using GameGraph.Nba.Graph;
+
+namespace GameGraph.Nba.Observed;
+
+public sealed record ObservedShot : ObservedAction
+{
+    public ObservedShot(int points, bool fouled, bool made, bool[] freeThrows, bool? offensiveRebound)
+    {
+        if (points is not (2 or 3))
+            throw new ArgumentOutOfRangeException(nameof(points), points, "A shot is worth 2 or 3");
+
+        var expected = !fouled ? 0 : made ? 1 : points;
+
+        if (freeThrows.Length != expected)
+            throw new ArgumentException($"A {(fouled ? "fouled" : "clean")} {(made ? "made" : "missed")} {points} has {expected} free throws, got {freeThrows.Length}", nameof(freeThrows));
+
+        CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1] : !made, offensiveRebound);
+
+        Points = points;
+        Fouled = fouled;
+        Made = made;
+        FreeThrows = freeThrows;
+        OffensiveRebound = offensiveRebound;
+    }
+
+    public int Points { get; }
+
+    public bool Fouled { get; }
+
+    public bool Made { get; }
+
+    public bool[] FreeThrows { get; }
+
+    public bool? OffensiveRebound { get; }
+
+    public override ActionType Type => Points == 2 ? ActionType.TwoPointAttempt : ActionType.ThreePointAttempt;
+
+    public override bool EndsPossession => OffensiveRebound != true;
+}

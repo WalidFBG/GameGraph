@@ -1,3 +1,8 @@
+using System.Linq.Expressions;
+
 namespace GameGraph.Engine;
 
-public sealed record Feature<TState>(string Name, Func<TState, double> Compute);
+public sealed record Feature<TState>(string Name, Expression<Func<TState, double>> Definition)
+{
+    public Func<TState, double> Compute { get; } = Definition.Compile();
+}

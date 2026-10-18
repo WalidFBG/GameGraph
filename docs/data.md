@@ -4,21 +4,25 @@
 
 `C:\Data\Basketball\ValidatedData\PlayByPlay`: validated Sportradar play-by-play, one JSON file per game, read with the `OddsFactory.Sports.Data.Contracts` types. It is read only, never written.
 
-## Reading a game (step 1)
+## Reading a game
 
-Training-data generation walks each game's events in order and skips anything step 1 does not use.
+The reader walks each game's events in order and turns them into possessions, each a sequence of actions the possession tree can produce (see `possession-tree.html`). Anything it cannot read that way rejects the game, counted by reason, never silently.
 
 1. Only `RegularSeason` games are used, for training data and for history alike. Pre-season, post-season, play-in and in-season tournament games are rejected and counted.
 2. A game is used only if its validation summary reports no invalid events. Others are rejected and counted. (The game-level status field is missing in some 2025 games; the summary flag is always present.)
-3. Possession is decided by who acts, not by the data's `teamInPossession` field, which flips for single events. The acting team of an event is:
-   - field-goal attempt: the shooter's team;
-   - turnover: the team of the player who committed it; a team turnover (no player) uses that event's `teamInPossession`, the only place the field is used;
-   - free throw of type `Regular`: the shooter's team.
-4. Consecutive actions by the same team form one possession. A change of acting team, or the end of a period, ends it. So offensive rebounds and and-ones stay inside their possession.
-5. Free throws of other types (`Technical`, `Flagrant`, `ClearPath`) are ignored: they can be taken by the defending team in the middle of a possession.
-6. Every other event is ignored in step 1 (rebounds, fouls, lineup changes, timeouts, reviews, jump balls).
-7. A possession's outcome is 1 if it contains at least one made field goal, 0 otherwise. A second made field goal in one possession is legitimate (and-one, missed free throw, offensive rebound, another basket); step 1 ignores it.
-8. Checks that fail a game (rejected, counted by reason, never silently): an action whose team cannot be determined, and a difference of more than 4 possessions between the two teams.
+3. **Actions**:
+   - a field-goal attempt is a two or a three, by the shooter's team;
+   - a turnover, by the team of the player who committed it (a team turnover uses the event's `teamInPossession`); shot-clock violations are turnovers;
+   - a `Personal` foul committed by the defence is a non-shooting foul: 2 free throws means in the bonus, 0 a side-out (the possession carries on).
+4. **Shooting fouls**: a missed fouled shot is not recorded as a shot; the `Shooting` foul with 2 or 3 free throws stands in for it (a two or a three, fouled, missed). A `Shooting` foul with 1 free throw right after a made shot is an and-one (fouled, made).
+5. **Free throws**: only `Regular` free throws count, and they belong to the action waiting for them, checked by the shooter's team. They are not matched by their foul's id: when a technical is called at the same moment, the shooting foul's free throws carry the technical's id.
+6. **Rebounds**: only the rebound after a missed shot, or after a missed last free throw, counts. The dead-ball team rebounds after earlier free throws, and bookkeeping rebounds after a made shot, are skipped.
+7. **Loose-ball fouls**: a `Personal` foul while a rebound is still loose gives the rebound to the team that drew it; the foul itself is then that team's non-shooting foul.
+8. **Ignored**: `Technical`, `Flagrant`, `Offensive` (the turnover covers it) and `NotSet` fouls, and their free throws; transition take fouls (a `Personal` foul with 1 free throw: the fouled team keeps the ball), and their free throw, about 1 point every 3 or 4 games; `Personal` fouls by the team with the ball; every other event (lineup changes, timeouts, reviews, jump balls).
+9. **Possessions**: a possession ends with a turnover, a made shot (and its and-one), a made last free throw, a defensive rebound, or a non-shooting foul in the bonus whose last free throw is made; an offensive rebound or a side-out continues it. The next possession is the other team's.
+10. **Possessions cut by the end of a period** (about one period in two: buzzer scrambles and bookkeeping rebounds) are dropped and counted. A stopgap until the clock, which models them.
+11. **Rejections**: an action whose team cannot be determined, a shot type that is neither two nor three, an unexpected foul (for example a `Shooting` foul with 0 free throws), a free throw nothing was waiting for, an action that interrupts another (a shot while free throws or a rebound are pending), the same team starting two possessions in a row, a possession that ends without an ending action, an unknown rebound type, and a difference of more than 4 possessions between the two teams. About 5% of the regular-season games with valid events are rejected.
+12. The quality-assurance test `ObservedActionsTests` prints the summary: games by rejection reason, possessions, actions by type, fouled and made rates, free throws, rebounds.
 
 ## Data GameGraph creates
 

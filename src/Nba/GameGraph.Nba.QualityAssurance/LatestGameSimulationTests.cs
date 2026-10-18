@@ -54,7 +54,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
         var meanTotal = Enumerable.Range(0, Simulations).Average(s => scores.Home(s) + scores.Away(s));
 
         output.WriteLine($"Game {game.Id}, {game.StartUtc:O}: {game.Possessions.Length} possessions in {schedule.Length} periods");
-        output.WriteLine($"Observed (2 points per scoring possession): home {Observed(game, Sides.Home)}, away {Observed(game, Sides.Away)}");
+        output.WriteLine($"Observed: home {Observed(game, Sides.Home)}, away {Observed(game, Sides.Away)}");
         output.WriteLine($"Simulated: home win {(double)homeWins / Simulations:P1}, away win {(double)awayWins / Simulations:P1}, tie {(double)ties / Simulations:P1}, mean total {meanTotal:F1}");
         output.WriteLine($"Written to {path}");
     }
@@ -79,7 +79,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     }
 
     private static int Observed(ObservedGame game, int side) =>
-        game.Possessions.Count(p => p.TeamInPossession == side && p.Scored) * NbaTransitions.PointsPerScore;
+        game.Possessions.Where(p => p.TeamInPossession == side).Sum(p => p.Points);
 
     private static string Write(ObservedGame game, ScoreCollector scores)
     {

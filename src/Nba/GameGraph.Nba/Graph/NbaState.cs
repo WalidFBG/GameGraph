@@ -22,9 +22,21 @@ public sealed class NbaState
 
     public int[] Score { get; } = new int[2];
 
+    public int[] TeamFouls { get; } = new int[2];
+
     public int Period { get; set; }
 
     public int TeamInPossession { get; set; }
 
     public int RemainingInPeriod { get; set; }
+
+    public int PossessionPoints { get; set; }
+
+    public int ShotPoints { get; set; }
+
+    public bool Fouled { get; set; }
+
+    public int FreeThrowsLeft { get; set; }
+
+    public Miss LastMiss { get; set; }
 }

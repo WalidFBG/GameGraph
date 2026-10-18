@@ -7,4 +7,11 @@ public enum RejectionReason
     InvalidEvents = 2,
     UnknownActingTeam = 3,
     UnbalancedPossessions = 4,
+    UnknownShotType = 5,
+    UnexpectedFoul = 6,
+    UnmatchedFreeThrow = 7,
+    InterruptedAction = 8,
+    SameTeamTwice = 9,
+    PossessionCutShort = 10,
+    UnknownReboundType = 11,
 }
