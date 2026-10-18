@@ -1,6 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="OddsFactory.Sports.Data.Contracts" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\GameGraph.Engine\GameGraph.Engine.csproj" />
     <ProjectReference Include="..\GameGraph.ModelFamilies\GameGraph.ModelFamilies.csproj" />
   </ItemGroup>

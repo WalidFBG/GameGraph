@@ -4,4 +4,4 @@ obj/
 .idea/
 *.user
 TestResults/
-data/
+/data/
