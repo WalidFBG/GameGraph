@@ -30,7 +30,7 @@ Planning. See `docs/plan.md`.
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
 | `src/Nba/GameGraph.Nba.QualityAssurance` | Analyses as tests: simulate real games, compare, write CSVs |
 | `src/GameGraph.Host` | Command line: generate training data, train, simulate |
-| `docs/` | Architecture, plan, lessons |
+| `docs/` | Architecture, plan, data, lessons, and the proposed possession tree (`possession-tree.html`) |
 
 ## Build
 
@@ -39,7 +39,7 @@ dotnet build GameGraph.slnx
 dotnet test --solution GameGraph.slnx
 ```
 
-Requires the .NET 10 SDK.
+Requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.
 
 ## Data
 

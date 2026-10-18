@@ -6,4 +6,4 @@ public sealed record TrainingDataManifest(
     DateTime CreatedUtc,
     string[] Features,
     int Examples,
-    Dictionary<string, int> Games);
+    Dictionary<string, int> Tally);

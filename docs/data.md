@@ -32,7 +32,7 @@ Lives in `C:\Data\GameGraph\nba\`:
 | `quality-assurance\<test>` | Output of the quality-assurance tests, for example one row per simulation of the latest game |
 
 - Parameters, settings and summaries are JSON; training data is CSV to start.
-- Each training-data folder has a `manifest.json`: node, source data, date, feature names, example count and how many games were generated, short of history or rejected, by reason.
+- Each training-data folder has a `manifest.json`: node, source data, date, feature names, example count, and the tally: how many games were generated, short of history or rejected, by reason.
 - `examples.csv` holds one row per example, games one after another in start-time order; `games.csv` holds one row per game (id, start time, number of examples), so examples are grouped by game without repeating the game on every row.
 - Training splits by game: the latest 20% of games by start time are the validation set.
 - Augmentation values are never written: they are computed in memory as the season is walked (see `plan.md`).

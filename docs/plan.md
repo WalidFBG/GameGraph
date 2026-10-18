@@ -28,15 +28,15 @@ A simple, readable prototype that runs the full flow on real NBA data: augment, 
 3. Generate training data: walk each game, emit one row per possession.
 4. Train the model on the rows.
 5. Simulate held-out games; price the total and the winner.
-6. Validate against what actually happened.
-7. Round trip: simulate many games with the trained parameters, generate training data from them, retrain, and check the parameters come back.
+6. Validate against what actually happened: deferred; it will be an audit of the simulator and its nodes, designed when it is needed.
+7. Round trip: dropped, the audit covers it.
 
 The model is useless for pricing, but every part of the architecture exists and is tested.
 
 ## Validation
 
-- **Round trip** (on the NBA graph itself): checks that simulation, training-data generation and training agree with each other. If it fails, the pipeline is wrong.
-- **Against reality**: holdout log-loss and calibration per model; simulated against actual totals, margins and, later, player stats on held-out games. If this fails but the round trip passes, the model or the data is the problem.
+- **Audit of the simulator and its nodes**: deferred, designed when it is needed; it covers what a round trip would (simulation, training-data generation and training agreeing with each other).
+- **Against reality**: holdout log-loss and calibration per model; simulated against actual totals, margins and, later, player stats on held-out games.
 - **Against the current production model**: a sanity check on averages only. It contains trading adjustments, so it is not the target.
 
 ## Augmentation
@@ -60,6 +60,8 @@ Built in two pieces: first the engine change (decision collector and incident co
 6. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.QualityAssurance` (xUnit v3), each with its own season loop. The first simulates the latest generated game, writes one row per simulation (simulation index, home points, away points) to `quality-assurance`, and prints home win, away win, tie and mean total next to the actual result.
 
 ## Growing the NBA
+
+A proposal for a deeper possession tree, with every node's model family, outcome type and transitions, is in `possession-tree.html`.
 
 1. Step 1 above (team level, one Bernoulli node).
 2. Turnovers and rebounds: possession ends in a shot or a turnover; misses are rebounded.
