@@ -35,8 +35,7 @@ A simple, readable prototype that runs the full flow on real NBA data: augment, 
 
 Unknowns to settle while building: how team turnovers (no player) name their team, and the right tolerance for the possession difference.
 
-Data GameGraph creates lives in `C:\Data\GameGraph
-ba\` (`context`, `rows\<model>`, `parameters`, `simulations`). Parameters, settings and summaries are JSON; labelled rows are CSV to start. Each dataset folder has a `manifest.json`: source data, GameGraph commit, seed, date and row count. Paths come from configuration.
+Data GameGraph creates lives in `C:\Data\GameGraph\nba\` (`context`, `rows\<model>`, `parameters`, `simulations`). Parameters, settings and summaries are JSON; labelled rows are CSV to start. Each dataset folder has a `manifest.json`: source data, GameGraph commit, seed, date and row count. Paths come from configuration.
 
 **The flow.**
 
