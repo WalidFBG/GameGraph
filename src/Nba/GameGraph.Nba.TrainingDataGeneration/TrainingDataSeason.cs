@@ -1,13 +1,16 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
 using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector, GameTally tally)
+public sealed class TrainingDataSeason(TrainingDataCollector<NbaState, INbaIncidentCollector> collector, GameTally tally)
 {
+    private readonly IgnoredIncidents _incidentCollector = new();
+
     public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
     {
         foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
@@ -38,7 +41,7 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
         var decider = new ObservedOutcomeDecider(game.Possessions);
 
         collector.BeginGame(game.Id, game.StartUtc);
-        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
+        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector, _incidentCollector);
 
         decider.EnsureAllUsed();
     }

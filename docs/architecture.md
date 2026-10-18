@@ -9,22 +9,33 @@ A sport is a graph of decisions. At each decision (a node) something is chosen: 
 The engine performs the walk, in both modes. At every node it:
 
 1. computes the node's features from the game state, using the sport's feature definitions;
-2. asks the **outcome decider** for the node's outcome;
-3. hands the features and the outcome to the **sink**;
-4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome and returns the next node.
+2. asks the **outcome decider** for the node's outcome, given the state and the features;
+3. hands the node, the state, the features and the outcome to the **decision collector**;
+4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome, reports to the **incident collector** whatever the rules say happened (for example, a possession ended with 2 points), and returns the next node.
 
 It repeats this until a transition returns the end of the game.
+
+The walk has two outputs, for two audiences:
+
+| | Decisions | Incidents |
+|---|---|---|
+| What | node, features and outcome, for every model decision | sport-specific facts, for example a possession's side, period and points |
+| When | at every node | at the points the sport's rules choose, for example the end of a possession |
+| Received by | a decision collector | an incident collector |
+| Defined by | the engine | the sport: its incident types and its collector interface (`INbaIncidentCollector`) are its public contract |
+| Seen by | only this solution: training-data generation, diagnostics | the outside world, which aggregates incidents into whatever it prices |
 
 | | Simulate | Generate training data |
 |---|---|---|
 | Outcome decider | samples from the node's model | reads the observed outcome from a real game, as the sport says how |
-| Sink | records the game's events, for pricing | the training-data collector: copies features and outcome, and stores them as training data |
+| Decision collector | does nothing | the training-data collector: stores node, features and outcome as training data |
+| Incident collector | the outside world's | ignores incidents |
 
 Who provides what:
 
-- **The sport**: the game state, the transitions (update the state with an outcome, return the next node), the feature definitions, and how to read observed outcomes from its data.
-- **The engine**: the walk itself. The only thing that differs between modes is where each node's outcome comes from.
-- **The training-data collector**: nothing but a sink. It never tracks the score, applies a rule or computes a feature.
+- **The sport**: the game state, the transitions (update the state with an outcome, report incidents, return the next node), the feature definitions, its incident types and collector interface, and how to read observed outcomes from its data.
+- **The engine**: the walk itself. The only thing that differs between modes is where each node's outcome comes from and who receives the two outputs.
+- **The training-data collector**: nothing but a decision collector. It never tracks the score, applies a rule or computes a feature.
 
 So features, rules and state updates are the same code in both modes. Training data is built by exactly the code that later simulates.
 
@@ -51,9 +62,9 @@ GameGraph.Host
 ```
 
 - **ModelFamilies** knows nothing about sports, games or the engine. Each model family provides: evaluate (parameters and features to a distribution), log-likelihood, and gradient.
-- **Engine** owns the walk, the outcome-decider and sink interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
+- **Engine** owns the walk, the outcome-decider and decision-collector interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
 - **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine.
-- **TrainingDataGeneration** holds the training-data collector (a sink for the engine's walk that stores what it is handed) and writes the training data to file.
+- **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
@@ -71,6 +82,8 @@ A node's features can read two kinds of input, both held in the game state:
 
 Context is never written to file. It is computed side by side with the walk: games are taken in start-time order, each is walked with the context from earlier games, and only then is it added to the history.
 
+In production, augmentation runs one game at a time: the latest histories are saved after each game and loaded before the next. The season loop over many games exists only inside this solution, for training-data generation and analysis.
+
 ## Lines drawn from day one
 
 - The engine performs the walk in both modes; game logic lives only in the sport's rules.
@@ -78,6 +91,7 @@ Context is never written to file. It is computed side by side with the walk: gam
 - An outcome decider (sample or observe) is the only difference between simulating and generating training data.
 - Every random draw comes from a seeded stream; every run is reproducible.
 - When the data and the rules disagree, fail loudly.
+- The outside world sees only incidents: never decisions, features or state.
 
 ## Not yet
 

@@ -1,10 +1,10 @@
 namespace GameGraph.Engine;
 
-public sealed class GameSpec<TState>
+public sealed class GameSpec<TState, TIncidentCollector>
 {
-    public GameSpec(NodeSpec<TState>[] nodes, NodeSpec<TState> start)
+    public GameSpec(NodeSpec<TState, TIncidentCollector>[] nodes, NodeSpec<TState, TIncidentCollector> start)
     {
-        if (nodes.Contains(NodeSpec<TState>.End))
+        if (nodes.Contains(NodeSpec<TState, TIncidentCollector>.End))
             throw new ArgumentException("End is not a node of the game", nameof(nodes));
 
         if (nodes.Select(n => n.Name).Distinct().Count() != nodes.Length)
@@ -17,7 +17,7 @@ public sealed class GameSpec<TState>
         Start = start;
     }
 
-    public NodeSpec<TState>[] Nodes { get; }
+    public NodeSpec<TState, TIncidentCollector>[] Nodes { get; }
 
-    public NodeSpec<TState> Start { get; }
+    public NodeSpec<TState, TIncidentCollector> Start { get; }
 }

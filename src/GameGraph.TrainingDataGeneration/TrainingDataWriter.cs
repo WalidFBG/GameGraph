@@ -8,7 +8,7 @@ public sealed class TrainingDataWriter(string root)
 {
     private static readonly JsonSerializerOptions ManifestJson = new() { WriteIndented = true };
 
-    public string Write<TState>(NodeSpec<TState> node, string source, IReadOnlyList<GameExamples> games, Dictionary<string, int> tally)
+    public string Write<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, string source, IReadOnlyList<GameExamples> games, Dictionary<string, int> tally)
     {
         var directory = Path.Combine(root, node.Name);
         var features = node.Features.Select(f => f.Name).ToArray();

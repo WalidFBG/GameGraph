@@ -19,7 +19,7 @@ Planning. See `docs/plan.md`.
 | Path | What it holds |
 |---|---|
 | `src/GameGraph.ModelFamilies` | Model families: evaluate, log-likelihood, gradient |
-| `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, sinks |
+| `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
 | `src/GameGraph.Training` | Orchestrates training: reads training data, fits parameters, writes them |
 | `src/GameGraph.TrainingDataGeneration` | Collects what the engine's walk hands it and writes it as training data |
 | `src/Nba/GameGraph.Nba` | The NBA: state, rules, features, observed games |

@@ -48,6 +48,16 @@ Augmentation runs side by side with training-data generation (and later the simu
 3. Small samples (rookies, trades, returns from injury) need explicit shrinkage or weighting, never hidden fixes.
 4. Context enters the engine as constant per-game inputs next to the game state.
 
+## Simulation (step 5)
+
+Built in two pieces: first the engine change (decision collector and incident collector, incidents reported by the NBA's transitions), then simulation itself.
+
+1. **Parameters**: `parameters\<node>.json` is the contract between training and simulation; simulation has its own reader, which orders the weights by the node's features and fails on any missing or extra name.
+2. **Randomness**: one root seed constant; each simulation gets its own seed, drawn from the root up front, so results do not depend on scheduling. `System.Random(seed)` sits behind a small class of our own, to be replaced by xoshiro256** (seeded through SplitMix64) with the speed work, before outputs are pinned by a digest test.
+3. **Count**: 10,000 simulations per game.
+4. **The real schedule**: each simulation plays the real game's periods and possessions per period, overtime included; every possession's outcome is sampled. This leaks the real game into the price (overtime is known in advance, so is the pace) and is accepted until step 4 brings the clock; ties are possible and counted separately.
+5. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.QualityAssurance` (xUnit v3), each with its own season loop. The first simulates the latest generated game, writes one row per simulation (number, home points, away points) to `simulations`, and prints home win, away win, tie and mean total next to the actual result.
+
 ## Growing the NBA
 
 1. Step 1 above (team level, one Bernoulli node).
@@ -77,5 +87,6 @@ Agreed now, built when the second model family arrives (step 2) and when choices
 ## Open questions
 
 - Regularisation (required, a vital part of training): which penalty (L2 first, L1 if sparsity is wanted), which feature scale it applies to (scaled or raw, since the fit is no longer scale-invariant once penalised), and its strength chosen on the validation set. Needed before player-level models.
+- Whether games outside the regular season should feed the history (they do not yet): a team's last 20 games currently skip its playoff games.
 - Optimiser for the first models: plain gradient descent first, Adam once it is needed.
 - Licence for the public repository.

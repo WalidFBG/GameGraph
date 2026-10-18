@@ -1,14 +1,15 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeDecider<NbaState>
+public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeDecider<NbaState, INbaIncidentCollector>
 {
     private int _next;
 
-    public int Decide(NodeSpec<NbaState> node, NbaState state)
+    public int Decide(NodeSpec<NbaState, INbaIncidentCollector> node, NbaState state, double[] features)
     {
         if (node != NbaNodes.Possession)
             throw new ArgumentOutOfRangeException(nameof(node), node.Name, "No observed outcome for this node");

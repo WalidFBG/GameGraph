@@ -2,9 +2,9 @@ using GameGraph.Engine;
 
 namespace GameGraph.TrainingDataGeneration;
 
-public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IWalkSink<TState>
+public sealed class TrainingDataCollector<TState, TIncidentCollector>(GameSpec<TState, TIncidentCollector> spec) : IDecisionCollector<TState, TIncidentCollector>
 {
-    private readonly Dictionary<NodeSpec<TState>, List<GameExamples>> _games = spec.Nodes.ToDictionary(n => n, _ => new List<GameExamples>());
+    private readonly Dictionary<NodeSpec<TState, TIncidentCollector>, List<GameExamples>> _games = spec.Nodes.ToDictionary(n => n, _ => new List<GameExamples>());
 
     public void BeginGame(string gameId, DateTime startUtc)
     {
@@ -12,7 +12,7 @@ public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IWalk
             games.Add(new GameExamples(gameId, startUtc, []));
     }
 
-    public void Observe(NodeSpec<TState> node, double[] features, int outcome)
+    public void Collect(NodeSpec<TState, TIncidentCollector> node, TState state, double[] features, int outcome)
     {
         var games = _games[node];
 
@@ -22,5 +22,5 @@ public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IWalk
         games[^1].Examples.Add(new TrainingExample(features, outcome));
     }
 
-    public IReadOnlyList<GameExamples> GamesFor(NodeSpec<TState> node) => _games[node];
+    public IReadOnlyList<GameExamples> GamesFor(NodeSpec<TState, TIncidentCollector> node) => _games[node];
 }
