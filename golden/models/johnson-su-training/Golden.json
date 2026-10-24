@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "model": {
+    "distribution": {
+      "name": "discreteJohnsonSu"
+    },
+    "terms": {
+      "location": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        }
+      ],
+      "scale": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        }
+      ],
+      "skew": [],
+      "tail": []
+    },
+    "given": {
+      "maximum": "Bound"
+    }
+  },
+  "fit": {
+    "location": {
+      "intercept": 8.665056449910544,
+      "terms": {
+        "Gaussian": {
+          "centre": 0.02073710849621523,
+          "scale": 1.0104740663645109,
+          "coefficients": [
+            1.9725030267120858
+          ]
+        }
+      }
+    },
+    "scale": {
+      "intercept": 1.7257289722318205,
+      "terms": {
+        "Gaussian": {
+          "centre": 0.02073710849621523,
+          "scale": 1.0104740663645109,
+          "coefficients": [
+            0.2541528653524745
+          ]
+        }
+      }
+    },
+    "skew": {
+      "intercept": 0.4976029628050175,
+      "terms": {}
+    },
+    "tail": {
+      "intercept": 0.5643617505178506,
+      "terms": {}
+    }
+  }
+}

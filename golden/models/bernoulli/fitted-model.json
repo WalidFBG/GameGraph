@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linear",
+          "feature": "Indicator"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -0.12,
+      "terms": {
+        "Gaussian": {
+          "centre": 0.31,
+          "scale": 8.4,
+          "coefficients": [
+            0.021
+          ]
+        },
+        "Indicator": {
+          "centre": 0.38,
+          "scale": 0.49,
+          "coefficients": [
+            -0.18
+          ]
+        },
+        "Uniform": {
+          "knotPositions": [
+            0.0,
+            8.0,
+            16.0,
+            24.0
+          ],
+          "centres": [
+            4.1,
+            3.9,
+            2.2
+          ],
+          "scales": [
+            3.0,
+            3.5,
+            3.1
+          ],
+          "coefficients": [
+            0.12,
+            -0.05,
+            0.2
+          ]
+        }
+      }
+    }
+  }
+}

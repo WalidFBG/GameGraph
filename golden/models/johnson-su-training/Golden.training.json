@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "createdUtc": "2026-10-24T13:51:22.646325Z",
+  "trainingGames": 32,
+  "examples": {
+    "training": 1600,
+    "validation": 400
+  },
+  "negativeLogLikelihood": {
+    "training": 2.4816596708844574,
+    "validation": 2.4647522481876973
+  },
+  "optimiser": {
+    "name": "lbfgs",
+    "iterations": 28
+  }
+}

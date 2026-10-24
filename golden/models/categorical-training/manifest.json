@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "source": "synthetic",
+  "createdUtc": "2024-01-01T00:00:00Z",
+  "features": [
+    "Gaussian",
+    "Uniform"
+  ],
+  "examples": 2000,
+  "model": {
+    "distribution": {
+      "name": "categorical",
+      "categories": [
+        "first",
+        "second",
+        "third"
+      ]
+    },
+    "terms": {
+      "second": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ],
+      "third": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ]
+    },
+    "given": {}
+  }
+}

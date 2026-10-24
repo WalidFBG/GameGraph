@@ -88,7 +88,7 @@ GameGraph.Nba.QualityAssurance (tests)
 - **Engine** owns the walk, the outcome-decider and decision-collector interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
 - **Parameters** is the contract between training and simulation: each node's family and the named form of its parameters (per predictor, an intercept and each term's feature, basis and coefficients), and their file format.
 - **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its model with the trained parameters, decisions are discarded, and incidents go to the caller's incident collector. It lines the parameters up with each node's features and fails on any mismatch; it reads no files.
-- **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine.
+- **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine. It moves to Python (see `models.md`), reading the same training-data files and writing the same parameters files.
 - **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
@@ -97,7 +97,7 @@ GameGraph.Nba.QualityAssurance (tests)
 - **Nba.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
 - **Host** wires them together.
 
-Engine and Training never reference each other. They share only the model families, which is what guarantees that what is trained is what runs.
+Engine and Training never reference each other. They share only the model families, which is what guarantees that what is trained is what runs. Once training is Python, parity tests give that guarantee instead: C# recomputes the training report's likelihoods from the same files and parameters, and must agree.
 
 ## Inputs to a node
 

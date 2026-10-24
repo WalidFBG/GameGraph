@@ -1,0 +1,177 @@
+{
+  "features": [
+    "Gaussian",
+    "Indicator",
+    "Uniform"
+  ],
+  "cases": [
+    {
+      "features": [
+        0.0,
+        0.0,
+        12.0
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.5078625471827501
+      ],
+      "logProbability": -0.6775444444279661,
+      "uniform": 0.1,
+      "sample": 1
+    },
+    {
+      "features": [
+        0.0,
+        0.0,
+        12.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        0.5078625471827501
+      ],
+      "logProbability": -0.7089972258631206,
+      "uniform": 0.9,
+      "sample": 0
+    },
+    {
+      "features": [
+        0.0,
+        1.0,
+        -3.0
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.3546294285426762
+      ],
+      "logProbability": -1.036681897971487,
+      "uniform": 0.45,
+      "sample": 0
+    },
+    {
+      "features": [
+        0.0,
+        1.0,
+        0.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        0.3546294285426762
+      ],
+      "logProbability": -0.43793059777398846,
+      "uniform": 0.47,
+      "sample": 0
+    },
+    {
+      "features": [
+        -7.0,
+        1.0,
+        8.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        0.426474138743962
+      ],
+      "logProbability": -0.5559522496961201,
+      "uniform": 0.05,
+      "sample": 1
+    },
+    {
+      "features": [
+        12.0,
+        0.0,
+        11.5
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.5171421884885763
+      ],
+      "logProbability": -0.6594374161963606,
+      "uniform": 0.999,
+      "sample": 0
+    },
+    {
+      "features": [
+        25.0,
+        1.0,
+        16.0
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.4181099650018798
+      ],
+      "logProbability": -0.8720108068881451,
+      "uniform": 0.5,
+      "sample": 0
+    },
+    {
+      "features": [
+        -25.0,
+        0.0,
+        20.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        0.5423667764178851
+      ],
+      "logProbability": -0.781687237570196,
+      "uniform": 0.5,
+      "sample": 1
+    },
+    {
+      "features": [
+        3.5,
+        0.0,
+        24.0
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.6222687140588179
+      ],
+      "logProbability": -0.4743832633633428,
+      "uniform": 0.0,
+      "sample": 1
+    },
+    {
+      "features": [
+        -1.25,
+        1.0,
+        30.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        0.5299558358130719
+      ],
+      "logProbability": -0.7549286223374281,
+      "uniform": 0.75,
+      "sample": 0
+    },
+    {
+      "features": [
+        12000.0,
+        0.0,
+        5.0
+      ],
+      "outcome": 1,
+      "parameters": [
+        0.9999999999999034
+      ],
+      "logProbability": -9.658940314239329e-14,
+      "uniform": 0.999999,
+      "sample": 1
+    },
+    {
+      "features": [
+        -12000.0,
+        1.0,
+        5.0
+      ],
+      "outcome": 0,
+      "parameters": [
+        6.280439748776473e-14
+      ],
+      "logProbability": -6.28043974877667e-14,
+      "uniform": 1e-06,
+      "sample": 0
+    }
+  ]
+}

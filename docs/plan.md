@@ -6,7 +6,7 @@ A simple, readable prototype that runs the full flow on real NBA data: augment, 
 
 ## Constraints
 
-- Plain .NET 10 and C#. Only .NET libraries (for example MathNet) where they genuinely help.
+- The engine, the sports and simulation are plain .NET 10 and C#, with .NET libraries (for example MathNet) only where they genuinely help. Training is Python (see `models.md`).
 - The repository is public: no data is committed, and nothing is copied from other codebases. Findings and lessons are reused; code is written fresh.
 - Every line should be understandable on its own. Prefer simple and explicit over clever.
 
@@ -84,7 +84,7 @@ Each piece builds and runs on its own and is reviewed before the next.
 
 ## Model families and data shapes
 
-Agreed now, built as the families arrive. Items 1 to 4 are done.
+What the C# models are today; items 1 to 4 are built. `models.md` replaces this: GAMLSS, trained in Python, evaluated and sampled in C#.
 
 1. **Models are GLMs**: terms (a feature and its basis) expand into design columns; each linear predictor is an intercept plus a coefficient per column; the family (link and distribution) works only on η. Every coefficient belongs to one term of one predictor, so nothing has to be inferred from a layout.
 2. **A model-family interface** (`IModelFamily`): the number of predictors, the negative log-likelihood, its gradient with respect to η, and sampling from one uniform number. The gradient with respect to the coefficients is the chain rule, done once by the model.
@@ -99,15 +99,19 @@ Agreed now, built as the families arrive. Items 1 to 4 are done.
 
 ## Compilation
 
-- **Training does not walk the graph**: it loops over feature arrays read from file, so its speed comes from the trainer being generic over struct families (the JIT specialises them), no allocation per example, spans and SIMD. Independent of the engine.
+- **Training does not walk the graph**: it is Python, reading the training-data files, so it is independent of the engine and its speed comes from PyTorch.
 - **Simulation**: a compiled node fuses its features, predictor, family sampling and transition into one method, with its parameters as constants; the plain walk stays as the reference, and a digest test proves the two identical.
 - **What keeps it possible**: rules are static methods, the state is plain arrays and numbers, families are pure functions of parameters, features and one uniform number, and features are expressions over the state (no calls into arbitrary methods) so a compiler can read them.
 - **Bases stay a closed set** (linear, spline): a compiler generates each basis's arithmetic directly, so no term may hide its logic behind an arbitrary `ITerm` implementation.
-- **Plain-walk costs to remove on the way**: the sampling decider finds parameters in a dictionary by node on every decision (an index will do), and `Categorical` allocates small arrays per call.
+- **Plain-walk costs to remove on the way**:
+  - nodes become integer indices into the game's node array, so the walk and the sampling decider find nodes and parameters by index: no dictionary by node, and no search of the node list at every step (an index outside the array still fails loudly);
+  - the walk allocates no features array per step;
+  - `Categorical` allocates no small arrays per call.
+- **Parallel simulations**: each simulation already has its own seed, so simulations run in parallel, one walk at a time per thread. Incident collectors write into slots preallocated per simulation and keyed by `SimulationIndex`, so they need no locks. A test checks that the results do not depend on the number of threads.
 
 ## Open questions
 
 - Regularisation (required, a vital part of training): which penalty (L2 first, L1 if sparsity is wanted), which feature scale it applies to (scaled or raw, since the fit is no longer scale-invariant once penalised), and its strength chosen on the validation set. Needed before player-level models.
 - Whether games outside the regular season should feed the history (they do not yet): a team's last 20 games currently skip its playoff games.
-- Optimiser: plain gradient descent converges slowly on some nodes (`InBonus` hits the step cap; the synthetic Categorical fit showed the same on narrow features). Candidates: Newton's method or L-BFGS for these small models, or Adam.
+- Optimiser: plain gradient descent converges slowly on some nodes (`InBonus` hits the step cap). Training moves to Python, where L-BFGS and Adam come with PyTorch.
 - Licence for the public repository.

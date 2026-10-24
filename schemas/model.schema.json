@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WalidFBG/GameGraph/schemas/model.schema.json",
+  "title": "Model definitions shared by the documents",
+  "$defs": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "numbers": { "type": "array", "minItems": 1, "items": { "type": "number" } },
+    "declaration": {
+      "type": "object",
+      "required": ["distribution", "terms", "given"],
+      "additionalProperties": false,
+      "properties": {
+        "distribution": { "$ref": "#/$defs/distribution" },
+        "terms": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/declaredTerm" } }
+        },
+        "given": { "$ref": "#/$defs/given" }
+      }
+    },
+    "distribution": {
+      "oneOf": [{ "$ref": "#/$defs/bernoulli" }, { "$ref": "#/$defs/categorical" }, { "$ref": "#/$defs/discreteJohnsonSu" }]
+    },
+    "bernoulli": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "bernoulli" }
+      }
+    },
+    "categorical": {
+      "type": "object",
+      "required": ["name", "categories"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "categorical" },
+        "categories": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/name" } }
+      }
+    },
+    "discreteJohnsonSu": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "discreteJohnsonSu" }
+      }
+    },
+    "given": { "type": "object", "additionalProperties": { "$ref": "#/$defs/name" } },
+    "declaredTerm": {
+      "oneOf": [{ "$ref": "#/$defs/declaredLinear" }, { "$ref": "#/$defs/declaredLinearSpline" }]
+    },
+    "declaredLinear": {
+      "type": "object",
+      "required": ["basis", "feature"],
+      "additionalProperties": false,
+      "properties": {
+        "basis": { "const": "linear" },
+        "feature": { "$ref": "#/$defs/name" }
+      }
+    },
+    "declaredLinearSpline": {
+      "type": "object",
+      "required": ["basis", "feature", "knots"],
+      "additionalProperties": false,
+      "properties": {
+        "basis": { "const": "linearSpline" },
+        "feature": { "$ref": "#/$defs/name" },
+        "knots": { "type": "integer", "minimum": 2 }
+      }
+    }
+  }
+}

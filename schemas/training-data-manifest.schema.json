@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WalidFBG/GameGraph/schemas/training-data-manifest.schema.json",
+  "title": "Training-data manifest: one node's training data, written by C# and read by Python",
+  "type": "object",
+  "required": ["schemaVersion", "node", "source", "createdUtc", "features", "examples", "model"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "$ref": "model.schema.json#/$defs/schemaVersion" },
+    "node": { "$ref": "model.schema.json#/$defs/name" },
+    "source": { "type": "string", "minLength": 1 },
+    "createdUtc": { "type": "string", "format": "date-time" },
+    "features": { "type": "array", "uniqueItems": true, "items": { "$ref": "model.schema.json#/$defs/name" } },
+    "examples": { "type": "integer", "minimum": 1 },
+    "model": { "$ref": "model.schema.json#/$defs/declaration" }
+  }
+}
