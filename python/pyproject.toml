@@ -9,6 +9,9 @@ dependencies = [
     "torch",
 ]
 
+[project.scripts]
+gamegraph-train = "gamegraph.models.train_nodes:main"
+
 [dependency-groups]
 dev = [
     "pyright",

@@ -53,6 +53,12 @@ uv run ruff format --check
 uv run pyright
 ```
 
+To train every node, from the training data the Host writes to the fitted models simulation reads:
+
+```
+uv run gamegraph-train <training data> <fitted models>
+```
+
 The C# requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.
 
 ## Data
