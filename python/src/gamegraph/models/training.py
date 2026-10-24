@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -34,12 +35,13 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
     split = data.split(training_games)
     manifest = data.manifest
     training, validation = split.training, split.validation
+    start = Model.initial(manifest.model, manifest.features, training.features, training.outcomes)
+    designs, validation_designs = start.designs(training.features), start.designs(validation.features)
     attempts: list[Attempt] = []
     failures: list[Failure] = []
     fits: list[FittedModel] = []
     for route, ridges in ROUTES:
-        model = Model.initial(manifest.model, manifest.features, training.features, training.outcomes)
-        designs, validation_designs = model.designs(training.features), model.designs(validation.features)
+        model = deepcopy(start)
         for ridge in ridges:
             try:
                 iterations = fit(manifest.node, model, designs, training.outcomes, ridge)
