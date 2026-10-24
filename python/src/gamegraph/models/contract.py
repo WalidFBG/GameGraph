@@ -163,33 +163,21 @@ class ModelDeclaration:
 
 
 @dataclass(frozen=True)
-class FittedLinearTerm:
-    feature: str
+class LinearFit:
     centre: float
     scale: float
     coefficients: tuple[float, ...]
 
-    def declaration(self) -> LinearTerm:
-        return LinearTerm(self.feature)
-
     def to_json(self) -> Json:
-        return {
-            "basis": "linear",
-            "feature": self.feature,
-            "centre": self.centre,
-            "scale": self.scale,
-            "coefficients": list(self.coefficients),
-        }
+        return {"centre": self.centre, "scale": self.scale, "coefficients": list(self.coefficients)}
 
     @staticmethod
-    def from_json(json: Json) -> FittedLinearTerm:
-        return FittedLinearTerm(json["feature"], json["centre"], json["scale"], tuple(json["coefficients"]))
+    def from_json(json: Json) -> LinearFit:
+        return LinearFit(json["centre"], json["scale"], tuple(json["coefficients"]))
 
 
 @dataclass(frozen=True)
-class FittedLinearSplineTerm:
-    feature: str
-    knots: int
+class LinearSplineFit:
     knot_positions: tuple[float, ...]
     centres: tuple[float, ...]
     scales: tuple[float, ...]
@@ -197,24 +185,18 @@ class FittedLinearSplineTerm:
 
     def __post_init__(self) -> None:
         positions = self.knot_positions
-        if not 2 <= len(positions) <= self.knots:
-            raise ValueError(
-                f"A linear spline of {self.feature} with {self.knots} knots has {len(positions)} positions"
-            )
+        if len(positions) < 2:
+            raise ValueError(f"A linear spline needs at least 2 knot positions, got {list(positions)}")
         if any(a >= b for a, b in pairwise(positions)):
-            raise ValueError(f"The knots of {self.feature} are not strictly increasing: {list(positions)}")
+            raise ValueError(f"The knots {list(positions)} are not strictly increasing")
         segments = len(positions) - 1
         if not len(self.centres) == len(self.scales) == len(self.coefficients) == segments:
-            raise ValueError(f"A linear spline of {self.feature} needs {segments} centres, scales and coefficients")
-
-    def declaration(self) -> LinearSplineTerm:
-        return LinearSplineTerm(self.feature, self.knots)
+            raise ValueError(
+                f"A linear spline with {len(positions)} knots needs {segments} centres, scales and coefficients"
+            )
 
     def to_json(self) -> Json:
         return {
-            "basis": "linearSpline",
-            "feature": self.feature,
-            "knots": self.knots,
             "knotPositions": list(self.knot_positions),
             "centres": list(self.centres),
             "scales": list(self.scales),
@@ -222,80 +204,98 @@ class FittedLinearSplineTerm:
         }
 
     @staticmethod
-    def from_json(json: Json) -> FittedLinearSplineTerm:
-        return FittedLinearSplineTerm(
-            json["feature"],
-            json["knots"],
-            tuple(json["knotPositions"]),
-            tuple(json["centres"]),
-            tuple(json["scales"]),
-            tuple(json["coefficients"]),
+    def from_json(json: Json) -> LinearSplineFit:
+        return LinearSplineFit(
+            tuple(json["knotPositions"]), tuple(json["centres"]), tuple(json["scales"]), tuple(json["coefficients"])
         )
 
 
-type FittedTerm = FittedLinearTerm | FittedLinearSplineTerm
+type TermFit = LinearFit | LinearSplineFit
 
 
-def fitted_term_from_json(json: Json) -> FittedTerm:
-    match json["basis"]:
-        case "linear":
-            return FittedLinearTerm.from_json(json)
-        case "linearSpline":
-            return FittedLinearSplineTerm.from_json(json)
-        case basis:
-            raise ValueError(f"Unknown basis {basis}")
+def term_fit_from_json(term: Term, json: Json) -> TermFit:
+    match term:
+        case LinearTerm():
+            return LinearFit.from_json(json)
+        case LinearSplineTerm():
+            return LinearSplineFit.from_json(json)
 
 
 @dataclass(frozen=True)
-class FittedPredictor:
+class PredictorFit:
     intercept: float
-    terms: tuple[FittedTerm, ...]
-
-    def __post_init__(self) -> None:
-        _require_distinct([t.feature for t in self.terms])
-
-    def declaration(self) -> tuple[Term, ...]:
-        return tuple(t.declaration() for t in self.terms)
+    terms: dict[str, TermFit]
 
     def to_json(self) -> Json:
-        return {"intercept": self.intercept, "terms": [t.to_json() for t in self.terms]}
+        return {"intercept": self.intercept, "terms": {feature: f.to_json() for feature, f in self.terms.items()}}
 
     @staticmethod
-    def from_json(json: Json) -> FittedPredictor:
-        return FittedPredictor(json["intercept"], tuple(fitted_term_from_json(t) for t in json["terms"]))
+    def from_json(terms: tuple[Term, ...], json: Json) -> PredictorFit:
+        declared = {t.feature: t for t in terms}
+        return PredictorFit(
+            json["intercept"],
+            {
+                feature: term_fit_from_json(_declared(declared, feature, "term"), f)
+                for feature, f in json["terms"].items()
+            },
+        )
 
 
 @dataclass(frozen=True)
 class FittedModel:
     node: str
-    distribution: DistributionDeclaration
-    predictors: dict[str, FittedPredictor]
-    given: dict[str, str]
+    model: ModelDeclaration
+    fit: dict[str, PredictorFit]
 
     def __post_init__(self) -> None:
-        _require_parameters(self.distribution, self.predictors.keys(), self.given.keys())
-
-    def declaration(self) -> ModelDeclaration:
-        return ModelDeclaration(
-            self.distribution, {name: p.declaration() for name, p in self.predictors.items()}, dict(self.given)
-        )
+        if sorted(self.fit) != sorted(self.model.terms):
+            raise ValueError(f"{self.node} predicts {sorted(self.model.terms)}, but its fit has {sorted(self.fit)}")
+        for name, terms in self.model.terms.items():
+            fits = self.fit[name].terms
+            if sorted(fits) != sorted(t.feature for t in terms):
+                raise ValueError(
+                    f"The {name} of {self.node} has terms {[t.feature for t in terms]}, fitted {sorted(fits)}"
+                )
+            for term in terms:
+                _require_fit_of(term, fits[term.feature])
 
     def to_json(self) -> Json:
         return {
             "node": self.node,
-            "distribution": self.distribution.to_json(),
-            "predictors": {name: p.to_json() for name, p in self.predictors.items()},
-            "given": dict(self.given),
+            "model": self.model.to_json(),
+            "fit": {name: f.to_json() for name, f in self.fit.items()},
         }
 
     @staticmethod
     def from_json(json: Json) -> FittedModel:
+        model = ModelDeclaration.from_json(json["model"])
         return FittedModel(
             json["node"],
-            distribution_from_json(json["distribution"]),
-            {name: FittedPredictor.from_json(p) for name, p in json["predictors"].items()},
-            dict(json["given"]),
+            model,
+            {
+                name: PredictorFit.from_json(_declared(model.terms, name, "predicted parameter"), f)
+                for name, f in json["fit"].items()
+            },
         )
+
+
+def _require_fit_of(term: Term, fit: TermFit) -> None:
+    match term, fit:
+        case LinearTerm(), LinearFit():
+            pass
+        case LinearSplineTerm(), LinearSplineFit():
+            if len(fit.knot_positions) > term.knots:
+                raise ValueError(
+                    f"A linear spline of {term.feature} with {term.knots} knots has {len(fit.knot_positions)} positions"
+                )
+        case _:
+            raise ValueError(f"The fit of {term.feature} does not match its basis")
+
+
+def _declared[T](declared: dict[str, T], name: str, kind: str) -> T:
+    if name not in declared:
+        raise ValueError(f"{name} is not a declared {kind}")
+    return declared[name]
 
 
 @dataclass(frozen=True)

@@ -69,6 +69,12 @@ def test_the_starting_model_has_not_converged() -> None:
         require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
 
 
+def test_the_fitted_model_carries_its_manifest_s_declaration() -> None:
+    data = synthetic(games=50)
+    fitted, _ = train(data)
+    assert fitted.model == data.manifest.model
+
+
 def test_a_training_result_is_written_as_contract_files(tmp_path: Path) -> None:
     fitted, report = train(synthetic(games=50))
     write_training_result(tmp_path, fitted, report)

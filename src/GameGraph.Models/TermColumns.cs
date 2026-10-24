@@ -4,11 +4,11 @@ namespace GameGraph.Models;
 
 internal static class TermColumns
 {
-    public static ITermColumns FromFitted(FittedTerm term, IReadOnlyList<string> features) => term switch
+    public static ITermColumns FromFit(string feature, TermFit fit, IReadOnlyList<string> features) => fit switch
     {
-        FittedLinearTerm linear => LinearColumns.FromFitted(linear, features),
-        FittedLinearSplineTerm spline => LinearSplineColumns.FromFitted(spline, features),
-        _ => throw new ArgumentOutOfRangeException(nameof(term), term.GetType().Name, "Not a term"),
+        LinearFit linear => LinearColumns.FromFit(feature, linear, features),
+        LinearSplineFit spline => LinearSplineColumns.FromFit(feature, spline, features),
+        _ => throw new ArgumentOutOfRangeException(nameof(fit), fit.GetType().Name, "Not a term fit"),
     };
 
     public static int ColumnOf(string feature, IReadOnlyList<string> features)

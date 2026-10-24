@@ -1,13 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/WalidFBG/GameGraph/schemas/fitted-model.schema.json",
-  "title": "Fitted model: one node's model and what fitting found, written by Python and read by C#",
+  "title": "Fitted model: one node's model declaration, verbatim from its manifest, and what fitting found; written by Python and read by C#",
   "type": "object",
-  "required": ["schemaVersion", "node"],
+  "required": ["schemaVersion", "node", "model", "fit"],
+  "additionalProperties": false,
   "properties": {
     "schemaVersion": { "$ref": "model.schema.json#/$defs/schemaVersion" },
-    "node": { "$ref": "model.schema.json#/$defs/name" }
+    "node": { "$ref": "model.schema.json#/$defs/name" },
+    "model": { "$ref": "model.schema.json#/$defs/declaration" },
+    "fit": { "type": "object", "additionalProperties": { "$ref": "#/$defs/predictorFit" } }
   },
-  "$ref": "model.schema.json#/$defs/fitted",
-  "unevaluatedProperties": false
+  "$defs": {
+    "predictorFit": {
+      "type": "object",
+      "required": ["intercept", "terms"],
+      "additionalProperties": false,
+      "properties": {
+        "intercept": { "type": "number" },
+        "terms": { "type": "object", "additionalProperties": { "$ref": "#/$defs/termFit" } }
+      }
+    },
+    "termFit": {
+      "oneOf": [{ "$ref": "#/$defs/linearFit" }, { "$ref": "#/$defs/linearSplineFit" }]
+    },
+    "linearFit": {
+      "type": "object",
+      "required": ["centre", "scale", "coefficients"],
+      "additionalProperties": false,
+      "properties": {
+        "centre": { "type": "number" },
+        "scale": { "type": "number", "exclusiveMinimum": 0 },
+        "coefficients": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "number" } }
+      }
+    },
+    "linearSplineFit": {
+      "type": "object",
+      "required": ["knotPositions", "centres", "scales", "coefficients"],
+      "additionalProperties": false,
+      "properties": {
+        "knotPositions": { "$ref": "model.schema.json#/$defs/numbers", "minItems": 2 },
+        "centres": { "$ref": "model.schema.json#/$defs/numbers" },
+        "scales": { "$ref": "model.schema.json#/$defs/numbers", "items": { "exclusiveMinimum": 0 } },
+        "coefficients": { "$ref": "model.schema.json#/$defs/numbers" }
+      }
+    }
+  }
 }

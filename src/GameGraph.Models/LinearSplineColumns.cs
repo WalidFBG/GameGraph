@@ -19,6 +19,6 @@ internal sealed class LinearSplineColumns(int column, double[] knotPositions, do
         }
     }
 
-    public static LinearSplineColumns FromFitted(FittedLinearSplineTerm term, IReadOnlyList<string> features) =>
-        new(TermColumns.ColumnOf(term.Feature, features), term.KnotPositions, term.Centres, term.Scales);
+    public static LinearSplineColumns FromFit(string feature, LinearSplineFit fit, IReadOnlyList<string> features) =>
+        new(TermColumns.ColumnOf(feature, features), fit.KnotPositions, fit.Centres, fit.Scales);
 }

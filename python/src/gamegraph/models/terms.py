@@ -4,14 +4,7 @@ from typing import cast
 
 import torch
 
-from gamegraph.models.contract import (
-    FittedLinearSplineTerm,
-    FittedLinearTerm,
-    FittedTerm,
-    LinearSplineTerm,
-    LinearTerm,
-    Term,
-)
+from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, LinearTerm, Term, TermFit
 
 
 @dataclass(frozen=True)
@@ -28,12 +21,12 @@ class LinearColumns:
     def columns(self, features: torch.Tensor) -> torch.Tensor:
         return ((features[:, self.column] - self.centre) / self.scale).unsqueeze(1)
 
-    def to_fitted(self, coefficients: torch.Tensor) -> FittedLinearTerm:
-        return FittedLinearTerm(self.feature, self.centre, self.scale, _floats(coefficients))
+    def to_fit(self, coefficients: torch.Tensor) -> LinearFit:
+        return LinearFit(self.centre, self.scale, _floats(coefficients))
 
     @staticmethod
-    def from_fitted(term: FittedLinearTerm, features: Sequence[str]) -> "LinearColumns":
-        return LinearColumns(term.feature, column_of(term.feature, features), term.centre, term.scale)
+    def from_fit(feature: str, fit: LinearFit, features: Sequence[str]) -> "LinearColumns":
+        return LinearColumns(feature, column_of(feature, features), fit.centre, fit.scale)
 
     @staticmethod
     def fit(term: LinearTerm, features: Sequence[str], examples: torch.Tensor) -> "LinearColumns":
@@ -46,7 +39,6 @@ class LinearColumns:
 class LinearSplineColumns:
     feature: str
     column: int
-    knots: int
     knot_positions: tuple[float, ...]
     centres: tuple[float, ...]
     scales: tuple[float, ...]
@@ -59,16 +51,12 @@ class LinearSplineColumns:
         raw = _segments(features[:, self.column], self.knot_positions)
         return (raw - torch.tensor(self.centres, dtype=raw.dtype)) / torch.tensor(self.scales, dtype=raw.dtype)
 
-    def to_fitted(self, coefficients: torch.Tensor) -> FittedLinearSplineTerm:
-        return FittedLinearSplineTerm(
-            self.feature, self.knots, self.knot_positions, self.centres, self.scales, _floats(coefficients)
-        )
+    def to_fit(self, coefficients: torch.Tensor) -> LinearSplineFit:
+        return LinearSplineFit(self.knot_positions, self.centres, self.scales, _floats(coefficients))
 
     @staticmethod
-    def from_fitted(term: FittedLinearSplineTerm, features: Sequence[str]) -> "LinearSplineColumns":
-        return LinearSplineColumns(
-            term.feature, column_of(term.feature, features), term.knots, term.knot_positions, term.centres, term.scales
-        )
+    def from_fit(feature: str, fit: LinearSplineFit, features: Sequence[str]) -> "LinearSplineColumns":
+        return LinearSplineColumns(feature, column_of(feature, features), fit.knot_positions, fit.centres, fit.scales)
 
     @staticmethod
     def fit(term: LinearSplineTerm, features: Sequence[str], examples: torch.Tensor) -> "LinearSplineColumns":
@@ -79,18 +67,18 @@ class LinearSplineColumns:
         if len(positions) < 2:
             raise ValueError(f"{term.feature} is constant in the training examples and cannot be fitted")
         centres, scales = _centres_and_scales(term.feature, _segments(values, positions))
-        return LinearSplineColumns(term.feature, column, term.knots, positions, centres, scales)
+        return LinearSplineColumns(term.feature, column, positions, centres, scales)
 
 
 type TermColumns = LinearColumns | LinearSplineColumns
 
 
-def columns_from_fitted(term: FittedTerm, features: Sequence[str]) -> TermColumns:
-    match term:
-        case FittedLinearTerm():
-            return LinearColumns.from_fitted(term, features)
-        case FittedLinearSplineTerm():
-            return LinearSplineColumns.from_fitted(term, features)
+def columns_from_fit(feature: str, fit: TermFit, features: Sequence[str]) -> TermColumns:
+    match fit:
+        case LinearFit():
+            return LinearColumns.from_fit(feature, fit, features)
+        case LinearSplineFit():
+            return LinearSplineColumns.from_fit(feature, fit, features)
 
 
 def fit_columns(term: Term, features: Sequence[str], examples: torch.Tensor) -> TermColumns:

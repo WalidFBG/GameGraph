@@ -10,10 +10,13 @@ from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     DiscreteJohnsonSuDistribution,
-    FittedLinearSplineTerm,
-    FittedLinearTerm,
     FittedModel,
-    FittedPredictor,
+    LinearFit,
+    LinearSplineFit,
+    LinearSplineTerm,
+    LinearTerm,
+    ModelDeclaration,
+    PredictorFit,
 )
 from gamegraph.models.contract_files import write_fitted_model
 from gamegraph.models.model import Model
@@ -26,20 +29,23 @@ type Case = tuple[tuple[float, ...], int, float]
 
 BERNOULLI = FittedModel(
     "Golden",
-    BernoulliDistribution(),
+    ModelDeclaration(
+        BernoulliDistribution(),
+        {"probability": (LinearTerm("Gaussian"), LinearTerm("Indicator"), LinearSplineTerm("Uniform", 4))},
+        {},
+    ),
     {
-        "probability": FittedPredictor(
+        "probability": PredictorFit(
             -0.12,
-            (
-                FittedLinearTerm("Gaussian", 0.31, 8.4, (0.021,)),
-                FittedLinearTerm("Indicator", 0.38, 0.49, (-0.18,)),
-                FittedLinearSplineTerm(
-                    "Uniform", 4, (0.0, 8.0, 16.0, 24.0), (4.1, 3.9, 2.2), (3.0, 3.5, 3.1), (0.12, -0.05, 0.2)
+            {
+                "Gaussian": LinearFit(0.31, 8.4, (0.021,)),
+                "Indicator": LinearFit(0.38, 0.49, (-0.18,)),
+                "Uniform": LinearSplineFit(
+                    (0.0, 8.0, 16.0, 24.0), (4.1, 3.9, 2.2), (3.0, 3.5, 3.1), (0.12, -0.05, 0.2)
                 ),
-            ),
+            },
         )
     },
-    {},
 )
 
 BERNOULLI_CASES: list[Case] = [
@@ -59,18 +65,21 @@ BERNOULLI_CASES: list[Case] = [
 
 CATEGORICAL = FittedModel(
     "Golden",
-    CategoricalDistribution(("first", "second", "third")),
+    ModelDeclaration(
+        CategoricalDistribution(("first", "second", "third")),
+        {"second": (LinearTerm("Gaussian"), LinearSplineTerm("Uniform", 3)), "third": (LinearTerm("Gaussian"),)},
+        {},
+    ),
     {
-        "second": FittedPredictor(
+        "second": PredictorFit(
             0.2,
-            (
-                FittedLinearTerm("Gaussian", 1.5, 4.0, (0.3,)),
-                FittedLinearSplineTerm("Uniform", 3, (0.0, 12.0, 24.0), (5.0, 4.0), (4.5, 4.2), (0.25, -0.4)),
-            ),
+            {
+                "Gaussian": LinearFit(1.5, 4.0, (0.3,)),
+                "Uniform": LinearSplineFit((0.0, 12.0, 24.0), (5.0, 4.0), (4.5, 4.2), (0.25, -0.4)),
+            },
         ),
-        "third": FittedPredictor(-0.8, (FittedLinearTerm("Gaussian", 1.5, 4.0, (-0.2,)),)),
+        "third": PredictorFit(-0.8, {"Gaussian": LinearFit(1.5, 4.0, (-0.2,))}),
     },
-    {},
 )
 
 CATEGORICAL_CASES: list[Case] = [
@@ -87,14 +96,17 @@ CATEGORICAL_CASES: list[Case] = [
 
 JOHNSON_SU = FittedModel(
     "Golden",
-    DiscreteJohnsonSuDistribution(),
+    ModelDeclaration(
+        DiscreteJohnsonSuDistribution(),
+        {"location": (LinearTerm("Gaussian"),), "scale": (LinearTerm("Gaussian"),), "skew": (), "tail": ()},
+        {"maximum": "Bound"},
+    ),
     {
-        "location": FittedPredictor(7.0, (FittedLinearTerm("Gaussian", 0.1, 1.2, (2.5,)),)),
-        "scale": FittedPredictor(1.4, (FittedLinearTerm("Gaussian", 0.1, 1.2, (0.15,)),)),
-        "skew": FittedPredictor(0.5, ()),
-        "tail": FittedPredictor(0.3, ()),
+        "location": PredictorFit(7.0, {"Gaussian": LinearFit(0.1, 1.2, (2.5,))}),
+        "scale": PredictorFit(1.4, {"Gaussian": LinearFit(0.1, 1.2, (0.15,))}),
+        "skew": PredictorFit(0.5, {}),
+        "tail": PredictorFit(0.3, {}),
     },
-    {"maximum": "Bound"},
 )
 
 JOHNSON_SU_CASES: list[Case] = [

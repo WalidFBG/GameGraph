@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import torch
 
-from gamegraph.models.contract import DistributionDeclaration, FittedModel, ModelDeclaration
+from gamegraph.models.contract import FittedModel, ModelDeclaration
 from gamegraph.models.distributions import distribution_for
 from gamegraph.models.given_column import GivenColumn
 from gamegraph.models.predictor import Predictor
@@ -10,14 +10,15 @@ from gamegraph.models.predictor import Predictor
 
 class Model:
     def __init__(
-        self, distribution: DistributionDeclaration, predictors: tuple[Predictor, ...], given: tuple[GivenColumn, ...]
+        self, declaration: ModelDeclaration, predictors: tuple[Predictor, ...], given: tuple[GivenColumn, ...]
     ) -> None:
+        distribution = declaration.distribution
         if len(predictors) != len(distribution.predicted()) or len(given) != len(distribution.given()):
             raise ValueError(
                 f"{distribution} needs {len(distribution.predicted())} predictors and {len(distribution.given())} "
                 f"given columns, got {len(predictors)} and {len(given)}"
             )
-        self.distribution = distribution
+        self.declaration = declaration
         self._implementation = distribution_for(distribution)
         self.predictors = predictors
         self.given = given
@@ -46,21 +47,24 @@ class Model:
         return [tensor for p in self.predictors for tensor in p.trainable()]
 
     def to_fitted(self, node: str) -> FittedModel:
-        distribution = self.distribution
+        predicted = self.declaration.distribution.predicted()
         return FittedModel(
             node,
-            distribution,
-            {p.name: q.to_fitted() for p, q in zip(distribution.predicted(), self.predictors, strict=True)},
-            {name: g.feature for name, g in zip(distribution.given(), self.given, strict=True)},
+            self.declaration,
+            {p.name: predictor.to_fit() for p, predictor in zip(predicted, self.predictors, strict=True)},
         )
 
     @staticmethod
     def from_fitted(fitted: FittedModel, features: Sequence[str]) -> "Model":
-        distribution = fitted.distribution
+        declaration = fitted.model
+        distribution = declaration.distribution
         return Model(
-            distribution,
-            tuple(Predictor.from_fitted(p.link, fitted.predictors[p.name], features) for p in distribution.predicted()),
-            tuple(GivenColumn.of(fitted.given[name], features) for name in distribution.given()),
+            declaration,
+            tuple(
+                Predictor.from_fit(p.link, declaration.terms[p.name], fitted.fit[p.name], features)
+                for p in distribution.predicted()
+            ),
+            tuple(GivenColumn.of(declaration.given[name], features) for name in distribution.given()),
         )
 
     @staticmethod
@@ -70,7 +74,7 @@ class Model:
         distribution = declaration.distribution
         starts = distribution_for(distribution).initial_parameters(outcomes)
         return Model(
-            distribution,
+            declaration,
             tuple(
                 Predictor.initial(p.link, declaration.terms[p.name], features, examples, starts[p.name])
                 for p in distribution.predicted()

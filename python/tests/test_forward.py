@@ -5,7 +5,7 @@ import pytest
 import torch
 
 from gamegraph.models import golden, links
-from gamegraph.models.contract import FittedLinearSplineTerm, FittedLinearTerm, LinearSplineTerm, Link
+from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
 from gamegraph.models.distributions import Bernoulli, Categorical, DiscreteJohnsonSu
 from gamegraph.models.model import Model
 from gamegraph.models.paths import GOLDEN
@@ -24,13 +24,13 @@ def assert_close(actual: torch.Tensor, expected: object) -> None:
 
 
 def test_a_linear_term_centres_and_scales_its_feature() -> None:
-    term = LinearColumns.from_fitted(FittedLinearTerm("b", 1.0, 2.0, (0.5,)), ("a", "b"))
+    term = LinearColumns.from_fit("b", LinearFit(1.0, 2.0, (0.5,)), ("a", "b"))
     assert_close(term.columns(tensor([[9.0, 5.0], [9.0, -1.0]])), [[2.0], [-1.0]])
 
 
 def test_a_linear_spline_term_measures_each_segment_and_is_flat_beyond_its_end_knots() -> None:
-    term = LinearSplineColumns.from_fitted(
-        FittedLinearSplineTerm("x", 3, (0.0, 10.0, 20.0), (0.0, 0.0), (1.0, 1.0), (0.0, 0.0)), ("x",)
+    term = LinearSplineColumns.from_fit(
+        "x", LinearSplineFit((0.0, 10.0, 20.0), (0.0, 0.0), (1.0, 1.0), (0.0, 0.0)), ("x",)
     )
     assert_close(
         term.columns(tensor([[-5.0], [0.0], [4.0], [10.0], [15.0], [20.0], [99.0]])),
@@ -52,7 +52,7 @@ def test_a_linear_spline_of_a_constant_feature_fails() -> None:
 
 def test_a_linear_term_whose_feature_is_missing_fails() -> None:
     with pytest.raises(ValueError, match="No feature c"):
-        LinearColumns.from_fitted(FittedLinearTerm("c", 0.0, 1.0, (0.5,)), ("a", "b"))
+        LinearColumns.from_fit("c", LinearFit(0.0, 1.0, (0.5,)), ("a", "b"))
 
 
 def test_the_inverse_logit_is_the_sigmoid() -> None:

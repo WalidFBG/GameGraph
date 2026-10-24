@@ -38,9 +38,10 @@ public sealed class Model
 
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
     {
-        var predictors = fitted.Distribution.Predicted().Select(p => Predictor.FromFitted(p.Link, fitted.Predictors[p.Name], features));
-        var given = fitted.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(fitted.Given[n], features)));
+        var model = fitted.Model;
+        var predictors = model.Distribution.Predicted().Select(p => Predictor.FromFit(p.Link, model.Terms[p.Name], fitted.Fit[p.Name], features));
+        var given = model.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(model.Given[n], features)));
 
-        return new(Distributions.For(fitted.Distribution), [.. predictors, .. given]);
+        return new(Distributions.For(model.Distribution), [.. predictors, .. given]);
     }
 }

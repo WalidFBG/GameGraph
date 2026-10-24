@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using GameGraph.Models.Contract;
 using Xunit;
 
@@ -23,6 +24,17 @@ public sealed class ParityTests
         Assert.Equal(report.Examples, new TrainingAndValidation<int>(training, data.Outcomes.Length - training));
         AssertClose(report.NegativeLogLikelihood.Training, MeanNegativeLogLikelihood(model, data, 0, training));
         AssertClose(report.NegativeLogLikelihood.Validation, MeanNegativeLogLikelihood(model, data, training, data.Outcomes.Length));
+    }
+
+    [Theory]
+    [MemberData(nameof(Sets))]
+    public void TheFittedModelCarriesItsManifestsDeclaration(string set)
+    {
+        var parity = Parity(set);
+        var manifest = ContractFiles.ReadTrainingDataManifest(Path.Combine(parity, "manifest.json"));
+        var fitted = ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json"));
+
+        Assert.Equal(JsonSerializer.Serialize(manifest.Model, JsonSerializerOptions.Web), JsonSerializer.Serialize(fitted.Model, JsonSerializerOptions.Web));
     }
 
     [Theory]

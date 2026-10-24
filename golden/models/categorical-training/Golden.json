@@ -1,31 +1,53 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "distribution": {
-    "name": "categorical",
-    "categories": [
-      "first",
-      "second",
-      "third"
-    ]
-  },
-  "predictors": {
-    "second": {
-      "intercept": 0.345314253421684,
-      "terms": [
+  "model": {
+    "distribution": {
+      "name": "categorical",
+      "categories": [
+        "first",
+        "second",
+        "third"
+      ]
+    },
+    "terms": {
+      "second": [
         {
           "basis": "linear",
-          "feature": "Gaussian",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ],
+      "third": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "second": {
+      "intercept": 0.345314253421684,
+      "terms": {
+        "Gaussian": {
           "centre": 3.004354610694197,
           "scale": 1.9907802287387353,
           "coefficients": [
             0.2092961533977121
           ]
         },
-        {
-          "basis": "linearSpline",
-          "feature": "Uniform",
-          "knots": 5,
+        "Uniform": {
           "knotPositions": [
             0.0,
             6.0,
@@ -52,24 +74,19 @@
             -0.011767131578779781
           ]
         }
-      ]
+      }
     },
     "third": {
       "intercept": -1.0681851023627742,
-      "terms": [
-        {
-          "basis": "linear",
-          "feature": "Gaussian",
+      "terms": {
+        "Gaussian": {
           "centre": 3.004354610694197,
           "scale": 1.9907802287387353,
           "coefficients": [
             -0.29506419275422024
           ]
         },
-        {
-          "basis": "linearSpline",
-          "feature": "Uniform",
-          "knots": 5,
+        "Uniform": {
           "knotPositions": [
             0.0,
             6.0,
@@ -96,8 +113,7 @@
             -0.04879834545142528
           ]
         }
-      ]
+      }
     }
-  },
-  "given": {}
+  }
 }

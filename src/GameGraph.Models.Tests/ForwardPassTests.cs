@@ -7,21 +7,23 @@ public sealed class ForwardPassTests
 {
     private static readonly FittedModel Fitted = new(
         "Golden",
-        new BernoulliDistribution(),
-        new Dictionary<string, FittedPredictor>
+        new ModelDeclaration(
+            new BernoulliDistribution(),
+            new Dictionary<string, Term[]> { ["probability"] = [new LinearTerm("Gaussian"), new LinearTerm("Indicator")] },
+            new Dictionary<string, string>()),
+        new Dictionary<string, PredictorFit>
         {
-            ["probability"] = new FittedPredictor(
+            ["probability"] = new(
                 -0.12,
-                [new FittedLinearTerm("Gaussian", 0.31, 8.4, [0.021]), new FittedLinearTerm("Indicator", 0.38, 0.49, [-0.18])]),
-        },
-        new Dictionary<string, string>());
+                new Dictionary<string, TermFit> { ["Gaussian"] = new LinearFit(0.31, 8.4, [0.021]), ["Indicator"] = new LinearFit(0.38, 0.49, [-0.18]) }),
+        });
 
     private static readonly string[] Features = ["Gaussian", "Indicator"];
 
     [Fact]
     public void ALinearTermCentresAndScalesItsFeature()
     {
-        var term = LinearColumns.FromFitted(new FittedLinearTerm("b", 1, 2, [0.5]), ["a", "b"]);
+        var term = LinearColumns.FromFit("b", new LinearFit(1, 2, [0.5]), ["a", "b"]);
 
         Span<double> columns = stackalloc double[1];
 
@@ -35,7 +37,7 @@ public sealed class ForwardPassTests
     [Fact]
     public void ALinearSplineTermMeasuresEachSegmentAndIsFlatBeyondItsEndKnots()
     {
-        var term = LinearSplineColumns.FromFitted(new FittedLinearSplineTerm("x", 3, [0, 10, 20], [0, 0], [1, 1], [0, 0]), ["x"]);
+        var term = LinearSplineColumns.FromFit("x", new LinearSplineFit([0, 10, 20], [0, 0], [1, 1], [0, 0]), ["x"]);
         Span<double> columns = stackalloc double[2];
 
         foreach (var (value, first, second) in new[] { (-5.0, 0.0, 0.0), (0.0, 0.0, 0.0), (4.0, 4.0, 0.0), (10.0, 10.0, 0.0), (15.0, 10.0, 5.0), (20.0, 10.0, 10.0), (99.0, 10.0, 10.0) })
@@ -50,7 +52,7 @@ public sealed class ForwardPassTests
     [Fact]
     public void ALinearSplineTermCentresAndScalesEachSegment()
     {
-        var term = LinearSplineColumns.FromFitted(new FittedLinearSplineTerm("x", 3, [0, 10, 20], [2, 1], [4, 0.5], [0, 0]), ["x"]);
+        var term = LinearSplineColumns.FromFit("x", new LinearSplineFit([0, 10, 20], [2, 1], [4, 0.5], [0, 0]), ["x"]);
         Span<double> columns = stackalloc double[2];
 
         term.Expand([12], columns);
@@ -62,7 +64,7 @@ public sealed class ForwardPassTests
     [Fact]
     public void ALinearTermWhoseFeatureIsMissingFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => LinearColumns.FromFitted(new FittedLinearTerm("c", 0, 1, [0.5]), ["a", "b"]));
+        var error = Assert.Throws<ArgumentException>(() => LinearColumns.FromFit("c", new LinearFit(0, 1, [0.5]), ["a", "b"]));
 
         Assert.Contains("No feature c", error.Message);
     }
@@ -119,9 +121,8 @@ public sealed class ForwardPassTests
     {
         Assert.Throws<ArgumentException>(() => new FittedModel(
             Fitted.Node,
-            Fitted.Distribution,
-            new Dictionary<string, FittedPredictor> { ["mean"] = Fitted.Predictors["probability"] },
-            new Dictionary<string, string>()));
+            Fitted.Model,
+            new Dictionary<string, PredictorFit> { ["mean"] = Fitted.Fit["probability"] }));
     }
 
     [Fact]

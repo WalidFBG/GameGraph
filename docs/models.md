@@ -18,7 +18,7 @@ A redesign of `GameGraph.ModelFamilies` as GAMLSS (generalised additive models f
 Two documents cross the boundary, plus the training data:
 
 - C# to Python: the training data (`examples.csv`, `games.csv`, with the feature names as the header) and the manifest, which holds the model declaration (the distribution; the terms of each predicted parameter, with each term's basis and number of knots; the feature of each given parameter) and the feature names;
-- Python to C#: the fitted model (the declaration and what fitting found: knots, centres and scales, coefficients) and the training report (likelihoods, steps).
+- Python to C#: the fitted model and the training report (likelihoods, steps). The fitted model is the manifest's declaration, copied as it is, and the fit: per predicted parameter its intercept and, per term by feature, what fitting found (knot positions, centres and scales, coefficients). Neither side has a second, fitted copy of the declaration's types; pairing a fit with its declaration checks that the parameters, the terms and each term's basis match, and C#'s parity tests check that the fitted model's declaration is its manifest's.
 
 Two kinds of duplication, handled differently:
 

@@ -1,24 +1,51 @@
+using System.Text.Json.Serialization;
+
 namespace GameGraph.Models.Contract;
 
+[JsonConverter(typeof(FittedModelJson))]
 public sealed record FittedModel
 {
-    public FittedModel(string node, DistributionDeclaration distribution, IReadOnlyDictionary<string, FittedPredictor> predictors, IReadOnlyDictionary<string, string> given)
+    public FittedModel(string node, ModelDeclaration model, IReadOnlyDictionary<string, PredictorFit> fit)
     {
-        distribution.RequireParameters(predictors.Keys, given.Keys);
+        if (!Sorted(fit.Keys).SequenceEqual(Sorted(model.Terms.Keys)))
+            throw new ArgumentException($"{node} predicts [{string.Join(", ", Sorted(model.Terms.Keys))}], but its fit has [{string.Join(", ", Sorted(fit.Keys))}]", nameof(fit));
+
+        foreach (var (name, terms) in model.Terms)
+        {
+            var fits = fit[name].Terms;
+
+            if (!Sorted(fits.Keys).SequenceEqual(Sorted(terms.Select(t => t.Feature))))
+                throw new ArgumentException($"The {name} of {node} has terms [{string.Join(", ", terms.Select(t => t.Feature))}], fitted [{string.Join(", ", Sorted(fits.Keys))}]", nameof(fit));
+
+            foreach (var term in terms)
+                RequireFitOf(term, fits[term.Feature]);
+        }
 
         Node = node;
-        Distribution = distribution;
-        Predictors = predictors;
-        Given = given;
+        Model = model;
+        Fit = fit;
     }
 
     public string Node { get; }
 
-    public DistributionDeclaration Distribution { get; }
+    public ModelDeclaration Model { get; }
 
-    public IReadOnlyDictionary<string, FittedPredictor> Predictors { get; }
+    public IReadOnlyDictionary<string, PredictorFit> Fit { get; }
 
-    public IReadOnlyDictionary<string, string> Given { get; }
+    private static void RequireFitOf(Term term, TermFit fit)
+    {
+        switch (term, fit)
+        {
+            case (LinearTerm, LinearFit):
+                return;
+            case (LinearSplineTerm spline, LinearSplineFit splineFit):
+                if (splineFit.KnotPositions.Length > spline.Knots)
+                    throw new ArgumentException($"A linear spline of {spline.Feature} with {spline.Knots} knots has {splineFit.KnotPositions.Length} positions", nameof(fit));
+                return;
+            default:
+                throw new ArgumentException($"The fit of {term.Feature} does not match its basis", nameof(fit));
+        }
+    }
 
-    public ModelDeclaration Declaration() => new(Distribution, Predictors.ToDictionary(p => p.Key, p => p.Value.Declaration()), Given);
+    private static string[] Sorted(IEnumerable<string> names) => names.Order(StringComparer.Ordinal).ToArray();
 }

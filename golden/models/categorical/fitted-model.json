@@ -1,31 +1,48 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "distribution": {
-    "name": "categorical",
-    "categories": [
-      "first",
-      "second",
-      "third"
-    ]
-  },
-  "predictors": {
-    "second": {
-      "intercept": 0.2,
-      "terms": [
+  "model": {
+    "distribution": {
+      "name": "categorical",
+      "categories": [
+        "first",
+        "second",
+        "third"
+      ]
+    },
+    "terms": {
+      "second": [
         {
           "basis": "linear",
-          "feature": "Gaussian",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 3
+        }
+      ],
+      "third": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "second": {
+      "intercept": 0.2,
+      "terms": {
+        "Gaussian": {
           "centre": 1.5,
           "scale": 4.0,
           "coefficients": [
             0.3
           ]
         },
-        {
-          "basis": "linearSpline",
-          "feature": "Uniform",
-          "knots": 3,
+        "Uniform": {
           "knotPositions": [
             0.0,
             12.0,
@@ -44,22 +61,19 @@
             -0.4
           ]
         }
-      ]
+      }
     },
     "third": {
       "intercept": -0.8,
-      "terms": [
-        {
-          "basis": "linear",
-          "feature": "Gaussian",
+      "terms": {
+        "Gaussian": {
           "centre": 1.5,
           "scale": 4.0,
           "coefficients": [
             -0.2
           ]
         }
-      ]
+      }
     }
-  },
-  "given": {}
+  }
 }

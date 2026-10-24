@@ -3,8 +3,8 @@ from collections.abc import Sequence
 import torch
 
 from gamegraph.models import links
-from gamegraph.models.contract import FittedPredictor, Link, Term
-from gamegraph.models.terms import TermColumns, columns_from_fitted, fit_columns
+from gamegraph.models.contract import Link, PredictorFit, Term
+from gamegraph.models.terms import TermColumns, columns_from_fit, fit_columns
 
 
 class Predictor:
@@ -30,21 +30,22 @@ class Predictor:
     def trainable(self) -> list[torch.Tensor]:
         return [self.intercept, self.coefficients]
 
-    def to_fitted(self) -> FittedPredictor:
+    def to_fit(self) -> PredictorFit:
         coefficients = self.coefficients.detach()
         starts = [sum(t.count for t in self.terms[:i]) for i in range(len(self.terms))]
-        return FittedPredictor(
+        return PredictorFit(
             float(self.intercept.detach()),
-            tuple(t.to_fitted(coefficients[s : s + t.count]) for t, s in zip(self.terms, starts, strict=True)),
+            {t.feature: t.to_fit(coefficients[s : s + t.count]) for t, s in zip(self.terms, starts, strict=True)},
         )
 
     @staticmethod
-    def from_fitted(link: Link, predictor: FittedPredictor, features: Sequence[str]) -> "Predictor":
+    def from_fit(link: Link, terms: tuple[Term, ...], fit: PredictorFit, features: Sequence[str]) -> "Predictor":
+        fits = [fit.terms[t.feature] for t in terms]
         return Predictor(
             link,
-            tuple(columns_from_fitted(t, features) for t in predictor.terms),
-            torch.tensor(predictor.intercept, dtype=torch.float64),
-            torch.tensor([c for t in predictor.terms for c in t.coefficients], dtype=torch.float64),
+            tuple(columns_from_fit(t.feature, f, features) for t, f in zip(terms, fits, strict=True)),
+            torch.tensor(fit.intercept, dtype=torch.float64),
+            torch.tensor([c for f in fits for c in f.coefficients], dtype=torch.float64),
         )
 
     @staticmethod

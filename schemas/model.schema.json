@@ -19,15 +19,6 @@
         "given": { "$ref": "#/$defs/given" }
       }
     },
-    "fitted": {
-      "type": "object",
-      "required": ["distribution", "predictors", "given"],
-      "properties": {
-        "distribution": { "$ref": "#/$defs/distribution" },
-        "predictors": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fittedPredictor" } },
-        "given": { "$ref": "#/$defs/given" }
-      }
-    },
     "distribution": {
       "oneOf": [{ "$ref": "#/$defs/bernoulli" }, { "$ref": "#/$defs/categorical" }, { "$ref": "#/$defs/discreteJohnsonSu" }]
     },
@@ -57,20 +48,8 @@
       }
     },
     "given": { "type": "object", "additionalProperties": { "$ref": "#/$defs/name" } },
-    "fittedPredictor": {
-      "type": "object",
-      "required": ["intercept", "terms"],
-      "additionalProperties": false,
-      "properties": {
-        "intercept": { "type": "number" },
-        "terms": { "type": "array", "items": { "$ref": "#/$defs/fittedTerm" } }
-      }
-    },
     "declaredTerm": {
       "oneOf": [{ "$ref": "#/$defs/declaredLinear" }, { "$ref": "#/$defs/declaredLinearSpline" }]
-    },
-    "fittedTerm": {
-      "oneOf": [{ "$ref": "#/$defs/fittedLinear" }, { "$ref": "#/$defs/fittedLinearSpline" }]
     },
     "declaredLinear": {
       "type": "object",
@@ -81,18 +60,6 @@
         "feature": { "$ref": "#/$defs/name" }
       }
     },
-    "fittedLinear": {
-      "type": "object",
-      "required": ["basis", "feature", "centre", "scale", "coefficients"],
-      "additionalProperties": false,
-      "properties": {
-        "basis": { "const": "linear" },
-        "feature": { "$ref": "#/$defs/name" },
-        "centre": { "type": "number" },
-        "scale": { "type": "number", "exclusiveMinimum": 0 },
-        "coefficients": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "number" } }
-      }
-    },
     "declaredLinearSpline": {
       "type": "object",
       "required": ["basis", "feature", "knots"],
@@ -101,20 +68,6 @@
         "basis": { "const": "linearSpline" },
         "feature": { "$ref": "#/$defs/name" },
         "knots": { "type": "integer", "minimum": 2 }
-      }
-    },
-    "fittedLinearSpline": {
-      "type": "object",
-      "required": ["basis", "feature", "knots", "knotPositions", "centres", "scales", "coefficients"],
-      "additionalProperties": false,
-      "properties": {
-        "basis": { "const": "linearSpline" },
-        "feature": { "$ref": "#/$defs/name" },
-        "knots": { "type": "integer", "minimum": 2 },
-        "knotPositions": { "$ref": "#/$defs/numbers", "minItems": 2 },
-        "centres": { "$ref": "#/$defs/numbers" },
-        "scales": { "$ref": "#/$defs/numbers", "items": { "exclusiveMinimum": 0 } },
-        "coefficients": { "$ref": "#/$defs/numbers" }
       }
     }
   }
