@@ -101,9 +101,10 @@ One interface for all distributions: every one is a probability over outcomes gi
 ## Training
 
 1. **L-BFGS** (PyTorch, strong Wolfe line search, the whole training set at every step) on the mean negative log-likelihood; automatic differentiation gives the gradient.
-2. **It stops when the mean negative log-likelihood changes by less than 1e-10 between iterations**, at most 2,000 iterations and 4,000 evaluations; not converging fails loudly and writes nothing. A gradient test (1e-9) is kept but never decides: on a million rows the gradient settles above it.
-3. **The split**: the latest 20% of games by start time are validation; the report records how many games are training, so C# never reimplements the rule.
-4. **Starting point**: zero coefficients and each intercept at the link of a simple estimate (the mean outcome, the category shares, the mean and spread of the times).
+2. **Torch's loop runs until the mean negative log-likelihood changes by less than 1e-10 between iterations**, at most 2,000 iterations and 4,000 evaluations; it also exits early if the largest gradient falls below 1e-9, which on a million rows it never does.
+3. **The verdict is ours**: torch also stops silently when it stalls (a direction that does not descend, a step that moves nothing, a line search that gives up), so afterwards the largest gradient of the mean negative log-likelihood must be below 1e-4, or training fails loudly and writes nothing. The columns are standardised and the loss is a mean, so 1e-4 means the same for every coefficient; on `ActionTime` the gradient is 0.35 at the start and 3.3e-6 at the end.
+4. **The split**: the latest 20% of games by start time are validation; the report records how many games are training, so C# never reimplements the rule.
+5. **Starting point**: zero coefficients and each intercept at the link of a simple estimate (the mean outcome, the category shares, the mean and spread of the times).
 
 ## Numerics
 

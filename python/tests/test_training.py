@@ -17,7 +17,7 @@ from gamegraph.models.synthetic import (
     johnson_su,
     johnson_su_parameters,
 )
-from gamegraph.models.training import train, write_training_result
+from gamegraph.models.training import require_converged, train, write_training_result
 from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
 
 
@@ -60,6 +60,13 @@ def test_training_recovers_a_known_discrete_johnson_su() -> None:
         true_parameters = johnson_su_parameters(features[:, 0], features[:, 1])
         true_probabilities = torch.exp(DiscreteJohnsonSu().log_prob(true_parameters, times))
         assert float((fitted_probabilities - true_probabilities).abs().max()) < 0.005
+
+
+def test_the_starting_model_has_not_converged() -> None:
+    data = synthetic(games=50)
+    model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
+    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
 
 
 def test_a_training_result_is_written_as_contract_files(tmp_path: Path) -> None:
