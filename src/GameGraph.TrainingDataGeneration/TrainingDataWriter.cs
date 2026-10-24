@@ -6,7 +6,7 @@ namespace GameGraph.TrainingDataGeneration;
 
 public sealed class TrainingDataWriter(string root)
 {
-    public string Write<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, string source, IReadOnlyList<GameExamples> games)
+    public string Write<TState>(NodeSpec<TState> node, string source, IReadOnlyList<GameExamples> games)
     {
         var directory = Path.Combine(root, node.Name);
         var features = node.Features.Select(f => f.Name).ToArray();

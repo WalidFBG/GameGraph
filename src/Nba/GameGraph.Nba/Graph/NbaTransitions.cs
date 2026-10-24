@@ -7,7 +7,7 @@ public static class NbaTransitions
 {
     public const int BonusFreeThrows = 2;
 
-    public static Next<NbaState, INbaIncidentCollector> ActionType(NbaState state, int category, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> ActionType(NbaState state, int category)
     {
         switch (ActionTypes.FromCategory(category))
         {
@@ -18,7 +18,7 @@ public static class NbaTransitions
                 state.ShotPoints = 3;
                 return NbaNodes.FouledOnShot;
             case Graph.ActionType.Turnover:
-                return EndOfPossession(state, incidentCollector);
+                return EndOfPossession(state);
             case Graph.ActionType.NonShootingFoul:
                 state.TeamFouls[Sides.Opponent(state.TeamInPossession)]++;
                 return NbaNodes.InBonus;
@@ -27,7 +27,7 @@ public static class NbaTransitions
         }
     }
 
-    public static Next<NbaState, INbaIncidentCollector> FouledOnShot(NbaState state, int fouled, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> FouledOnShot(NbaState state, int fouled)
     {
         state.Fouled = Yes(fouled);
 
@@ -37,7 +37,7 @@ public static class NbaTransitions
         return NbaNodes.ShotMade;
     }
 
-    public static Next<NbaState, INbaIncidentCollector> ShotMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> ShotMade(NbaState state, int made)
     {
         if (Yes(made))
             Score(state, state.ShotPoints);
@@ -49,13 +49,13 @@ public static class NbaTransitions
         }
 
         if (Yes(made))
-            return EndOfPossession(state, incidentCollector);
+            return EndOfPossession(state);
 
         state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
         return NbaNodes.OffensiveRebound;
     }
 
-    public static Next<NbaState, INbaIncidentCollector> InBonus(NbaState state, int inBonus, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> InBonus(NbaState state, int inBonus)
     {
         if (!Yes(inBonus))
             return NbaNodes.ActionType;
@@ -64,7 +64,7 @@ public static class NbaTransitions
         return NbaNodes.FreeThrowMade;
     }
 
-    public static Next<NbaState, INbaIncidentCollector> FreeThrowMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> FreeThrowMade(NbaState state, int made)
     {
         if (Yes(made))
             Score(state, 1);
@@ -75,16 +75,16 @@ public static class NbaTransitions
             return NbaNodes.FreeThrowMade;
 
         if (Yes(made))
-            return EndOfPossession(state, incidentCollector);
+            return EndOfPossession(state);
 
         state.LastMiss = Miss.FreeThrow;
         return NbaNodes.OffensiveRebound;
     }
 
-    public static Next<NbaState, INbaIncidentCollector> OffensiveRebound(NbaState state, int offensive, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState> OffensiveRebound(NbaState state, int offensive)
     {
         if (!Yes(offensive))
-            return EndOfPossession(state, incidentCollector);
+            return EndOfPossession(state);
 
         state.ShotPoints = 0;
         state.Fouled = false;
@@ -92,9 +92,9 @@ public static class NbaTransitions
         return NbaNodes.ActionType;
     }
 
-    private static Next<NbaState, INbaIncidentCollector> EndOfPossession(NbaState state, INbaIncidentCollector incidentCollector)
+    private static Next<NbaState> EndOfPossession(NbaState state)
     {
-        incidentCollector.Possession(new PossessionIncident(state.SimulationIndex, state.TeamInPossession, state.Period, state.PossessionPoints));
+        state.Incidents.Possession(new PossessionIncident(state.TeamInPossession, state.Period, state.PossessionPoints));
 
         state.PossessionPoints = 0;
         state.ShotPoints = 0;
@@ -111,7 +111,7 @@ public static class NbaTransitions
         state.Period++;
 
         if (state.Period == state.Periods.Length)
-            return Next<NbaState, INbaIncidentCollector>.GameOver;
+            return Next<NbaState>.GameOver;
 
         state.TeamInPossession = state.Periods[state.Period].StartingTeamInPossession;
         state.RemainingInPeriod = state.Periods[state.Period].Possessions;

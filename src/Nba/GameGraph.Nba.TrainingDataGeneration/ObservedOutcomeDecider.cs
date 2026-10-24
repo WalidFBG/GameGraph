@@ -1,16 +1,15 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
-using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeDecider<NbaState, INbaIncidentCollector>
+public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeDecider<NbaState>
 {
     private readonly ObservedDecision[] _decisions = possessions.SelectMany(Decisions).ToArray();
     private int _next;
 
-    public int Decide(NodeSpec<NbaState, INbaIncidentCollector> node, NbaState state, double[] features)
+    public int Decide(NodeSpec<NbaState> node, NbaState state, ReadOnlySpan<double> features)
     {
         if (_next == _decisions.Length)
             throw new InvalidDataException($"The rules asked for {node.Name} after the game's last observed decision");
@@ -66,7 +65,7 @@ public sealed class ObservedOutcomeDecider(Possession[] possessions) : IOutcomeD
             }
         }
 
-        ObservedDecision Decision(NodeSpec<NbaState, INbaIncidentCollector> node, int outcome) =>
+        ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
             new(node, outcome, possession.TeamInPossession, possession.Period);
     }
 

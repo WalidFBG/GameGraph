@@ -1,8 +1,8 @@
 namespace GameGraph.Engine;
 
-public sealed class GameSpec<TState, TIncidentCollector>
+public sealed class GameSpec<TState>
 {
-    public GameSpec(NodeSpec<TState, TIncidentCollector>[] nodes, NodeSpec<TState, TIncidentCollector> start)
+    public GameSpec(NodeSpec<TState>[] nodes, NodeSpec<TState> start)
     {
         if (nodes.Select(n => n.Name).Distinct().Count() != nodes.Length)
             throw new ArgumentException("Node names must be unique", nameof(nodes));
@@ -14,7 +14,7 @@ public sealed class GameSpec<TState, TIncidentCollector>
         Start = start;
     }
 
-    public NodeSpec<TState, TIncidentCollector>[] Nodes { get; }
+    public NodeSpec<TState>[] Nodes { get; }
 
-    public NodeSpec<TState, TIncidentCollector> Start { get; }
+    public NodeSpec<TState> Start { get; }
 }

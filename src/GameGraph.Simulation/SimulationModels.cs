@@ -6,8 +6,8 @@ namespace GameGraph.Simulation;
 
 public static class SimulationModels
 {
-    public static Dictionary<NodeSpec<TState, TIncidentCollector>, Model> For<TState, TIncidentCollector>(
-        GameSpec<TState, TIncidentCollector> spec,
+    public static Dictionary<NodeSpec<TState>, Model> For<TState>(
+        GameSpec<TState> spec,
         IReadOnlyList<FittedModel> fitted)
     {
         var byNode = fitted.ToDictionary(f => f.Node);
@@ -19,7 +19,7 @@ public static class SimulationModels
         return spec.Nodes.ToDictionary(n => n, n => For(n, byNode[n.Name]));
     }
 
-    private static Model For<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, FittedModel fitted)
+    private static Model For<TState>(NodeSpec<TState> node, FittedModel fitted)
     {
         if (!fitted.Model.Equals(node.Model))
             throw new ArgumentException($"The fitted model of {node.Name} was declared differently from the node's model", nameof(fitted));

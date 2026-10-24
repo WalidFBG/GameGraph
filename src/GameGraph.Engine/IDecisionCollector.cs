@@ -1,6 +1,6 @@
 namespace GameGraph.Engine;
 
-public interface IDecisionCollector<TState, TIncidentCollector>
+public interface IDecisionCollector<TState>
 {
-    void Collect(NodeSpec<TState, TIncidentCollector> node, TState state, double[] features, int outcome);
+    void Collect(NodeSpec<TState> node, TState state, ReadOnlySpan<double> features, int outcome);
 }

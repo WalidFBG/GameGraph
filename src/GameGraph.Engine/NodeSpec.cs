@@ -2,9 +2,9 @@ using GameGraph.Models.Contract;
 
 namespace GameGraph.Engine;
 
-public sealed class NodeSpec<TState, TIncidentCollector>
+public sealed class NodeSpec<TState>
 {
-    public NodeSpec(string name, Feature<TState>[] features, ModelDeclaration model, Transition<TState, TIncidentCollector> transition)
+    public NodeSpec(string name, Feature<TState>[] features, ModelDeclaration model, Transition<TState> transition)
     {
         model.RequireFeatures(name, [.. features.Select(f => f.Name)]);
 
@@ -21,7 +21,7 @@ public sealed class NodeSpec<TState, TIncidentCollector>
 
     public ModelDeclaration Model { get; }
 
-    public Transition<TState, TIncidentCollector> Transition { get; }
+    public Transition<TState> Transition { get; }
 
-    internal NextNode<TState, TIncidentCollector> AsNext { get; }
+    internal NextNode<TState> AsNext { get; }
 }
