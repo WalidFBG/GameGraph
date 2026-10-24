@@ -72,8 +72,8 @@ def write_training_result(directory: Path, fitted: FittedModel, report: Training
 
 def require_converged(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> None:
     gradients = torch.autograd.grad(_loss(model, designs, outcomes), model.coefficients())
-    largest = max(float(g.abs().max()) for g in gradients if g.numel() > 0)
-    if largest > CONVERGED_GRADIENT:
+    largest = float(torch.cat([g.flatten() for g in gradients]).abs().max())
+    if not largest <= CONVERGED_GRADIENT:
         raise RuntimeError(
             f"{node} did not converge: its largest gradient is {largest:.3g}, above {CONVERGED_GRADIENT}"
         )

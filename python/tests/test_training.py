@@ -69,6 +69,15 @@ def test_the_starting_model_has_not_converged() -> None:
         require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
 
 
+def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
+    data = synthetic(games=50)
+    model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
+    with torch.no_grad():
+        model.coefficients()[1][0] = float("nan")
+    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is nan"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
+
+
 def test_the_fitted_model_carries_its_manifest_s_declaration() -> None:
     data = synthetic(games=50)
     fitted, _ = train(data)

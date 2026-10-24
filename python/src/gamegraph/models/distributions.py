@@ -15,7 +15,12 @@ class Bernoulli:
     def log_prob(self, parameters: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
         (probability,) = parameters
         self._require_outcomes(outcomes)
-        return torch.where(outcomes == 1, torch.log(probability), torch.log1p(-probability))
+        is_one = outcomes == 1
+        return torch.where(
+            is_one,
+            torch.log(torch.where(is_one, probability, 1.0)),
+            torch.log1p(-torch.where(is_one, 0.0, probability)),
+        )
 
     def sample(self, parameters: tuple[torch.Tensor, ...], uniforms: torch.Tensor) -> torch.Tensor:
         (probability,) = parameters

@@ -64,6 +64,15 @@ def test_bernoulli_gives_the_log_probability_of_each_outcome() -> None:
     assert_close(log_prob, [math.log(0.25), math.log(0.75)])
 
 
+def test_bernoulli_has_a_finite_gradient_when_a_probability_rounds_to_0_or_1() -> None:
+    eta = tensor([40.0, -800.0, 0.0]).requires_grad_()
+    log_probability = Bernoulli().log_prob((torch.sigmoid(eta),), torch.tensor([1, 0, 0]))
+    log_probability.sum().backward()
+    assert_close(log_probability.detach(), [0.0, 0.0, math.log(0.5)])
+    assert eta.grad is not None
+    assert_close(eta.grad, [0.0, 0.0, -0.5])
+
+
 def test_bernoulli_samples_one_below_the_probability() -> None:
     samples = Bernoulli().sample((tensor([0.25, 0.25, 0.25]),), tensor([0.0, 0.2499, 0.25]))
     assert torch.equal(samples, torch.tensor([1, 1, 0]))
