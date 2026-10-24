@@ -22,7 +22,6 @@ RIDGE_PATH = (1e-2, 1e-3, 1e-4, 1e-5, 0.0)
 ROUTES = ((Route.DIRECT, (0.0,)), (Route.RIDGE_PATH, RIDGE_PATH))
 MAX_ITERATIONS = 2000
 MAX_EVALUATIONS = 4000
-EXIT_GRADIENT = 1e-9
 CHANGE_TOLERANCE = 1e-10
 CONVERGED_GRADIENT = 1e-4
 
@@ -104,7 +103,7 @@ def fit(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: to
         coefficients,
         max_iter=MAX_ITERATIONS,
         max_eval=MAX_EVALUATIONS,
-        tolerance_grad=EXIT_GRADIENT,
+        tolerance_grad=CONVERGED_GRADIENT,
         tolerance_change=CHANGE_TOLERANCE,
         line_search_fn="strong_wolfe",
     )
@@ -112,6 +111,8 @@ def fit(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: to
     def closure() -> torch.Tensor:
         optimiser.zero_grad()
         loss = _loss(model, designs, outcomes, ridge)
+        if not torch.isfinite(loss):
+            raise NotConverged(f"{node} diverged at ridge {ridge:g}: its loss is {float(loss.detach())}")
         loss.backward()
         return loss
 
