@@ -17,8 +17,8 @@
   --bernoulli-edge: #2563eb;
   --categorical: #ede9fe;
   --categorical-edge: #7c3aed;
-  --count: #ffedd5;
-  --count-edge: #ea580c;
+  --jsu: #ffedd5;
+  --jsu-edge: #ea580c;
   --rule: #f1f2f4;
   --rule-edge: #6b7280;
   --code: #eef0f3;
@@ -37,8 +37,8 @@
     --bernoulli-edge: #7aa7ff;
     --categorical: #3b2f5c;
     --categorical-edge: #b69cff;
-    --count: #4f3420;
-    --count-edge: #ff9d5c;
+    --jsu: #4f3420;
+    --jsu-edge: #ff9d5c;
     --rule: #34363b;
     --rule-edge: #9aa0a8;
     --code: #34363b;
@@ -70,7 +70,7 @@ nav a:hover { background: var(--card); color: var(--accent); }
 nav .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
 nav .swatch.bernoulli { background: var(--bernoulli-edge); }
 nav .swatch.categorical { background: var(--categorical-edge); }
-nav .swatch.count { background: var(--count-edge); }
+nav .swatch.jsu { background: var(--jsu-edge); }
 nav .swatch.rule { background: var(--rule-edge); }
 main { flex: 1; min-width: 0; padding: 24px 40px 80px; }
 h1 { font-size: 28px; margin: 0 0 6px; }
@@ -83,14 +83,14 @@ code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size:
 .legend span { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 8px; border: 2px solid; font-size: 14px; }
 .bernoulli { background: var(--bernoulli); border-color: var(--bernoulli-edge); }
 .categorical { background: var(--categorical); border-color: var(--categorical-edge); }
-.count { background: var(--count); border-color: var(--count-edge); }
+.jsu { background: var(--jsu); border-color: var(--jsu-edge); }
 .rule { background: var(--rule); border-color: var(--rule-edge); border-style: dashed; }
 .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
 svg { display: block; margin: 0 auto; font-family: "Segoe UI", system-ui, sans-serif; }
 svg .box { stroke-width: 2; }
 svg .bernoulli { fill: var(--bernoulli); stroke: var(--bernoulli-edge); }
 svg .categorical { fill: var(--categorical); stroke: var(--categorical-edge); }
-svg .count { fill: var(--count); stroke: var(--count-edge); }
+svg .jsu { fill: var(--jsu); stroke: var(--jsu-edge); }
 svg .rule { fill: var(--rule); stroke: var(--rule-edge); stroke-dasharray: 6 4; }
 svg .name { fill: var(--text); font-size: 15px; font-weight: 600; text-anchor: middle; }
 svg .kind { fill: var(--muted); font-size: 12px; text-anchor: middle; }
@@ -104,7 +104,7 @@ svg a { cursor: pointer; }
 .card { background: var(--card); border: 1px solid var(--line); border-left: 6px solid var(--rule-edge); border-radius: 10px; padding: 16px 18px; scroll-margin-top: 16px; }
 .card.bernoulli { border-left-color: var(--bernoulli-edge); background: var(--card); }
 .card.categorical { border-left-color: var(--categorical-edge); background: var(--card); }
-.card.count { border-left-color: var(--count-edge); background: var(--card); }
+.card.count { border-left-color: var(--jsu-edge); background: var(--card); }
 .card.rule { border-left-style: dashed; background: var(--card); }
 .card:target { outline: 3px solid var(--accent); }
 .card .question { color: var(--muted); margin: 4px 0 10px; }
@@ -127,18 +127,18 @@ tr:last-child td { border-bottom: none; }
   <h2>Overview</h2>
   <a href="#idea">The idea</a>
   <a href="#diagram">The tree</a>
-  <a href="#next">The next step</a>
-  <a href="#families">Model families</a>
+  <a href="#families">Distributions</a>
   <a href="#clock">Time and the clock</a>
-  <a href="#new">What is new</a>
   <a href="#state">Game state</a>
   <a href="#incidents">Incidents</a>
-  <a href="#order">Build order</a>
   <a href="#later">Not in the tree yet</a>
   <h2>Decisions</h2>
+  <a href="#JumpBall"><span class="swatch bernoulli"></span>JumpBall</a>
+  <a href="#AwardedFreeThrow"><span class="swatch categorical"></span>AwardedFreeThrow</a>
+  <a href="#AwardedFreeThrowMade"><span class="swatch bernoulli"></span>AwardedFreeThrowMade</a>
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
   <a href="#ActionType"><span class="swatch categorical"></span>ActionType</a>
-  <a href="#ActionTime"><span class="swatch count"></span>ActionTime</a>
+  <a href="#ActionTime"><span class="swatch jsu"></span>ActionTime</a>
   <a href="#FouledOnShot"><span class="swatch bernoulli"></span>FouledOnShot</a>
   <a href="#ShotMade"><span class="swatch bernoulli"></span>ShotMade</a>
   <a href="#InBonus"><span class="swatch bernoulli"></span>InBonus</a>
@@ -146,22 +146,21 @@ tr:last-child td { border-bottom: none; }
   <a href="#OffensiveRebound"><span class="swatch bernoulli"></span>OffensiveRebound</a>
   <h2>Rules</h2>
   <a href="#PossessionStarts"><span class="swatch rule"></span>PossessionStarts</a>
-  <a href="#ClockCheck"><span class="swatch rule"></span>ClockCheck</a>
-  <a href="#FreeThrowsAwarded"><span class="swatch rule"></span>FreeThrowsAwarded</a>
+  <a href="#FreeThrowsDue"><span class="swatch rule"></span>FreeThrowsDue</a>
   <a href="#EndOfPossession"><span class="swatch rule"></span>EndOfPossession</a>
   <a href="#PeriodEnds"><span class="swatch rule"></span>PeriodEnds</a>
 </nav>
 <main>
   <h1>The NBA possession tree</h1>
-  <p class="lead">A proposal for the next model, at team level: every decision in a possession, which model family decides it, what its outcome is, and where each outcome leads. Click any box to jump to its details.</p>
+  <p class="lead">The team-level model as built (step 13 in <code>models.md</code>; the measurements behind its clock rules are in <code>data.md</code>): every decision in a game, which distribution decides it, what its outcome is, and where each outcome leads. Click any box to jump to its details.</p>
 
   <section id="idea">
     <h2>The idea</h2>
-    <p>Today a possession is one yes/no decision. This tree splits it into the decisions that happen on court, chosen so that the engine gets something it does not have yet: new model families, new outcome types, new parameter layouts, a node that exists only in some states, and rules with their own state. It is player-agnostic: choosing players waits for substitutions, so that "the five on court" is something the simulation decides itself.</p>
+    <p>A game is a walk through decisions. Rules (the sport's code) keep the state, both clocks included, and say which decision comes next; models (fitted in Python, sampled in C#) decide each outcome. The same walk, with observed outcomes in place of sampled ones, writes the training data. It is player-agnostic: choosing players waits for substitutions.</p>
     <div class="legend">
-      <span class="bernoulli">Bernoulli (logistic) · <code>bool</code></span>
-      <span class="categorical">Categorical (multinomial logit) · <code>int</code> category</span>
-      <span class="count">Count (negative binomial, truncated) · <code>int</code> seconds</span>
+      <span class="bernoulli">Bernoulli (logit) · <code>bool</code></span>
+      <span class="categorical">Categorical (log-odds) · <code>int</code> category</span>
+      <span class="jsu">Discrete Johnson SU, truncated · <code>int</code> seconds</span>
       <span class="rule">Rule · no model</span>
     </div>
   </section>
@@ -169,7 +168,7 @@ tr:last-child td { border-bottom: none; }
   <section id="diagram">
     <h2>The tree</h2>
     <div class="diagram">
-<svg viewBox="0 0 1100 1000" width="100%" style="max-width:1100px" role="img" aria-label="The NBA possession tree">
+<svg viewBox="0 0 1100 1080" width="100%" style="max-width:1100px" role="img" aria-label="The NBA possession tree">
   <defs>
     <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
       <path d="M0,0 L10,5 L0,10 z" fill="var(--arrow)"/>
@@ -177,235 +176,192 @@ tr:last-child td { border-bottom: none; }
   </defs>
 
   <path class="edge" d="M420,78 V118" marker-end="url(#arrow)"/>
-  <path class="edge" d="M520,132 H600 V49 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="530" y="40">period clock at 0</text>
-  <path class="edge" d="M520,155 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="540" y="147">shot clock off</text>
-  <path class="edge" d="M420,178 V238" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="212">otherwise</text>
-  <path class="edge" d="M780,120 V80" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="104">yes</text>
-  <path class="edge" d="M780,178 V269 H522" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="225">no</text>
-  <path class="edge" d="M420,298 V348" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="328">the chosen action</text>
-  <path class="edge" d="M420,408 V468" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="442">two or three</text>
-  <path class="edge" d="M520,368 H1060 V889 H882" marker-end="url(#arrow)"/>
-  <text class="label" x="700" y="361">turnover (including shot-clock violations)</text>
-  <path class="edge" d="M520,392 H780 V458" marker-end="url(#arrow)"/>
-  <text class="label" x="560" y="408">non-shooting foul</text>
-  <path class="edge" d="M780,518 V578" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="552">yes: 2 free throws</text>
-  <path class="edge" d="M880,489 H898" marker-end="url(#arrow)"/>
-  <a href="#InBonus">
-    <rect class="pill" x="900" y="476" width="130" height="26" rx="13"/>
-    <text class="pilltext" x="910" y="493">no: ↻ ClockCheck</text>
-  </a>
-  <text class="label" x="900" y="520">side-out</text>
-  <path class="edge" d="M420,528 V578" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="558">yes or no</text>
-  <path class="edge" d="M520,609 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="550" y="601">fouled</text>
-  <path class="edge" d="M320,609 H240 V889 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="248" y="800">made,</text>
-  <text class="label" x="248" y="815">not fouled</text>
-  <path class="edge" d="M420,638 V698" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="672">missed, not fouled</text>
-  <path class="edge" d="M780,638 V698" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="672">1, 2 or 3 free throws</text>
-  <path class="edge" d="M880,715 H920 V745 H882" marker-end="url(#arrow)"/>
-  <text class="label" x="926" y="734">another one</text>
-  <path class="edge" d="M680,729 H522" marker-end="url(#arrow)"/>
-  <text class="label" x="540" y="721">last one missed</text>
-  <path class="edge" d="M780,758 V858" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="815">last one made</text>
-  <path class="edge" d="M320,729 H180 V149 H318" marker-end="url(#arrow)"/>
-  <text class="label" x="0" y="0" transform="translate(170,560) rotate(-90)">offensive rebound: shot clock 14 s, possession continues</text>
-  <path class="edge" d="M420,758 V889"/>
-  <text class="label" x="430" y="840">defensive rebound</text>
-  <path class="edge" d="M780,918 V960 H100 V49 H318" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="954">the other team's possession</text>
-  <text class="label" x="890" y="92">otherwise: the game ends</text>
-
+  <text class="label" x="430" y="102">the winner has the ball</text>
+  <path class="edge" d="M680,49 H522" marker-end="url(#arrow)"/>
+  <text class="label" x="530" y="40">tied: overtime</text>
+  <path class="edge" d="M880,49 H898" marker-end="url(#arrow)"/>
   <a href="#PossessionStarts">
-    <rect class="pill" x="890" y="36" width="200" height="26" rx="13"/>
-    <text class="pilltext" x="902" y="53">↻ next period or overtime</text>
+    <rect class="pill" x="900" y="36" width="190" height="26" rx="13"/>
+    <text class="pilltext" x="912" y="53">periods 2–4: ↻ by rule</text>
   </a>
-  <path class="edge" d="M880,49 H888" marker-end="url(#arrow)"/>
-
-  <a href="#PossessionStarts"><rect class="box rule" x="320" y="20" width="200" height="58" rx="10"/><text class="name" x="420" y="45">PossessionStarts</text><text class="kind" x="420" y="64">rule · shot clock 24 s</text></a>
-  <a href="#ClockCheck"><rect class="box rule" x="320" y="120" width="200" height="58" rx="10"/><text class="name" x="420" y="145">ClockCheck</text><text class="kind" x="420" y="164">rule · which clock binds</text></a>
-  <a href="#PeriodEnds"><rect class="box rule" x="680" y="20" width="200" height="58" rx="10"/><text class="name" x="780" y="45">PeriodEnds</text><text class="kind" x="780" y="64">rule · overtime if tied</text></a>
-  <a href="#PeriodRunsOut"><rect class="box bernoulli" x="680" y="120" width="200" height="58" rx="10"/><text class="name" x="780" y="145">PeriodRunsOut</text><text class="kind" x="780" y="164">Bernoulli · bool · gated</text></a>
-  <a href="#ActionType"><rect class="box categorical" x="320" y="240" width="200" height="58" rx="10"/><text class="name" x="420" y="265">ActionType</text><text class="kind" x="420" y="284">Categorical · int</text></a>
-  <a href="#ActionTime"><rect class="box count" x="320" y="350" width="200" height="58" rx="10"/><text class="name" x="420" y="375">ActionTime</text><text class="kind" x="420" y="394">Count · int seconds</text></a>
-  <a href="#FouledOnShot"><rect class="box bernoulli" x="320" y="470" width="200" height="58" rx="10"/><text class="name" x="420" y="495">FouledOnShot</text><text class="kind" x="420" y="514">Bernoulli · bool</text></a>
-  <a href="#ShotMade"><rect class="box bernoulli" x="320" y="580" width="200" height="58" rx="10"/><text class="name" x="420" y="605">ShotMade</text><text class="kind" x="420" y="624">Bernoulli · bool</text></a>
-  <a href="#OffensiveRebound"><rect class="box bernoulli" x="320" y="700" width="200" height="58" rx="10"/><text class="name" x="420" y="725">OffensiveRebound</text><text class="kind" x="420" y="744">Bernoulli · bool</text></a>
-  <a href="#FreeThrowsAwarded"><rect class="box rule" x="680" y="580" width="200" height="58" rx="10"/><text class="name" x="780" y="605">FreeThrowsAwarded</text><text class="kind" x="780" y="624">rule · how many free throws</text></a>
-  <a href="#FreeThrowMade"><rect class="box bernoulli" x="680" y="700" width="200" height="58" rx="10"/><text class="name" x="780" y="725">FreeThrowMade</text><text class="kind" x="780" y="744">Bernoulli · bool</text></a>
-  <a href="#EndOfPossession"><rect class="box rule" x="680" y="860" width="200" height="58" rx="10"/><text class="name" x="780" y="885">EndOfPossession</text><text class="kind" x="780" y="904">rule · reports the possession</text></a>
-  <a href="#InBonus"><rect class="box bernoulli" x="680" y="460" width="200" height="58" rx="10"/><text class="name" x="780" y="485">InBonus</text><text class="kind" x="780" y="504">Bernoulli · bool</text></a>
-</svg>
-    </div>
-  </section>
-
-  <section id="next">
-    <h2>The next step: the tree without the clock</h2>
-    <p>The first step builds every decision except the clock. Possessions still follow the real game's schedule (who has the ball and how many possessions each period has), as today; the clock replaces that in the step after.</p>
-    <p>Fouls and free throws come in this step, not later: about one possession in eight has free throws (8.6% have only free throws, 3.9% a shot and free throws). Most are a fouled missed shot, which the data records as a shooting foul with 2 or 3 free throws and no shot, exactly the tree's <em>shot, fouled, missed</em>.</p>
-    <div class="diagram">
-<svg viewBox="0 0 1100 800" width="100%" style="max-width:1100px" role="img" aria-label="The tree without the clock">
-  <path class="edge" d="M420,78 V128" marker-end="url(#arrow)"/>
-  <path class="edge" d="M420,188 V248" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="222">two or three</text>
-  <path class="edge" d="M520,150 H1070 V689 H882" marker-end="url(#arrow)"/>
-  <text class="label" x="760" y="143">turnover (including shot-clock violations)</text>
-  <path class="edge" d="M520,172 H780 V238" marker-end="url(#arrow)"/>
-  <text class="label" x="560" y="188">non-shooting foul</text>
-  <path class="edge" d="M780,298 V358" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="332">yes: 2 free throws</text>
-  <path class="edge" d="M880,269 H938" marker-end="url(#arrow)"/>
+  <text class="label" x="900" y="92">otherwise: the game ends</text>
+  <path class="edge" d="M420,178 V218" marker-end="url(#arrow)"/>
+  <path class="edge" d="M520,238 H678" marker-end="url(#arrow)"/>
+  <text class="label" x="540" y="230">offence or defence</text>
+  <path class="edge" d="M680,262 H522" marker-end="url(#arrow)"/>
+  <text class="label" x="580" y="280">↻ again</text>
+  <path class="edge" d="M420,278 V328" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="310">none</text>
+  <path class="edge" d="M500,278 V298 H780 V328" marker-end="url(#arrow)"/>
+  <text class="label" x="560" y="293">none, and the period clock binds</text>
+  <path class="edge" d="M880,345 H960 V64 H882" marker-end="url(#arrow)"/>
+  <text class="label" x="968" y="210">yes</text>
+  <path class="edge" d="M680,372 H522" marker-end="url(#arrow)"/>
+  <text class="label" x="590" y="366">no</text>
+  <path class="edge" d="M420,388 V438" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="418">the chosen action</text>
+  <path class="edge" d="M420,498 V558" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="532">two or three</text>
+  <path class="edge" d="M520,458 H1060 V979 H882" marker-end="url(#arrow)"/>
+  <text class="label" x="700" y="450">turnover (including shot-clock violations)</text>
+  <path class="edge" d="M520,482 H780 V558" marker-end="url(#arrow)"/>
+  <text class="label" x="560" y="498">non-shooting foul</text>
+  <path class="edge" d="M780,618 V668" marker-end="url(#arrow)"/>
+  <text class="label" x="790" y="648">yes: 2 free throws</text>
+  <path class="edge" d="M880,589 H898" marker-end="url(#arrow)"/>
   <a href="#InBonus">
-    <rect class="pill" x="940" y="256" width="122" height="26" rx="13"/>
-    <text class="pilltext" x="950" y="273">no: ↻ ActionType</text>
+    <rect class="pill" x="900" y="576" width="150" height="26" rx="13"/>
+    <text class="pilltext" x="910" y="593">no: side-out ↻</text>
   </a>
-  <text class="label" x="940" y="300">side-out</text>
-  <path class="edge" d="M420,308 V358" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="338">yes or no</text>
-  <path class="edge" d="M520,389 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="550" y="381">fouled</text>
-  <path class="edge" d="M320,389 H240 V689 H678" marker-end="url(#arrow)"/>
-  <text class="label" x="248" y="600">made,</text>
-  <text class="label" x="248" y="615">not fouled</text>
-  <path class="edge" d="M420,418 V478" marker-end="url(#arrow)"/>
-  <text class="label" x="430" y="452">missed, not fouled</text>
-  <path class="edge" d="M780,418 V478" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="452">1, 2 or 3 free throws</text>
-  <path class="edge" d="M880,495 H910 V525 H882" marker-end="url(#arrow)"/>
-  <text class="label" x="916" y="514">another one</text>
-  <path class="edge" d="M680,509 H522" marker-end="url(#arrow)"/>
-  <text class="label" x="540" y="501">last one missed</text>
-  <path class="edge" d="M780,538 V658" marker-end="url(#arrow)"/>
-  <text class="label" x="790" y="615">last one made</text>
-  <path class="edge" d="M320,509 H180 V159 H318" marker-end="url(#arrow)"/>
-  <text class="label" x="0" y="0" transform="translate(170,470) rotate(-90)">offensive rebound: possession continues</text>
-  <path class="edge" d="M420,538 V689"/>
-  <text class="label" x="430" y="640">defensive rebound</text>
-  <path class="edge" d="M780,718 V760 H100 V49 H318" marker-end="url(#arrow)"/>
-  <text class="label" x="260" y="754">the next possession of the real schedule; after the last one, the game ends</text>
+  <text class="label" x="900" y="620">shot clock at least 14 s</text>
+  <path class="edge" d="M420,618 V668" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="648">yes or no</text>
+  <path class="edge" d="M520,699 H678" marker-end="url(#arrow)"/>
+  <text class="label" x="550" y="691">fouled</text>
+  <path class="edge" d="M320,699 H240 V979 H678" marker-end="url(#arrow)"/>
+  <text class="label" x="248" y="900">made,</text>
+  <text class="label" x="248" y="915">not fouled</text>
+  <path class="edge" d="M420,728 V788" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="762">missed, not fouled</text>
+  <path class="edge" d="M780,728 V788" marker-end="url(#arrow)"/>
+  <text class="label" x="790" y="762">1, 2 or 3 free throws</text>
+  <path class="edge" d="M880,805 H920 V835 H882" marker-end="url(#arrow)"/>
+  <text class="label" x="926" y="824">another one</text>
+  <path class="edge" d="M680,819 H522" marker-end="url(#arrow)"/>
+  <text class="label" x="540" y="811">last one missed</text>
+  <path class="edge" d="M780,848 V948" marker-end="url(#arrow)"/>
+  <text class="label" x="790" y="905">last one made</text>
+  <path class="edge" d="M320,819 H180 V249 H318" marker-end="url(#arrow)"/>
+  <text class="label" x="0" y="0" transform="translate(170,690) rotate(-90)">offensive rebound: shot clock 14 s, possession continues</text>
+  <text class="label" x="430" y="866">with 0 on the clock, a miss starts a new play first</text>
+  <path class="edge" d="M420,848 V979"/>
+  <text class="label" x="430" y="940">defensive rebound</text>
+  <path class="edge" d="M780,1008 V1050 H100 V149 H318" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="1044">the other team's possession</text>
 
-  <a href="#PossessionStarts"><rect class="box rule" x="320" y="20" width="200" height="58" rx="10"/><text class="name" x="420" y="45">PossessionStarts</text><text class="kind" x="420" y="64">rule · from the real schedule</text></a>
-  <a href="#ActionType"><rect class="box categorical" x="320" y="130" width="200" height="58" rx="10"/><text class="name" x="420" y="155">ActionType</text><text class="kind" x="420" y="174">Categorical · int</text></a>
-  <a href="#FouledOnShot"><rect class="box bernoulli" x="320" y="250" width="200" height="58" rx="10"/><text class="name" x="420" y="275">FouledOnShot</text><text class="kind" x="420" y="294">Bernoulli · bool</text></a>
-  <a href="#ShotMade"><rect class="box bernoulli" x="320" y="360" width="200" height="58" rx="10"/><text class="name" x="420" y="385">ShotMade</text><text class="kind" x="420" y="404">Bernoulli · bool</text></a>
-  <a href="#OffensiveRebound"><rect class="box bernoulli" x="320" y="480" width="200" height="58" rx="10"/><text class="name" x="420" y="505">OffensiveRebound</text><text class="kind" x="420" y="524">Bernoulli · bool</text></a>
-  <a href="#FreeThrowsAwarded"><rect class="box rule" x="680" y="360" width="200" height="58" rx="10"/><text class="name" x="780" y="385">FreeThrowsAwarded</text><text class="kind" x="780" y="404">rule · how many free throws</text></a>
-  <a href="#FreeThrowMade"><rect class="box bernoulli" x="680" y="480" width="200" height="58" rx="10"/><text class="name" x="780" y="505">FreeThrowMade</text><text class="kind" x="780" y="524">Bernoulli · bool</text></a>
-  <a href="#EndOfPossession"><rect class="box rule" x="680" y="660" width="200" height="58" rx="10"/><text class="name" x="780" y="685">EndOfPossession</text><text class="kind" x="780" y="704">rule · reports the possession</text></a>
-  <a href="#InBonus"><rect class="box bernoulli" x="680" y="240" width="200" height="58" rx="10"/><text class="name" x="780" y="265">InBonus</text><text class="kind" x="780" y="284">Bernoulli · bool</text></a>
+  <a href="#JumpBall"><rect class="box bernoulli" x="320" y="20" width="200" height="58" rx="10"/><text class="name" x="420" y="45">JumpBall</text><text class="kind" x="420" y="64">Bernoulli · no terms</text></a>
+  <a href="#PeriodEnds"><rect class="box rule" x="680" y="20" width="200" height="58" rx="10"/><text class="name" x="780" y="45">PeriodEnds</text><text class="kind" x="780" y="64">rule · overtime if tied</text></a>
+  <a href="#PossessionStarts"><rect class="box rule" x="320" y="120" width="200" height="58" rx="10"/><text class="name" x="420" y="145">PossessionStarts</text><text class="kind" x="420" y="164">rule · shot clock 24 s</text></a>
+  <a href="#AwardedFreeThrow"><rect class="box categorical" x="320" y="220" width="200" height="58" rx="10"/><text class="name" x="420" y="245">AwardedFreeThrow</text><text class="kind" x="420" y="264">Categorical · int</text></a>
+  <a href="#AwardedFreeThrowMade"><rect class="box bernoulli" x="680" y="220" width="200" height="58" rx="10"/><text class="name" x="780" y="245">AwardedFreeThrowMade</text><text class="kind" x="780" y="264">Bernoulli · bool</text></a>
+  <a href="#ActionType"><rect class="box categorical" x="320" y="330" width="200" height="58" rx="10"/><text class="name" x="420" y="355">ActionType</text><text class="kind" x="420" y="374">Categorical · int</text></a>
+  <a href="#PeriodRunsOut"><rect class="box bernoulli" x="680" y="330" width="200" height="58" rx="10"/><text class="name" x="780" y="355">PeriodRunsOut</text><text class="kind" x="780" y="374">Bernoulli · bool · gated</text></a>
+  <a href="#ActionTime"><rect class="box jsu" x="320" y="440" width="200" height="58" rx="10"/><text class="name" x="420" y="465">ActionTime</text><text class="kind" x="420" y="484">Johnson SU · int seconds</text></a>
+  <a href="#FouledOnShot"><rect class="box bernoulli" x="320" y="560" width="200" height="58" rx="10"/><text class="name" x="420" y="585">FouledOnShot</text><text class="kind" x="420" y="604">Bernoulli · bool</text></a>
+  <a href="#InBonus"><rect class="box bernoulli" x="680" y="560" width="200" height="58" rx="10"/><text class="name" x="780" y="585">InBonus</text><text class="kind" x="780" y="604">Bernoulli · bool</text></a>
+  <a href="#ShotMade"><rect class="box bernoulli" x="320" y="670" width="200" height="58" rx="10"/><text class="name" x="420" y="695">ShotMade</text><text class="kind" x="420" y="714">Bernoulli · bool</text></a>
+  <a href="#FreeThrowsDue"><rect class="box rule" x="680" y="670" width="200" height="58" rx="10"/><text class="name" x="780" y="695">FreeThrowsDue</text><text class="kind" x="780" y="714">rule · how many free throws</text></a>
+  <a href="#OffensiveRebound"><rect class="box bernoulli" x="320" y="790" width="200" height="58" rx="10"/><text class="name" x="420" y="815">OffensiveRebound</text><text class="kind" x="420" y="834">Bernoulli · bool</text></a>
+  <a href="#FreeThrowMade"><rect class="box bernoulli" x="680" y="790" width="200" height="58" rx="10"/><text class="name" x="780" y="815">FreeThrowMade</text><text class="kind" x="780" y="834">Bernoulli · bool</text></a>
+  <a href="#EndOfPossession"><rect class="box rule" x="680" y="950" width="200" height="58" rx="10"/><text class="name" x="780" y="975">EndOfPossession</text><text class="kind" x="780" y="994">rule · reports the possession</text></a>
 </svg>
     </div>
-    <ul>
-      <li><strong>Families</strong>: Categorical (ActionType) and Bernoulli (the other five decisions). The Count family waits for the clock.</li>
-      <li><strong>How the data maps</strong>: a shooting foul with 2 or 3 free throws and no shot is a two or a three, fouled and missed; a made shot with a shooting foul and 1 free throw is fouled and made (an and-one); a non-shooting foul with free throws is a non-shooting foul in the bonus; one without free throws is a side-out.</li>
-      <li><strong>The bonus is learnt, not ruled</strong>: <a href="#InBonus">InBonus</a> decides whether a non-shooting foul gives free throws, from the defence's team fouls. An exact rule would need every team foul, and the tree does not generate them all (loose-ball and away-from-the-ball fouls, for example), so its count would run low and disagree with the data; the last-two-minutes rule would also need the clock.</li>
-      <li><strong>Features without the clock</strong>: the clock features (seconds left on the shot clock and the period clock) come with the clock step; this step uses the score, the period, team fouls and the context.</li>
-    </ul>
   </section>
 
   <section id="families">
-    <h2>Model families</h2>
+    <h2>Distributions</h2>
     <table>
-      <tr><th>Family</th><th>Outcome</th><th>Parameters</th><th>Used by</th></tr>
+      <tr><th>Distribution</th><th>Outcome</th><th>Predicted parameters</th><th>Used by</th></tr>
       <tr>
-        <td><span class="tag bernoulli" style="margin:0">Bernoulli</span><br>logistic link</td>
+        <td><span class="tag bernoulli" style="margin:0">Bernoulli</span></td>
         <td><code>bool</code></td>
-        <td>intercept + one weight per feature</td>
-        <td><a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
+        <td>the probability (logit link)</td>
+        <td><a href="#JumpBall">JumpBall</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
       </tr>
       <tr>
-        <td><span class="tag categorical" style="margin:0">Categorical</span><br>multinomial logit</td>
+        <td><span class="tag categorical" style="margin:0">Categorical</span></td>
         <td><code>int</code>: one of K fixed categories</td>
-        <td>(K − 1) × (intercept + one weight per feature); one category is the reference</td>
-        <td><a href="#ActionType">ActionType</a></td>
+        <td>the log-odds of each category against the first</td>
+        <td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#ActionType">ActionType</a></td>
       </tr>
       <tr>
-        <td><span class="tag count" style="margin:0">Count</span><br>negative binomial, log link, truncated</td>
-        <td><code>int</code>: whole seconds, from 0 up to a cut-off</td>
-        <td>intercept + one weight per feature for the log of the mean, plus one dispersion; the cut-off comes from the state, not from the parameters</td>
+        <td><span class="tag jsu" style="margin:0">Discrete Johnson SU</span></td>
+        <td><code>int</code>: whole seconds, from 0 up to a given maximum</td>
+        <td>location (identity), scale (log), skew (identity), tail (log); the maximum is given by a feature, not predicted</td>
         <td><a href="#ActionTime">ActionTime</a></td>
       </tr>
     </table>
-    <p>All three take one feature vector per decision. The choice shape (one feature vector per candidate) arrives with player-level nodes.</p>
+    <p>Every predicted parameter is an intercept plus its own terms, each linear or a linear spline in one feature; a node's features are those its terms and given parameters use. Training fits each node directly and along a ridge path and chooses on validation (<code>models.md</code>).</p>
   </section>
 
   <section id="clock">
     <h2>Time and the clock</h2>
     <ul>
-      <li><strong>The action comes first, then its time.</strong> The team knows the score, the period and both clocks, picks what to do (<a href="#ActionType">ActionType</a>), and only then is the time it took drawn (<a href="#ActionTime">ActionTime</a>), depending on the action: turnovers come quickly, threes after more passing.</li>
-      <li><strong>Time never exceeds the clock.</strong> ActionTime is truncated at the clock that binds, the shorter of the shot clock and the period clock. In the data, an action's time is always within the clock, so the truncated model matches it exactly.</li>
-      <li><strong>Shot-clock violations are turnovers.</strong> The data records them as turnovers of type <code>ShotClockViolation</code> (about 1.3 per game), so they need no special node: a turnover whose time uses up the shot clock.</li>
-      <li><strong>The period can only run out once the shot clock is off.</strong> While the shot clock is shorter than the period clock, it forces an action or a violation first. Only when the period clock is the shorter one does <a href="#PeriodRunsOut">PeriodRunsOut</a> exist, so the period can never run out mid-quarter.</li>
-      <li><strong>Whole seconds.</strong> The data's game clock has whole seconds only, with no tenths in the last minute, and many actions share a second, so a time of 0 is common. A count family allows that; a continuous duration would need interval likelihoods for no gain.</li>
+      <li><strong>The action comes first, then its time.</strong> The team picks what to do (<a href="#ActionType">ActionType</a>) knowing both clocks, and only then is the time it took drawn (<a href="#ActionTime">ActionTime</a>), depending on the action and how the play started.</li>
+      <li><strong>Time is measured from the previous action</strong>, so every second of a period is counted once, the time from a shot to its rebound included.</li>
+      <li><strong>The bound is the shot clock plus 4 seconds, or the period clock if shorter.</strong> The slack covers the gap between the event an action is timed from and the real shot clock's start (the rebound secured, the inbound touched); 0.3% of observed times are above it and clamped.</li>
+      <li><strong>A period ends only through <a href="#PeriodRunsOut">PeriodRunsOut</a></strong>: asked at the start of a play when the period clock is the bound; a miss with 0 on the clock starts a play (whole seconds: 0:00 can mean up to a second left, and 2.5% of misses at 0:00 are followed by more play).</li>
+      <li><strong>Shot-clock violations are turnovers</strong>: a turnover whose time uses up the bound.</li>
+      <li><strong>Free throws take no time.</strong></li>
     </ul>
-  </section>
-
-  <section id="new">
-    <h2>What is new compared with today</h2>
-    <table>
-      <tr><th>Today</th><th>This tree</th></tr>
-      <tr><td>One family: Bernoulli</td><td><span class="new">Two new families</span>: Categorical, Count</td></tr>
-      <tr><td>Outcomes are 0 or 1</td><td><span class="new">Two new outcome types</span>: a category, a number of seconds</td></tr>
-      <tr><td>Intercept + weights</td><td><span class="new">New parameter layouts</span>: K − 1 sets with a reference category; an extra dispersion</td></tr>
-      <tr><td>Every example is unconstrained</td><td><span class="new">Truncation</span>: each ActionTime example carries its own cut-off, taken from the state</td></tr>
-      <tr><td>Every node can always be reached</td><td><span class="new">A gated node</span>: <a href="#PeriodRunsOut">PeriodRunsOut</a> exists only when the period clock is shorter than the shot clock</td></tr>
-      <tr><td>One node that always loops to itself</td><td>Thirteen nodes, loops (offensive rebounds, free throws, side-outs), and rules with their own state (clocks, team fouls, the bonus, overtime)</td></tr>
-      <tr><td>The real game's schedule, overtime included</td><td>The clock decides when periods end and the score decides overtime: the leak from the real schedule is gone</td></tr>
-      <tr><td>One incident: the possession</td><td>Shots, free throws, rebounds, turnovers, fouls and periods, at team level</td></tr>
-    </table>
   </section>
 
   <section id="decisions">
     <h2>Decisions</h2>
     <div class="cards">
 
+      <article class="card bernoulli" id="JumpBall">
+        <h3>JumpBall <span class="tag">Bernoulli · no terms</span></h3>
+        <p class="question">Does the home team win the tip?</p>
+        <dl>
+          <dt>Exists when</dt><dd>the game starts, and every overtime</dd>
+          <dt>Features</dt><dd>none: an intercept only</dd>
+          <dt>Transition</dt><dd>the winner has the ball; the first period's winner decides periods 2 to 4 → <a href="#PossessionStarts">PossessionStarts</a></dd>
+          <dt>Observed as</dt><dd>the team of the period's first possession</dd>
+        </dl>
+      </article>
+
+      <article class="card categorical" id="AwardedFreeThrow">
+        <h3>AwardedFreeThrow <span class="tag">Categorical</span></h3>
+        <p class="question">Before the play, is a free throw outside the play awarded, and to whom?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence</dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li></ul></dd>
+          <dt>Transition</dt><dd>offence or defence → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
+          <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period, or asked before the period ends after its last play</dd>
+        </dl>
+      </article>
+
+      <article class="card bernoulli" id="AwardedFreeThrowMade">
+        <h3>AwardedFreeThrowMade <span class="tag">Bernoulli</span></h3>
+        <p class="question">Does the free throw outside the play go in?</p>
+        <dl>
+          <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's scoring rate (context)</li></ul></dd>
+          <dt>Transition</dt><dd>score +1 for the shooting team if made; the ball does not move → <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
+          <dt>Incidents</dt><dd>an awarded free throw: team, period, made</dd>
+        </dl>
+      </article>
+
       <article class="card bernoulli" id="PeriodRunsOut">
         <h3>PeriodRunsOut <span class="tag">Bernoulli · gated</span></h3>
-        <p class="question">With the shot clock off, does the team let the period run out without an action?</p>
+        <p class="question">Does the period run out before anything else happens?</p>
         <dl>
-          <dt>Exists when</dt><dd>the period clock is shorter than the shot clock (decided by <a href="#ClockCheck">ClockCheck</a>)</dd>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
-          <dt>Features</dt><dd><ul><li>seconds left in the period</li><li>score margin</li><li>which period, and whether it is the last of regulation or an overtime</li></ul></dd>
-          <dt>Transition</dt><dd>yes → the period clock runs to 0, <a href="#PeriodEnds">PeriodEnds</a>; no → <a href="#ActionType">ActionType</a></dd>
-          <dt>Observed as</dt><dd>one example per action inside the window: yes when the period ended with no further action by the team with the ball</dd>
+          <dt>Exists when</dt><dd>a play starts with the period clock below the shot clock plus 4 seconds; a miss that leaves 0 on the clock starts a play</dd>
+          <dt>Features</dt><dd><ul><li>seconds left in the period</li><li>score margin</li><li>which period</li><li>whether it follows a miss</li></ul></dd>
+          <dt>Transition</dt><dd>yes → <a href="#PeriodEnds">PeriodEnds</a>; no → <a href="#ActionType">ActionType</a>, or <a href="#OffensiveRebound">OffensiveRebound</a> after a miss</dd>
+          <dt>Observed as</dt><dd>yes when the period has no further action</dd>
         </dl>
       </article>
 
       <article class="card categorical" id="ActionType">
         <h3>ActionType <span class="tag">Categorical</span></h3>
-        <p class="question">Knowing the score and the clocks, what does the team with the ball do?</p>
+        <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Parameters</dt><dd>3 × (intercept + one weight per feature)</dd>
-          <dt>Features</dt><dd><ul><li>seconds left on the shot clock and the period clock</li><li>score margin, period</li><li>team three-point, turnover and drawn-foul rates over the last 20 games (context)</li><li>whether the defence is in the bonus</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
-          <dt>Observed as</dt><dd>the next action event: field-goal attempt (by its points), turnover of any type, non-shooting foul</dd>
+          <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
       </article>
 
-      <article class="card count" id="ActionTime">
-        <h3>ActionTime <span class="tag">Count · truncated</span></h3>
+      <article class="card jsu" id="ActionTime">
+        <h3>ActionTime <span class="tag">Discrete Johnson SU · truncated</span></h3>
         <p class="question">How many seconds did the action take?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the clock that binds (the shorter of the shot clock and the period clock)</dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature for the log of the mean, plus one dispersion</dd>
-          <dt>Features</dt><dd><ul><li>the chosen action</li><li>seconds left on the shot clock and the period clock</li><li>score margin</li><li>team pace over the last 20 games (context)</li></ul></dd>
+          <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
+          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out or the period start (against a defensive rebound)</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game</li></ul></dd>
           <dt>Transition</dt><dd>both clocks run down by the outcome; then two or three → <a href="#FouledOnShot">FouledOnShot</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → <a href="#InBonus">InBonus</a></dd>
-          <dt>Incidents</dt><dd>a turnover, for a turnover</dd>
-          <dt>Observed as</dt><dd>game-clock seconds between the previous action (or the start of the possession, or the rebound) and this one; the cut-off is the binding clock at that moment</dd>
+          <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
         </dl>
       </article>
 
@@ -413,11 +369,8 @@ tr:last-child td { border-bottom: none; }
         <h3>FouledOnShot <span class="tag">Bernoulli</span></h3>
         <p class="question">Is the shooter fouled on the shot?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
-          <dt>Features</dt><dd><ul><li>shot type (2 or 3)</li><li>team drawn-foul rate (context)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type (2 or 3)</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#ShotMade">ShotMade</a>; a foul adds one to the defence's team fouls</dd>
-          <dt>Incidents</dt><dd>a foul, when fouled</dd>
           <dt>Observed as</dt><dd>a shooting foul on the attempt</dd>
         </dl>
       </article>
@@ -426,11 +379,8 @@ tr:last-child td { border-bottom: none; }
         <h3>ShotMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shot go in?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
-          <dt>Features</dt><dd><ul><li>shot type</li><li>team make rate for the type (context)</li><li>fouled on the shot</li><li>seconds left on the shot clock</li><li>opponent's defensive rate (context)</li></ul></dd>
-          <dt>Transition</dt><dd>score +2 or +3 if made; fouled → <a href="#FreeThrowsAwarded">FreeThrowsAwarded</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
-          <dt>Incidents</dt><dd>a shot: team, type, made, fouled</dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type</li><li>fouled on the shot</li></ul></dd>
+          <dt>Transition</dt><dd>score +2 or +3 if made; fouled → <a href="#FreeThrowsDue">FreeThrowsDue</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>whether the field-goal attempt was made</dd>
         </dl>
       </article>
@@ -439,13 +389,10 @@ tr:last-child td { border-bottom: none; }
         <h3>InBonus <span class="tag">Bernoulli</span></h3>
         <p class="question">Does this non-shooting foul give free throws?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
           <dt>Features</dt><dd><ul><li>the defence's team fouls this period, this one included</li><li>which period</li></ul></dd>
-          <dt>Transition</dt><dd>adds one to the defence's team fouls; yes → <a href="#FreeThrowsAwarded">FreeThrowsAwarded</a> (2 free throws); no → side-out, shot clock to at least 14 seconds, back to the next action</dd>
-          <dt>Incidents</dt><dd>a foul: team fouled, not shooting</dd>
+          <dt>Transition</dt><dd>adds one to the defence's team fouls; yes → <a href="#FreeThrowsDue">FreeThrowsDue</a> (2 free throws); no → side-out, shot clock to at least 14 seconds, a new play</dd>
           <dt>Observed as</dt><dd>whether the non-shooting foul was followed by free throws</dd>
-          <dt>Why a model</dt><dd>the real bonus is a rule, but the tree does not generate every team foul, so a counter of its own fouls would run low; the model learns the step from the fouls it sees. It can become the exact rule once every foul is modelled.</dd>
+          <dt>Why a model</dt><dd>the real bonus is a rule, but the tree does not generate every team foul, so a counter of its own fouls would run low; the model learns the step from the fouls it sees.</dd>
         </dl>
       </article>
 
@@ -453,12 +400,9 @@ tr:last-child td { border-bottom: none; }
         <h3>FreeThrowMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the free throw go in?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
-          <dt>Features</dt><dd><ul><li>team free-throw rate (context)</li><li>whether it is the last of the set</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether it is the last of the set</li></ul></dd>
           <dt>Transition</dt><dd>score +1 if made; more to take → FreeThrowMade again; last made → <a href="#EndOfPossession">EndOfPossession</a>; last missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
-          <dt>Incidents</dt><dd>a free throw: team, made</dd>
-          <dt>Observed as</dt><dd>regular free-throw events, in order</dd>
+          <dt>Observed as</dt><dd>the regular free throws the action was waiting for, in order</dd>
         </dl>
       </article>
 
@@ -466,12 +410,9 @@ tr:last-child td { border-bottom: none; }
         <h3>OffensiveRebound <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shooting team get the rebound?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>bool</code></dd>
-          <dt>Parameters</dt><dd>intercept + one weight per feature</dd>
-          <dt>Features</dt><dd><ul><li>what was missed: a two, a three or a free throw</li><li>team offensive rebounding rate and opponent defensive rebounding rate (context)</li></ul></dd>
-          <dt>Transition</dt><dd>yes → <a href="#ClockCheck">ClockCheck</a> with 14 seconds on the shot clock; no → <a href="#EndOfPossession">EndOfPossession</a></dd>
-          <dt>Incidents</dt><dd>a rebound: team, offensive or defensive</dd>
-          <dt>Observed as</dt><dd>the rebound event after the miss</dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether a three or a free throw was missed (against a two)</li></ul></dd>
+          <dt>Transition</dt><dd>yes → a new play with 14 seconds on the shot clock; no → <a href="#EndOfPossession">EndOfPossession</a></dd>
+          <dt>Observed as</dt><dd>the rebound after the miss; after a miss at 0:00, only if play follows</dd>
         </dl>
       </article>
 
@@ -486,28 +427,18 @@ tr:last-child td { border-bottom: none; }
         <h3>PossessionStarts <span class="tag">rule</span></h3>
         <p class="question">A team gets the ball.</p>
         <dl>
-          <dt>State</dt><dd>team in possession set; shot clock to 24 seconds</dd>
-          <dt>Next</dt><dd>→ <a href="#ClockCheck">ClockCheck</a></dd>
+          <dt>State</dt><dd>team in possession set; shot clock to 24 seconds; how the play started (the previous possession's end, or the period start)</dd>
+          <dt>Next</dt><dd>→ <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
         </dl>
       </article>
 
-      <article class="card rule" id="ClockCheck">
-        <h3>ClockCheck <span class="tag">rule</span></h3>
-        <p class="question">Before every action: which clock binds?</p>
-        <dl>
-          <dt>Period clock at 0</dt><dd>→ <a href="#PeriodEnds">PeriodEnds</a> (for example after a shot at the buzzer)</dd>
-          <dt>Shorter than the shot clock</dt><dd>the shot clock is off → <a href="#PeriodRunsOut">PeriodRunsOut</a></dd>
-          <dt>Otherwise</dt><dd>→ <a href="#ActionType">ActionType</a></dd>
-        </dl>
-      </article>
-
-      <article class="card rule" id="FreeThrowsAwarded">
-        <h3>FreeThrowsAwarded <span class="tag">rule</span></h3>
+      <article class="card rule" id="FreeThrowsDue">
+        <h3>FreeThrowsDue <span class="tag">rule</span></h3>
         <p class="question">How many free throws does the foul give?</p>
         <dl>
           <dt>Shooting foul</dt><dd>shot made → 1 (and-one); missed → 2 for a two, 3 for a three</dd>
           <dt>Other foul</dt><dd>2, once <a href="#InBonus">InBonus</a> has said yes</dd>
-          <dt>Next</dt><dd>1 or more → <a href="#FreeThrowMade">FreeThrowMade</a>; free throws take no time off the clock</dd>
+          <dt>Next</dt><dd>→ <a href="#FreeThrowMade">FreeThrowMade</a></dd>
         </dl>
       </article>
 
@@ -515,18 +446,18 @@ tr:last-child td { border-bottom: none; }
         <h3>EndOfPossession <span class="tag">rule</span></h3>
         <p class="question">The possession is over.</p>
         <dl>
-          <dt>Incidents</dt><dd>the possession: simulation index, team, period, points</dd>
+          <dt>Incidents</dt><dd>the possession: team, period, points</dd>
           <dt>Next</dt><dd>the other team's <a href="#PossessionStarts">PossessionStarts</a></dd>
         </dl>
       </article>
 
       <article class="card rule" id="PeriodEnds">
         <h3>PeriodEnds <span class="tag">rule</span></h3>
-        <p class="question">The period clock has run out.</p>
+        <p class="question">The period has run out.</p>
         <dl>
-          <dt>Incidents</dt><dd>the period: simulation index, period, score</dd>
-          <dt>Next</dt><dd>before the fourth period ends → next period, possession by the NBA's alternating rule; after the fourth or an overtime, tied → a 5-minute overtime; otherwise the game ends</dd>
-          <dt>State</dt><dd>team fouls reset each period; period clock to 12 minutes, 5 in overtime</dd>
+          <dt>Incidents</dt><dd>the possession in progress, with its points so far</dd>
+          <dt>Next</dt><dd>periods 2 to 4 → <a href="#PossessionStarts">PossessionStarts</a> by the alternating rule (the team that did not start the first period starts the second and third); after the fourth or an overtime, tied → <a href="#JumpBall">JumpBall</a> and a 5-minute overtime; otherwise the game ends</dd>
+          <dt>State</dt><dd>team fouls reset; period clock to 12 minutes, 5 in overtime</dd>
         </dl>
       </article>
 
@@ -534,52 +465,39 @@ tr:last-child td { border-bottom: none; }
   </section>
 
   <section id="state">
-    <h2>Game state the tree needs</h2>
+    <h2>Game state</h2>
     <table>
       <tr><th>Value</th><th>Changed by</th><th>Read by</th></tr>
-      <tr><td>Score, period, team in possession, simulation index</td><td>as today</td><td>features, incidents</td></tr>
-      <tr><td>Period clock and shot clock</td><td><a href="#ActionTime">ActionTime</a>, rebounds, side-outs, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#PeriodEnds">PeriodEnds</a></td><td><a href="#ClockCheck">ClockCheck</a>, features, the cut-off of ActionTime</td></tr>
+      <tr><td>Score, period, team in possession</td><td>the transitions</td><td>features, incidents</td></tr>
+      <tr><td>Period clock and shot clock</td><td><a href="#ActionTime">ActionTime</a>, rebounds, side-outs, <a href="#PossessionStarts">PossessionStarts</a>, <a href="#PeriodEnds">PeriodEnds</a></td><td>the gate before <a href="#PeriodRunsOut">PeriodRunsOut</a>, features, the bound of ActionTime</td></tr>
+      <tr><td>How the play started</td><td><a href="#PossessionStarts">PossessionStarts</a>, rebounds, side-outs</td><td><a href="#ActionTime">ActionTime</a></td></tr>
       <tr><td>The chosen action</td><td><a href="#ActionType">ActionType</a></td><td><a href="#ActionTime">ActionTime</a> and its transition</td></tr>
+      <tr><td>The first period's starter</td><td><a href="#JumpBall">JumpBall</a></td><td><a href="#PeriodEnds">PeriodEnds</a></td></tr>
       <tr><td>Team fouls this period</td><td>fouls; reset by <a href="#PeriodEnds">PeriodEnds</a></td><td><a href="#InBonus">InBonus</a>, <a href="#ActionType">ActionType</a></td></tr>
-      <tr><td>Free throws left</td><td><a href="#FreeThrowsAwarded">FreeThrowsAwarded</a>, <a href="#FreeThrowMade">FreeThrowMade</a></td><td><a href="#FreeThrowMade">FreeThrowMade</a></td></tr>
-      <tr><td>What was missed (two, three, free throw)</td><td><a href="#ShotMade">ShotMade</a>, <a href="#FreeThrowMade">FreeThrowMade</a></td><td><a href="#OffensiveRebound">OffensiveRebound</a></td></tr>
-      <tr><td>Context: team rates over the last 20 games</td><td>augmentation, before the game</td><td>features</td></tr>
+      <tr><td>Free throws left, what was missed, who shoots an awarded free throw</td><td>the free-throw and shot transitions</td><td><a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
+      <tr><td>Context: team scoring rates over the last 20 games</td><td>augmentation, before the game</td><td>features</td></tr>
     </table>
   </section>
 
   <section id="incidents">
     <h2>Incidents</h2>
-    <p>What the outside world sees. Every incident carries the simulation index.</p>
+    <p>What the outside world sees. Each simulation's state holds its own incident collector.</p>
     <table>
       <tr><th>Incident</th><th>Fields</th><th>Reported by</th></tr>
-      <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a></td></tr>
-      <tr><td>Shot</td><td>team, type, made, fouled</td><td><a href="#ShotMade">ShotMade</a></td></tr>
-      <tr><td>Free throw</td><td>team, made</td><td><a href="#FreeThrowMade">FreeThrowMade</a></td></tr>
-      <tr><td>Rebound</td><td>team, offensive or defensive</td><td><a href="#OffensiveRebound">OffensiveRebound</a></td></tr>
-      <tr><td>Turnover</td><td>team</td><td><a href="#ActionTime">ActionTime</a></td></tr>
-      <tr><td>Foul</td><td>team fouled, shooting or not</td><td><a href="#FouledOnShot">FouledOnShot</a>, <a href="#InBonus">InBonus</a></td></tr>
-      <tr><td>Period</td><td>period, score</td><td><a href="#PeriodEnds">PeriodEnds</a></td></tr>
-    </table>
-  </section>
-
-  <section id="order">
-    <h2>A possible build order</h2>
-    <p>Two steps. Fouls and free throws come with the first, because about one possession in eight has free throws and the data cannot be read without them.</p>
-    <table>
-      <tr><th>Step</th><th>Adds</th><th>Brings</th></tr>
-      <tr><td>1</td><td><a href="#next">The tree without the clock</a>: <a href="#ActionType">ActionType</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowsAwarded">FreeThrowsAwarded</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>; possessions still follow the real schedule</td><td>the Categorical family, rules with their own state (team fouls), loops inside a possession</td></tr>
-      <tr><td>2</td><td><a href="#ClockCheck">ClockCheck</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#ActionTime">ActionTime</a>, <a href="#PeriodEnds">PeriodEnds</a>, and the clock features</td><td>the Count family, truncation, a gated node; removes the schedule leak</td></tr>
+      <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a>, <a href="#PeriodEnds">PeriodEnds</a></td></tr>
+      <tr><td>Awarded free throw</td><td>team, period, made</td><td><a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
     </table>
   </section>
 
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: who shoots, rebounds, turns it over and is fouled (the Choice family and its feature shape), together with substitutions</li>
+      <li>Home advantage: no feature says which team is at home, so simulated margins lean 2.4 points less to the home team than real ones</li>
+      <li>The ball after a flagrant or a take foul: the fouled team keeps it in reality, not in a simulation</li>
+      <li>Players: who shoots, rebounds, turns it over and is fouled, together with substitutions</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
-      <li>A continuous time (<code>double</code>), once the data has tenths of a second</li>
-      <li>Foul types (offensive, loose-ball, technical, flagrant), turnover types (live-ball steals and their fast breaks), shot zones</li>
-      <li>Assists, blocks, timeouts, late-game fouling, jump balls, end-of-period heaves, coach's challenges</li>
+      <li>A continuous time, once the data has tenths of a second</li>
+      <li>Foul types, turnover types (live-ball steals and their fast breaks), shot zones, assists, blocks, timeouts, late-game fouling</li>
     </ul>
   </section>
 </main>

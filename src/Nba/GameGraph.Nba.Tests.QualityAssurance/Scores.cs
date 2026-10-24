@@ -1,12 +1,14 @@
 using GameGraph.Nba.Graph;
 
-namespace GameGraph.Nba.QualityAssurance;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class Scores(int simulations)
 {
     public int[,] Points { get; } = new int[simulations, 2];
 
     public int[] Possessions { get; } = new int[simulations];
+
+    public int[] Periods { get; } = new int[simulations];
 
     public ScoreCollector For(int simulationIndex) => new(this, simulationIndex);
 

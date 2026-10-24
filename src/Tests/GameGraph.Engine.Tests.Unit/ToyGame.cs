@@ -28,10 +28,9 @@ internal sealed class ToyGame
     public static NodeSpec<ToyState> Node(string name, Feature<ToyState>[] features, Transition<ToyState> transition)
     {
         var distribution = new BernoulliDistribution();
-        Term[] terms = [.. features.Select(f => new LinearTerm(f.Name))];
-        var model = new ModelDeclaration(distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, string>());
+        FeatureTerm<ToyState>[] terms = [.. features.Select(FeatureTerm.Linear)];
 
-        return new(name, features, model, transition);
+        return new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<ToyState>>(), transition);
     }
 
     private Next<ToyState> AfterWide(ToyState state, int outcome)

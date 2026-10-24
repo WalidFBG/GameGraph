@@ -61,7 +61,7 @@ GameGraph.Host
         ├── GameGraph.Nba
         └── GameGraph.Engine
 
-GameGraph.Nba.QualityAssurance (tests)
+GameGraph.Nba.Tests.QualityAssurance
   ├── GameGraph.Nba.Sportradar
   ├── GameGraph.Nba.Augmentation
   ├── GameGraph.Simulation
@@ -71,15 +71,15 @@ GameGraph.Nba.QualityAssurance (tests)
 ```
 
 - **Models** knows nothing about sports, games or the engine (see `models.md`). It holds the contract with Python (a model's declaration, the training-data manifest, the fitted model and the training report, read and written against the schemas) and the forward pass: a fitted model's parameter values, log-probability and samples, from the node's features.
-- **Engine** owns the walk and the outcome-decider and decision-collector interfaces. Each node declares its model (a distribution, the terms of each predicted parameter, the feature of each given one) from its own features, and the engine checks that the model uses exactly those features. It knows nothing about any sport and nothing about training.
-- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
+- **Engine** owns the walk and the outcome-decider and decision-collector interfaces. Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport and nothing about training.
+- **Simulation** binds the fitted models to a game once (`FittedGame`) and simulates it many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
 - **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
 - **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file, with the node's declared model in the manifest.
-- **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.
+- **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period, each action with its clock, and the free throws outside the play). Its incidents are the possession and the awarded free throw; the tree is `possession-tree.html`. It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
 - **Nba.TrainingDataGeneration** walks the observed games: context, then the engine's walk with the observed outcome decider, then the history advances.
-- **Nba.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
+- **Nba.Tests.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
 - **Host** wires them together.
 
 The engine and training never meet: they share only files. What guarantees that what is trained is what runs is the parity tests: C# recomputes the training report's likelihoods from the same files and fitted models, and draws the same samples, to 1e-12.

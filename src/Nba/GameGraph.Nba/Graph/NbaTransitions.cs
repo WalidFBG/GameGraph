@@ -7,9 +7,65 @@ public static class NbaTransitions
 {
     public const int BonusFreeThrows = 2;
 
+    public static Next<NbaState> JumpBall(NbaState state, int homeWon)
+    {
+        state.TeamInPossession = Yes(homeWon) ? Sides.Home : Sides.Away;
+
+        if (state.Period == 0)
+            state.FirstPeriodStarter = state.TeamInPossession;
+
+        return NextPlay(state);
+    }
+
+    public static Next<NbaState> AwardedFreeThrow(NbaState state, int awarded)
+    {
+        switch (awarded)
+        {
+            case AwardedFreeThrows.None:
+                return state.PeriodClockBinds ? NbaNodes.PeriodRunsOut : NbaNodes.ActionType;
+            case AwardedFreeThrows.Offence:
+                state.AwardedTeam = state.TeamInPossession;
+                return NbaNodes.AwardedFreeThrowMade;
+            case AwardedFreeThrows.Defence:
+                state.AwardedTeam = Sides.Opponent(state.TeamInPossession);
+                return NbaNodes.AwardedFreeThrowMade;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(awarded), awarded, "Not an awarded free throw");
+        }
+    }
+
+    public static Next<NbaState> AwardedFreeThrowMade(NbaState state, int made)
+    {
+        if (Yes(made))
+            state.Score[state.AwardedTeam]++;
+
+        state.Incidents.AwardedFreeThrow(new AwardedFreeThrowIncident(state.AwardedTeam, state.Period, Yes(made)));
+        return NbaNodes.AwardedFreeThrow;
+    }
+
+    public static Next<NbaState> PeriodRunsOut(NbaState state, int runsOut)
+    {
+        if (Yes(runsOut))
+            return EndOfPeriod(state);
+
+        return state.LastMiss == Miss.NotSet ? NbaNodes.ActionType : NbaNodes.OffensiveRebound;
+    }
+
     public static Next<NbaState> ActionType(NbaState state, int category)
     {
-        switch (ActionTypes.FromCategory(category))
+        state.Action = ActionTypes.FromCategory(category);
+        return NbaNodes.ActionTime;
+    }
+
+    public static Next<NbaState> ActionTime(NbaState state, int seconds)
+    {
+        if (seconds < 0 || seconds > state.Bound)
+            throw new ArgumentOutOfRangeException(nameof(seconds), seconds, $"An action takes from 0 to {state.Bound} seconds here");
+
+        state.PeriodClock -= seconds;
+        state.ShotClock -= seconds;
+
+        switch (state.Action)
         {
             case Graph.ActionType.TwoPointAttempt:
                 state.ShotPoints = 2;
@@ -18,12 +74,12 @@ public static class NbaTransitions
                 state.ShotPoints = 3;
                 return NbaNodes.FouledOnShot;
             case Graph.ActionType.Turnover:
-                return EndOfPossession(state);
+                return EndOfPossession(state, PlayStart.Turnover);
             case Graph.ActionType.NonShootingFoul:
                 state.TeamFouls[Sides.Opponent(state.TeamInPossession)]++;
                 return NbaNodes.InBonus;
             default:
-                throw new ArgumentOutOfRangeException(nameof(category), category, "Not an action type");
+                throw new InvalidOperationException($"No action to time: {state.Action}");
         }
     }
 
@@ -49,19 +105,23 @@ public static class NbaTransitions
         }
 
         if (Yes(made))
-            return EndOfPossession(state);
+            return EndOfPossession(state, PlayStart.MadeShot);
 
         state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
-        return NbaNodes.OffensiveRebound;
+        return AfterMiss(state);
     }
 
     public static Next<NbaState> InBonus(NbaState state, int inBonus)
     {
-        if (!Yes(inBonus))
-            return NbaNodes.ActionType;
+        if (Yes(inBonus))
+        {
+            state.FreeThrowsLeft = BonusFreeThrows;
+            return NbaNodes.FreeThrowMade;
+        }
 
-        state.FreeThrowsLeft = BonusFreeThrows;
-        return NbaNodes.FreeThrowMade;
+        state.ShotClock = Math.Max(state.ShotClock, Graph.ShotClock.SideOutMinimum);
+        state.Start = PlayStart.SideOut;
+        return NextPlay(state);
     }
 
     public static Next<NbaState> FreeThrowMade(NbaState state, int made)
@@ -75,49 +135,72 @@ public static class NbaTransitions
             return NbaNodes.FreeThrowMade;
 
         if (Yes(made))
-            return EndOfPossession(state);
+            return EndOfPossession(state, PlayStart.MadeFreeThrow);
 
         state.LastMiss = Miss.FreeThrow;
-        return NbaNodes.OffensiveRebound;
+        return AfterMiss(state);
     }
 
     public static Next<NbaState> OffensiveRebound(NbaState state, int offensive)
     {
         if (!Yes(offensive))
-            return EndOfPossession(state);
+            return EndOfPossession(state, PlayStart.DefensiveRebound);
 
         state.ShotPoints = 0;
         state.Fouled = false;
         state.LastMiss = Miss.NotSet;
-        return NbaNodes.ActionType;
+        state.ShotClock = Graph.ShotClock.OffensiveRebound;
+        state.Start = PlayStart.OffensiveRebound;
+        return NextPlay(state);
     }
 
-    private static Next<NbaState> EndOfPossession(NbaState state)
+    private static Next<NbaState> NextPlay(NbaState state) => NbaNodes.AwardedFreeThrow;
+
+    private static Next<NbaState> AfterMiss(NbaState state) =>
+        state.PeriodClock == 0 ? NextPlay(state) : NbaNodes.OffensiveRebound;
+
+    private static Next<NbaState> EndOfPossession(NbaState state, PlayStart next)
     {
+        ReportPossession(state);
+        state.TeamInPossession = Sides.Opponent(state.TeamInPossession);
+        StartPossession(state, next);
+        return NextPlay(state);
+    }
+
+    private static Next<NbaState> EndOfPeriod(NbaState state)
+    {
+        ReportPossession(state);
+        state.Period++;
+
+        if (state.Period >= Periods.Regulation && state.Score[Sides.Home] != state.Score[Sides.Away])
+            return Next<NbaState>.GameOver;
+
+        state.PeriodClock = Periods.SecondsIn(state.Period);
+        state.TeamFouls[Sides.Home] = 0;
+        state.TeamFouls[Sides.Away] = 0;
+        StartPossession(state, PlayStart.PeriodStart);
+
+        if (state.Period >= Periods.Regulation)
+        {
+            state.TeamInPossession = Sides.Home;
+            return NbaNodes.JumpBall;
+        }
+
+        state.TeamInPossession = state.Period == Periods.Regulation - 1 ? state.FirstPeriodStarter : Sides.Opponent(state.FirstPeriodStarter);
+        return NextPlay(state);
+    }
+
+    private static void ReportPossession(NbaState state) =>
         state.Incidents.Possession(new PossessionIncident(state.TeamInPossession, state.Period, state.PossessionPoints));
 
+    private static void StartPossession(NbaState state, PlayStart start)
+    {
         state.PossessionPoints = 0;
         state.ShotPoints = 0;
         state.Fouled = false;
         state.LastMiss = Miss.NotSet;
-        state.RemainingInPeriod--;
-
-        if (state.RemainingInPeriod > 0)
-        {
-            state.TeamInPossession = Sides.Opponent(state.TeamInPossession);
-            return NbaNodes.ActionType;
-        }
-
-        state.Period++;
-
-        if (state.Period == state.Periods.Length)
-            return Next<NbaState>.GameOver;
-
-        state.TeamInPossession = state.Periods[state.Period].StartingTeamInPossession;
-        state.RemainingInPeriod = state.Periods[state.Period].Possessions;
-        state.TeamFouls[Sides.Home] = 0;
-        state.TeamFouls[Sides.Away] = 0;
-        return NbaNodes.ActionType;
+        state.ShotClock = Graph.ShotClock.Full;
+        state.Start = start;
     }
 
     private static void Score(NbaState state, int points)

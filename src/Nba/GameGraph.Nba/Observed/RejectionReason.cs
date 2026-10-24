@@ -14,4 +14,8 @@ public enum RejectionReason
     SameTeamTwice = 9,
     PossessionCutShort = 10,
     UnknownReboundType = 11,
+    ClockRunsBackwards = 12,
+    PeriodStartBreaksAlternation = 13,
+    PeriodEndsMidAction = 14,
+    RulesDisagreeWithData = 15,
 }

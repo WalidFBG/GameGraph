@@ -39,7 +39,21 @@ public static class ObservedGameReader
         if (Math.Abs(home - (possessions.Length - home)) > MaximumPossessionDifference)
             return Rejected(game, RejectionReason.UnbalancedPossessions);
 
+        if (BreaksAlternation(possessions))
+            return Rejected(game, RejectionReason.PeriodStartBreaksAlternation);
+
+        if (!ObservedOutcomeDecider.Follows(possessions))
+            return Rejected(game, RejectionReason.RulesDisagreeWithData);
+
         return Observed(game, RejectionReason.NotSet, possessions, cut);
+    }
+
+    private static bool BreaksAlternation(Possession[] possessions)
+    {
+        var starters = possessions.GroupBy(p => p.Period).ToDictionary(g => g.Key, g => g.First().TeamInPossession);
+        var first = starters[0];
+
+        return starters[1] != Sides.Opponent(first) || starters[2] != Sides.Opponent(first) || starters[3] != first;
     }
 
     private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], 0);

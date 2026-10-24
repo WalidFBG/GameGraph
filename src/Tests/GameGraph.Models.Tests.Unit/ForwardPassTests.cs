@@ -70,6 +70,19 @@ public sealed class ForwardPassTests
     }
 
     [Fact]
+    public void AModelWithoutTermsIsItsIntercept()
+    {
+        var fitted = new FittedModel(
+            "Tip",
+            new ModelDeclaration(new BernoulliDistribution(), new Dictionary<string, Term[]> { ["probability"] = [] }, new Dictionary<string, string>()),
+            new Dictionary<string, PredictorFit> { ["probability"] = new(0.4, new Dictionary<string, TermFit>()) });
+
+        var model = Model.FromFitted(fitted, []);
+
+        Assert.Equal(Math.Log(1 / (1 + Math.Exp(-0.4))), model.LogProbability([], 1), 12);
+    }
+
+    [Fact]
     public void TheInverseLogitIsTheSigmoid()
     {
         Assert.Equal(0.5, Links.Inverse(Link.Logit, 0));
