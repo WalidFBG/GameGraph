@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "distribution": {
+    "name": "categorical",
+    "categories": [
+      "first",
+      "second",
+      "third"
+    ]
+  },
+  "parameters": {
+    "second": {
+      "source": "predicted",
+      "link": "identity",
+      "intercept": 0.2,
+      "terms": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian",
+          "centre": 1.5,
+          "scale": 4.0,
+          "coefficients": [
+            0.3
+          ]
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 3,
+          "knotPositions": [
+            0.0,
+            12.0,
+            24.0
+          ],
+          "centres": [
+            5.0,
+            4.0
+          ],
+          "scales": [
+            4.5,
+            4.2
+          ],
+          "coefficients": [
+            0.25,
+            -0.4
+          ]
+        }
+      ]
+    },
+    "third": {
+      "source": "predicted",
+      "link": "identity",
+      "intercept": -0.8,
+      "terms": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian",
+          "centre": 1.5,
+          "scale": 4.0,
+          "coefficients": [
+            -0.2
+          ]
+        }
+      ]
+    }
+  }
+}

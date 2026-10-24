@@ -4,12 +4,15 @@
   "source": "synthetic",
   "createdUtc": "2024-01-01T00:00:00Z",
   "features": [
-    "Margin",
-    "Three"
+    "Gaussian",
+    "Indicator",
+    "Uniform"
   ],
   "examples": 2000,
   "model": {
-    "distribution": "bernoulli",
+    "distribution": {
+      "name": "bernoulli"
+    },
     "parameters": {
       "probability": {
         "source": "predicted",
@@ -17,11 +20,16 @@
         "terms": [
           {
             "basis": "linear",
-            "feature": "Margin"
+            "feature": "Gaussian"
           },
           {
             "basis": "linear",
-            "feature": "Three"
+            "feature": "Indicator"
+          },
+          {
+            "basis": "linearSpline",
+            "feature": "Uniform",
+            "knots": 5
           }
         ]
       }

@@ -1,10 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace GameGraph.Models.Contract;
 
-public sealed record FittedPredictedParameter
+public sealed record FittedPredictedParameter : FittedParameter
 {
-    public FittedPredictedParameter(Link link, double intercept, FittedLinearTerm[] terms)
+    public FittedPredictedParameter(Link link, double intercept, FittedTerm[] terms)
     {
         DistinctNames.Require(terms.Select(t => t.Feature));
 
@@ -13,14 +11,11 @@ public sealed record FittedPredictedParameter
         Terms = terms;
     }
 
-    [JsonPropertyOrder(-1)]
-    public string Source => "predicted";
-
     public Link Link { get; }
 
     public double Intercept { get; }
 
-    public FittedLinearTerm[] Terms { get; }
+    public FittedTerm[] Terms { get; }
 
-    public PredictedParameter Declaration() => new(Link, Terms.Select(t => t.Declaration()).ToArray());
+    public override Parameter Declaration() => new PredictedParameter(Link, Terms.Select(t => t.Declaration()).ToArray());
 }

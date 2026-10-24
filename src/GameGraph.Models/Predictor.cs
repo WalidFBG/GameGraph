@@ -2,30 +2,41 @@ using GameGraph.Models.Contract;
 
 namespace GameGraph.Models;
 
-internal sealed class Predictor
+internal sealed class Predictor : IParameterValue
 {
     private readonly Link _link;
-    private readonly LinearColumns[] _terms;
+    private readonly ITermColumns[] _terms;
     private readonly double _intercept;
     private readonly double[] _coefficients;
+    private readonly int _widestTerm;
 
-    public Predictor(Link link, LinearColumns[] terms, double intercept, double[] coefficients)
+    public Predictor(Link link, ITermColumns[] terms, double intercept, double[] coefficients)
     {
-        if (coefficients.Length != terms.Length)
-            throw new ArgumentException($"{terms.Length} linear terms need {terms.Length} coefficients, got {coefficients.Length}", nameof(coefficients));
+        var columns = terms.Sum(t => t.Count);
+
+        if (coefficients.Length != columns)
+            throw new ArgumentException($"{columns} columns need {columns} coefficients, got {coefficients.Length}", nameof(coefficients));
 
         _link = link;
         _terms = terms;
         _intercept = intercept;
         _coefficients = coefficients;
+        _widestTerm = terms.Length == 0 ? 0 : terms.Max(t => t.Count);
     }
 
     public double Value(ReadOnlySpan<double> features)
     {
+        Span<double> columns = stackalloc double[_widestTerm];
         var eta = _intercept;
+        var coefficient = 0;
 
-        for (var t = 0; t < _terms.Length; t++)
-            eta += _coefficients[t] * _terms[t].Expand(features);
+        foreach (var term in _terms)
+        {
+            term.Expand(features, columns);
+
+            for (var c = 0; c < term.Count; c++)
+                eta += _coefficients[coefficient++] * columns[c];
+        }
 
         return Links.Inverse(_link, eta);
     }
@@ -33,7 +44,7 @@ internal sealed class Predictor
     public static Predictor FromFitted(FittedPredictedParameter parameter, IReadOnlyList<string> features) =>
         new(
             parameter.Link,
-            parameter.Terms.Select(t => LinearColumns.FromFitted(t, features)).ToArray(),
+            parameter.Terms.Select(t => TermColumns.FromFitted(t, features)).ToArray(),
             parameter.Intercept,
             parameter.Terms.SelectMany(t => t.Coefficients).ToArray());
 }

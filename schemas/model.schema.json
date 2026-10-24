@@ -5,43 +5,140 @@
   "$defs": {
     "schemaVersion": { "const": 1 },
     "name": { "type": "string", "minLength": 1 },
+    "numbers": { "type": "array", "minItems": 1, "items": { "type": "number" } },
     "declaration": {
       "type": "object",
       "required": ["distribution", "parameters"],
-      "oneOf": [{ "$ref": "#/$defs/bernoulliDeclaration" }]
+      "oneOf": [
+        { "$ref": "#/$defs/bernoulliDeclaration" },
+        { "$ref": "#/$defs/categoricalDeclaration" },
+        { "$ref": "#/$defs/discreteJohnsonSuDeclaration" }
+      ]
     },
     "fitted": {
       "type": "object",
       "required": ["distribution", "parameters"],
-      "oneOf": [{ "$ref": "#/$defs/bernoulliFitted" }]
+      "oneOf": [
+        { "$ref": "#/$defs/bernoulliFitted" },
+        { "$ref": "#/$defs/categoricalFitted" },
+        { "$ref": "#/$defs/discreteJohnsonSuFitted" }
+      ]
+    },
+    "bernoulli": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "bernoulli" }
+      }
+    },
+    "categorical": {
+      "type": "object",
+      "required": ["name", "categories"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "categorical" },
+        "categories": { "type": "array", "minItems": 2, "uniqueItems": true, "items": { "$ref": "#/$defs/name" } }
+      }
+    },
+    "discreteJohnsonSu": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "discreteJohnsonSu" }
+      }
+    },
+    "discreteJohnsonSuDeclaration": {
+      "properties": {
+        "distribution": { "$ref": "#/$defs/discreteJohnsonSu" },
+        "parameters": {
+          "type": "object",
+          "required": ["location", "scale", "skew", "tail", "maximum"],
+          "additionalProperties": false,
+          "properties": {
+            "location": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } },
+            "scale": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "log" } } },
+            "skew": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } },
+            "tail": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "log" } } },
+            "maximum": { "$ref": "#/$defs/given" }
+          }
+        }
+      }
+    },
+    "discreteJohnsonSuFitted": {
+      "properties": {
+        "distribution": { "$ref": "#/$defs/discreteJohnsonSu" },
+        "parameters": {
+          "type": "object",
+          "required": ["location", "scale", "skew", "tail", "maximum"],
+          "additionalProperties": false,
+          "properties": {
+            "location": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } },
+            "scale": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "log" } } },
+            "skew": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } },
+            "tail": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "log" } } },
+            "maximum": { "$ref": "#/$defs/given" }
+          }
+        }
+      }
+    },
+    "given": {
+      "type": "object",
+      "required": ["source", "feature"],
+      "additionalProperties": false,
+      "properties": {
+        "source": { "const": "given" },
+        "feature": { "$ref": "#/$defs/name" }
+      }
     },
     "bernoulliDeclaration": {
       "properties": {
-        "distribution": { "const": "bernoulli" },
+        "distribution": { "$ref": "#/$defs/bernoulli" },
         "parameters": {
           "type": "object",
           "required": ["probability"],
           "additionalProperties": false,
           "properties": {
-            "probability": { "$ref": "#/$defs/declaredPredicted" }
+            "probability": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "logit" } } }
           }
         }
       }
     },
     "bernoulliFitted": {
       "properties": {
-        "distribution": { "const": "bernoulli" },
+        "distribution": { "$ref": "#/$defs/bernoulli" },
         "parameters": {
           "type": "object",
           "required": ["probability"],
           "additionalProperties": false,
           "properties": {
-            "probability": { "$ref": "#/$defs/fittedPredicted" }
+            "probability": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "logit" } } }
           }
         }
       }
     },
-    "link": { "enum": ["logit"] },
+    "categoricalDeclaration": {
+      "properties": {
+        "distribution": { "$ref": "#/$defs/categorical" },
+        "parameters": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } }
+        }
+      }
+    },
+    "categoricalFitted": {
+      "properties": {
+        "distribution": { "$ref": "#/$defs/categorical" },
+        "parameters": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } }
+        }
+      }
+    },
+    "link": { "enum": ["identity", "log", "logit"] },
     "declaredPredicted": {
       "type": "object",
       "required": ["source", "link", "terms"],
@@ -64,10 +161,10 @@
       }
     },
     "declaredTerm": {
-      "oneOf": [{ "$ref": "#/$defs/declaredLinear" }]
+      "oneOf": [{ "$ref": "#/$defs/declaredLinear" }, { "$ref": "#/$defs/declaredLinearSpline" }]
     },
     "fittedTerm": {
-      "oneOf": [{ "$ref": "#/$defs/fittedLinear" }]
+      "oneOf": [{ "$ref": "#/$defs/fittedLinear" }, { "$ref": "#/$defs/fittedLinearSpline" }]
     },
     "declaredLinear": {
       "type": "object",
@@ -88,6 +185,30 @@
         "centre": { "type": "number" },
         "scale": { "type": "number", "exclusiveMinimum": 0 },
         "coefficients": { "type": "array", "minItems": 1, "maxItems": 1, "items": { "type": "number" } }
+      }
+    },
+    "declaredLinearSpline": {
+      "type": "object",
+      "required": ["basis", "feature", "knots"],
+      "additionalProperties": false,
+      "properties": {
+        "basis": { "const": "linearSpline" },
+        "feature": { "$ref": "#/$defs/name" },
+        "knots": { "type": "integer", "minimum": 2 }
+      }
+    },
+    "fittedLinearSpline": {
+      "type": "object",
+      "required": ["basis", "feature", "knots", "knotPositions", "centres", "scales", "coefficients"],
+      "additionalProperties": false,
+      "properties": {
+        "basis": { "const": "linearSpline" },
+        "feature": { "$ref": "#/$defs/name" },
+        "knots": { "type": "integer", "minimum": 2 },
+        "knotPositions": { "$ref": "#/$defs/numbers", "minItems": 2 },
+        "centres": { "$ref": "#/$defs/numbers" },
+        "scales": { "$ref": "#/$defs/numbers", "items": { "exclusiveMinimum": 0 } },
+        "coefficients": { "$ref": "#/$defs/numbers" }
       }
     }
   }

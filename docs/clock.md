@@ -46,7 +46,7 @@ A discretised truncated JSU (Johnson's SU), chosen by experiment in Python (see 
 1. **Four predicted parameters**, each with its own terms and link: location (identity), scale (log), skew (identity), tail (log). With Z standard normal, the continuous time is location + scale · sinh((Z − skew) / tail).
 2. **Floor edges**: second k is the probability of [k, k + 1), and the distribution is truncated to [0, n + 1).
 3. **The bound is a given parameter**, read from a feature, not predicted; it replaces a second interface for families with a bound.
-4. **Sampling** inverts the distribution function with one uniform, never outside 0 to the bound, at a fixed cost: the normal distribution function twice (the two ends), its inverse once, and a sinh. .NET has neither, so C# needs its own (standard rational approximations) or MathNet: to settle.
+4. **Sampling** inverts the distribution function with one uniform, never outside 0 to the bound, at a fixed cost: the normal distribution function twice (the two ends), its inverse once, and a sinh. .NET has neither, so C# has its own: Cody's rational approximations for erfc and the scaled erfcx (so log Φ stays accurate deep into the lower tail) and Wichura's AS241 for the inverse, pinned against torch by golden files.
 
 ## Pieces
 

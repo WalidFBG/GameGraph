@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "source": "synthetic",
+  "createdUtc": "2024-01-01T00:00:00Z",
+  "features": [
+    "Gaussian",
+    "Bound"
+  ],
+  "examples": 2000,
+  "model": {
+    "distribution": {
+      "name": "discreteJohnsonSu"
+    },
+    "parameters": {
+      "location": {
+        "source": "predicted",
+        "link": "identity",
+        "terms": [
+          {
+            "basis": "linear",
+            "feature": "Gaussian"
+          }
+        ]
+      },
+      "scale": {
+        "source": "predicted",
+        "link": "log",
+        "terms": [
+          {
+            "basis": "linear",
+            "feature": "Gaussian"
+          }
+        ]
+      },
+      "skew": {
+        "source": "predicted",
+        "link": "identity",
+        "terms": []
+      },
+      "tail": {
+        "source": "predicted",
+        "link": "log",
+        "terms": []
+      },
+      "maximum": {
+        "source": "given",
+        "feature": "Bound"
+      }
+    }
+  }
+}

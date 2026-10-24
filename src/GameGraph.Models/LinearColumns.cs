@@ -2,17 +2,12 @@ using GameGraph.Models.Contract;
 
 namespace GameGraph.Models;
 
-internal sealed record LinearColumns(int Column, double Centre, double Scale)
+internal sealed record LinearColumns(int Column, double Centre, double Scale) : ITermColumns
 {
-    public double Expand(ReadOnlySpan<double> features) => (features[Column] - Centre) / Scale;
+    public int Count => 1;
 
-    public static LinearColumns FromFitted(FittedLinearTerm term, IReadOnlyList<string> features)
-    {
-        var column = features.ToList().IndexOf(term.Feature);
+    public void Expand(ReadOnlySpan<double> features, Span<double> columns) => columns[0] = (features[Column] - Centre) / Scale;
 
-        if (column < 0)
-            throw new ArgumentException($"No feature {term.Feature} among {string.Join(", ", features)}", nameof(features));
-
-        return new LinearColumns(column, term.Centre, term.Scale);
-    }
+    public static LinearColumns FromFitted(FittedLinearTerm term, IReadOnlyList<string> features) =>
+        new(TermColumns.ColumnOf(term.Feature, features), term.Centre, term.Scale);
 }

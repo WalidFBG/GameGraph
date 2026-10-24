@@ -9,27 +9,27 @@ public sealed class ContractFilesTests : IDisposable
 {
     private static readonly DateTime Created = new(2026, 10, 21, 12, 0, 0, DateTimeKind.Utc);
 
-    private static readonly FittedModel Fitted = new(
-        "ShotMade",
-        Distribution.Bernoulli,
-        new Dictionary<string, FittedPredictedParameter>
-        {
-            ["probability"] = new(
-                Link.Logit,
-                -0.12,
-                [new FittedLinearTerm("ScoreMargin", 0.31, 8.4, [0.021]), new FittedLinearTerm("ShotIsThree", 0.38, 0.49, [-0.18])]),
-        });
+    private static readonly FittedPredictedParameter Probability = new(
+        Link.Logit,
+        -0.12,
+        [
+            new FittedLinearTerm("Gaussian", 0.31, 8.4, [0.021]),
+            new FittedLinearTerm("Indicator", 0.38, 0.49, [-0.18]),
+            new FittedLinearSplineTerm("Uniform", 5, [0, 8, 24], [3.1, 6.2], [2.5, 4.4], [0.07, -0.02]),
+        ]);
+
+    private static readonly FittedModel Fitted = new("Example", new BernoulliDistribution(), new Dictionary<string, FittedParameter> { ["probability"] = Probability });
 
     private static readonly TrainingDataManifest Manifest = new(
-        "ShotMade",
-        @"C:\Data\Basketball",
+        "Example",
+        "source",
         Created,
-        ["ScoreMargin", "TeamScoringRate", "ShotIsThree"],
+        ["Gaussian", "Indicator", "Uniform"],
         412345,
         Fitted.Declaration());
 
     private static readonly TrainingReport Report = new(
-        "ShotMade",
+        "Example",
         Created,
         3067,
         new TrainingAndValidation<int>(330112, 82233),
@@ -51,7 +51,7 @@ public sealed class ContractFilesTests : IDisposable
         Assert.Equal(Manifest.Node, read.Node);
         Assert.Equal(Manifest.CreatedUtc, read.CreatedUtc);
         Assert.Equal(Manifest.Features, read.Features);
-        Assert.Equal(Manifest.Model.Parameters["probability"].Terms, read.Model.Parameters["probability"].Terms);
+        Assert.Equal(Manifest.Model.Parameters["probability"], read.Model.Parameters["probability"], ParameterTerms.Instance);
         AssertRewrittenIdentically(path, p => ContractFiles.WriteTrainingDataManifest(p, read));
     }
 
@@ -63,8 +63,10 @@ public sealed class ContractFilesTests : IDisposable
         ContractFiles.WriteFittedModel(path, Fitted);
         var read = ContractFiles.ReadFittedModel(path);
 
-        Assert.Equal(Fitted.Parameters["probability"].Intercept, read.Parameters["probability"].Intercept);
-        Assert.Equal(Fitted.Parameters["probability"].Terms[1].Coefficients, read.Parameters["probability"].Terms[1].Coefficients);
+        var probability = Assert.IsType<FittedPredictedParameter>(read.Parameters["probability"]);
+
+        Assert.Equal(Probability.Intercept, probability.Intercept);
+        Assert.Equal(Probability.Terms[1].Coefficients, probability.Terms[1].Coefficients);
         AssertRewrittenIdentically(path, p => ContractFiles.WriteFittedModel(p, read));
     }
 
@@ -123,11 +125,10 @@ public sealed class ContractFilesTests : IDisposable
     [Fact]
     public void WritingANumberThatIsNotFiniteFails()
     {
-        var probability = Fitted.Parameters["probability"];
-        var broken = Fitted with
-        {
-            Parameters = new Dictionary<string, FittedPredictedParameter> { ["probability"] = new(probability.Link, double.NaN, probability.Terms) },
-        };
+        var broken = new FittedModel(
+            Fitted.Node,
+            Fitted.Distribution,
+            new Dictionary<string, FittedParameter> { ["probability"] = new FittedPredictedParameter(Probability.Link, double.NaN, Probability.Terms) });
 
         Assert.Throws<ArgumentException>(() => ContractFiles.WriteFittedModel(PathOf("model.json"), broken));
     }
@@ -135,15 +136,105 @@ public sealed class ContractFilesTests : IDisposable
     [Fact]
     public void AManifestWhoseModelUsesAnUnknownFeatureFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => new TrainingDataManifest("ShotMade", "source", Created, ["ScoreMargin"], 1, Fitted.Declaration()));
+        var error = Assert.Throws<ArgumentException>(() => new TrainingDataManifest("Example", "source", Created, ["Gaussian"], 1, Fitted.Declaration()));
 
         Assert.Contains("not among its features", error.Message);
     }
 
     [Fact]
+    public void AManifestWithAFeatureItsModelDoesNotUseFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new TrainingDataManifest("Example", "source", Created, ["Gaussian", "Indicator", "Uniform", "Unused"], 1, Fitted.Declaration()));
+
+        Assert.Contains("that its model does not use", error.Message);
+    }
+
+    [Fact]
+    public void ASplineWhoseKnotsDoNotIncreaseFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new FittedLinearSplineTerm("x", 3, [0, 0, 1], [0, 0], [1, 1], [0, 0]));
+
+        Assert.Contains("not strictly increasing", error.Message);
+    }
+
+    [Fact]
+    public void ASplineWithTheWrongNumberOfCoefficientsFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new FittedLinearSplineTerm("x", 3, [0, 1, 2], [0, 0], [1, 1], [0]));
+
+        Assert.Contains("needs 2 centres, scales and coefficients", error.Message);
+    }
+
+    [Fact]
+    public void AFittedModelGivesBackItsDeclaration()
+    {
+        Assert.Equal(
+            [new LinearTerm("Gaussian"), new LinearTerm("Indicator"), new LinearSplineTerm("Uniform", 5)],
+            Assert.IsType<PredictedParameter>(Fitted.Declaration().Parameters["probability"]).Terms);
+    }
+
+    [Fact]
+    public void ACategoricalModelRoundTrips()
+    {
+        var path = PathOf("model.json");
+        var categorical = new FittedModel(
+            "Example",
+            new CategoricalDistribution(["first", "second", "third"]),
+            new Dictionary<string, FittedParameter>
+            {
+                ["second"] = new FittedPredictedParameter(Link.Identity, 0.4, Probability.Terms),
+                ["third"] = new FittedPredictedParameter(Link.Identity, -1.1, Probability.Terms[..1]),
+            });
+
+        ContractFiles.WriteFittedModel(path, categorical);
+        var read = ContractFiles.ReadFittedModel(path);
+
+        Assert.Equal(["first", "second", "third"], Assert.IsType<CategoricalDistribution>(read.Distribution).Categories);
+        AssertRewrittenIdentically(path, p => ContractFiles.WriteFittedModel(p, read));
+    }
+
+    [Fact]
+    public void ParametersThatAreNotTheDistributionsFail()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new ModelDeclaration(
+            new CategoricalDistribution(["first", "second"]),
+            new Dictionary<string, Parameter> { ["third"] = new PredictedParameter(Link.Identity, []) }));
+
+        Assert.Contains("has parameters", error.Message);
+    }
+
+    [Fact]
+    public void AJohnsonSuModelWithAGivenMaximumRoundTrips()
+    {
+        var path = PathOf("model.json");
+        var johnsonSu = new FittedModel(
+            "Example",
+            new DiscreteJohnsonSuDistribution(),
+            new Dictionary<string, FittedParameter>
+            {
+                ["location"] = new FittedPredictedParameter(Link.Identity, 9, Probability.Terms[..1]),
+                ["scale"] = new FittedPredictedParameter(Link.Log, 1.5, []),
+                ["skew"] = new FittedPredictedParameter(Link.Identity, 0.2, []),
+                ["tail"] = new FittedPredictedParameter(Link.Log, 0.4, []),
+                ["maximum"] = new FittedGivenParameter("Bound"),
+            });
+
+        ContractFiles.WriteFittedModel(path, johnsonSu);
+        var read = ContractFiles.ReadFittedModel(path);
+
+        Assert.Equal(new FittedGivenParameter("Bound"), read.Parameters["maximum"]);
+        Assert.Equal(["Gaussian", "Bound"], read.Declaration().Features());
+        AssertRewrittenIdentically(path, p => ContractFiles.WriteFittedModel(p, read));
+    }
+
+    [Fact]
+    public void ACategoricalDistributionWithOneCategoryFails() =>
+        Assert.Throws<ArgumentException>(() => new CategoricalDistribution(["first"]));
+
+    [Fact]
     public void TheSameTermTwiceFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => new PredictedParameter(Link.Logit, [new LinearTerm("ScoreMargin"), new LinearTerm("ScoreMargin")]));
+        var error = Assert.Throws<ArgumentException>(() => new PredictedParameter(Link.Logit, [new LinearTerm("Gaussian"), new LinearTerm("Gaussian")]));
 
         Assert.Contains("appear more than once", error.Message);
     }
@@ -151,7 +242,7 @@ public sealed class ContractFilesTests : IDisposable
     [Fact]
     public void ATimeThatIsNotUtcFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => new TrainingReport("ShotMade", DateTime.Now, 1, Report.Examples, Report.NegativeLogLikelihood, Report.Optimiser));
+        var error = Assert.Throws<ArgumentException>(() => new TrainingReport("Example", DateTime.Now, 1, Report.Examples, Report.NegativeLogLikelihood, Report.Optimiser));
 
         Assert.Contains("not in UTC", error.Message);
     }
@@ -161,17 +252,19 @@ public sealed class ContractFilesTests : IDisposable
         ["an extra field"] = d => d["extra"] = 1,
         ["a missing node"] = d => d.Remove("node"),
         ["another schema version"] = d => d["schemaVersion"] = 2,
-        ["an unknown distribution"] = d => d["distribution"] = "categorical",
+        ["an unknown distribution"] = d => d["distribution"]!["name"] = "poisson",
+        ["a categorical distribution without categories"] = d => d["distribution"] = new JsonObject { ["name"] = "categorical" },
         ["an unknown parameter"] = d => d["parameters"]!["mean"] = new JsonObject(),
-        ["a link Bernoulli does not allow"] = d => Probability(d)["link"] = "log",
+        ["a link Bernoulli does not allow"] = d => ProbabilityOf(d)["link"] = "identity",
+        ["a given probability"] = d => d["parameters"]!["probability"] = new JsonObject { ["source"] = "given", ["feature"] = "Gaussian" },
         ["a zero scale"] = d => FirstTerm(d)["scale"] = 0,
         ["two coefficients on a linear term"] = d => FirstTerm(d)["coefficients"] = new JsonArray(1, 2),
         ["an unknown basis"] = d => FirstTerm(d)["basis"] = "spline",
     };
 
-    private static JsonNode Probability(JsonObject document) => document["parameters"]!["probability"]!;
+    private static JsonNode ProbabilityOf(JsonObject document) => document["parameters"]!["probability"]!;
 
-    private static JsonNode FirstTerm(JsonObject document) => Probability(document)["terms"]![0]!;
+    private static JsonNode FirstTerm(JsonObject document) => ProbabilityOf(document)["terms"]![0]!;
 
     private static JsonObject Document(string path) => JsonNode.Parse(File.ReadAllText(path))!.AsObject();
 

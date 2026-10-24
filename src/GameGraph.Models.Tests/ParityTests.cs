@@ -8,14 +8,16 @@ public sealed class ParityTests
 {
     private const double RelativeTolerance = 1e-12;
 
-    private static readonly string Parity = Path.Combine(Repository.Root, "golden", "models", "bernoulli-training");
+    public static TheoryData<string> Sets => new("bernoulli-training", "categorical-training", "johnson-su-training");
 
-    [Fact]
-    public void CSharpReproducesTheLikelihoodsPythonReported()
+    [Theory]
+    [MemberData(nameof(Sets))]
+    public void CSharpReproducesTheLikelihoodsPythonReported(string set)
     {
-        var data = TrainingDataFiles.Read(Parity);
-        var report = ContractFiles.ReadTrainingReport(Path.Combine(Parity, "Golden.training.json"));
-        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(Parity, "Golden.json")), data.Manifest.Features);
+        var parity = Parity(set);
+        var data = TrainingDataFiles.Read(parity);
+        var report = ContractFiles.ReadTrainingReport(Path.Combine(parity, "Golden.training.json"));
+        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
         var training = data.ExamplesIn(report.TrainingGames);
 
         Assert.Equal(report.Examples, new TrainingAndValidation<int>(training, data.Outcomes.Length - training));
@@ -23,12 +25,14 @@ public sealed class ParityTests
         AssertClose(report.NegativeLogLikelihood.Validation, MeanNegativeLogLikelihood(model, data, training, data.Outcomes.Length));
     }
 
-    [Fact]
-    public void CSharpDrawsTheSamplesPythonDrew()
+    [Theory]
+    [MemberData(nameof(Sets))]
+    public void CSharpDrawsTheSamplesPythonDrew(string set)
     {
-        var data = TrainingDataFiles.Read(Parity);
-        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(Parity, "Golden.json")), data.Manifest.Features);
-        var lines = File.ReadAllLines(Path.Combine(Parity, "samples.csv"));
+        var parity = Parity(set);
+        var data = TrainingDataFiles.Read(parity);
+        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
+        var lines = File.ReadAllLines(Path.Combine(parity, "samples.csv"));
 
         Assert.Equal("uniform,sample", lines[0]);
         Assert.Equal(data.Outcomes.Length, lines.Length - 1);
@@ -41,6 +45,8 @@ public sealed class ParityTests
             Assert.Equal(int.Parse(values[1], CultureInfo.InvariantCulture), model.Sample(data.Features[e], uniform));
         }
     }
+
+    private static string Parity(string set) => Path.Combine(Repository.Root, "golden", "models", set);
 
     private static double MeanNegativeLogLikelihood(Model model, TrainingData data, int from, int to)
     {

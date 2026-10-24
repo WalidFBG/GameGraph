@@ -1,10 +1,8 @@
-using System.Text.Json.Serialization;
-
 namespace GameGraph.Models.Contract;
 
-public sealed record PredictedParameter
+public sealed record PredictedParameter : Parameter
 {
-    public PredictedParameter(Link link, LinearTerm[] terms)
+    public PredictedParameter(Link link, Term[] terms)
     {
         DistinctNames.Require(terms.Select(t => t.Feature));
 
@@ -12,10 +10,9 @@ public sealed record PredictedParameter
         Terms = terms;
     }
 
-    [JsonPropertyOrder(-1)]
-    public string Source => "predicted";
-
     public Link Link { get; }
 
-    public LinearTerm[] Terms { get; }
+    public Term[] Terms { get; }
+
+    public override IEnumerable<string> Features() => Terms.Select(t => t.Feature);
 }

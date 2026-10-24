@@ -1,11 +1,6 @@
-using System.Text.Json.Serialization;
-
 namespace GameGraph.Models.Contract;
 
-public sealed record FittedLinearTerm(string Feature, double Centre, double Scale, double[] Coefficients)
+public sealed record FittedLinearTerm(string Feature, double Centre, double Scale, double[] Coefficients) : FittedTerm(Feature, Coefficients)
 {
-    [JsonPropertyOrder(-1)]
-    public string Basis => "linear";
-
-    public LinearTerm Declaration() => new(Feature);
+    public override Term Declaration() => new LinearTerm(Feature);
 }

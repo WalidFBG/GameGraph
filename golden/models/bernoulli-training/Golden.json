@@ -1,29 +1,61 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "distribution": "bernoulli",
+  "distribution": {
+    "name": "bernoulli"
+  },
   "parameters": {
     "probability": {
       "source": "predicted",
       "link": "logit",
-      "intercept": 0.03458414024616125,
+      "intercept": 0.4956776475963458,
       "terms": [
         {
           "basis": "linear",
-          "feature": "Margin",
+          "feature": "Gaussian",
           "centre": 3.0037028853963488,
           "scale": 1.9975285447998339,
           "coefficients": [
-            0.4219710244738416
+            0.5269314012896514
           ]
         },
         {
           "basis": "linear",
-          "feature": "Three",
+          "feature": "Indicator",
           "centre": 0.396875,
           "scale": 0.48924966466518355,
           "coefficients": [
-            -0.39271523318098533
+            -0.3772785718285456
+          ]
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5,
+          "knotPositions": [
+            0.0,
+            6.0,
+            12.0,
+            18.0,
+            24.0
+          ],
+          "centres": [
+            5.1975,
+            3.8025,
+            2.311875,
+            0.8375
+          ],
+          "scales": [
+            1.6881184052074072,
+            2.6423935645546837,
+            2.6520480735414664,
+            1.7247735358591296
+          ],
+          "coefficients": [
+            0.0430317465261041,
+            0.37996062081440607,
+            -0.29202073671737805,
+            -0.28158800413217994
           ]
         }
       ]

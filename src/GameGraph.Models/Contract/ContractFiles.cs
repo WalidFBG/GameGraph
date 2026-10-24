@@ -16,6 +16,7 @@ public static class ContractFiles
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         RespectNullableAnnotations = true,
         RespectRequiredConstructorParameters = true,
+        AllowOutOfOrderMetadataProperties = true,
         WriteIndented = true,
     };
 

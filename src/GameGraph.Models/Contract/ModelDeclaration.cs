@@ -1,6 +1,18 @@
 namespace GameGraph.Models.Contract;
 
-public sealed record ModelDeclaration(Distribution Distribution, IReadOnlyDictionary<string, PredictedParameter> Parameters)
+public sealed record ModelDeclaration
 {
-    public IEnumerable<string> Features() => Parameters.Values.SelectMany(p => p.Terms).Select(t => t.Feature).Distinct();
+    public ModelDeclaration(DistributionDeclaration distribution, IReadOnlyDictionary<string, Parameter> parameters)
+    {
+        distribution.RequireParameters(parameters.Keys);
+
+        Distribution = distribution;
+        Parameters = parameters;
+    }
+
+    public DistributionDeclaration Distribution { get; }
+
+    public IReadOnlyDictionary<string, Parameter> Parameters { get; }
+
+    public IEnumerable<string> Features() => Parameters.Values.SelectMany(p => p.Features()).Distinct();
 }

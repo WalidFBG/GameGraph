@@ -58,13 +58,19 @@ Layout: `schemas/` (the contract, JSON Schema), `python/` (the trainer, `src` la
 - [x] 1. Skeleton: the folders, `pyproject.toml` with the tools, `GameGraph.Models` in the solution, a README section on running both; no logic.
 - [x] 2. Schema v1 for Bernoulli with linear terms: training data (manifest, examples, games), fitted model, training report; reviewed on its own before any code.
 - [x] 3. Types on both sides (Python dataclasses, C# records): read, write, validate against the schema, round-trip tests.
-- [x] 4. The forward pass in Python and C#: `Linear`, `Identity` and `Logit`, Bernoulli's probability and sampling, the model; unit tests; the first golden files, checked by C#.
+- [x] 4. The forward pass in Python and C#: `Linear`, `Logit`, Bernoulli's probability and sampling, the model; unit tests; the first golden files, checked by C#.
 - [x] 5. Python training: reading training data, the split by game, L-BFGS, writing the fitted model and the report; recovering known coefficients from synthetic data.
-- [ ] 6. Parity: C# recomputes the report's likelihoods from the same files to about 1e-9, and draws the same outcomes from fixed uniforms. The first slice is complete.
-- [ ] 7. `LinearSpline`: knots at quantiles, flat beyond the end knots, centre and scale fitted in Python; through the schema, both sides, golden files and parity.
-- [ ] 8. Categorical: K − 1 log-odds, each with its own terms; through the same path.
-- [ ] 9. JSU: four predicted parameters, the given bound, floor edges; the normal distribution function and its inverse in C# (our own or MathNet); through the same path.
-- [ ] 10. `ActionTime` on real data in the new stack: the extraction writes the contract's training-data format, the trainer fits JSU, the plots are redrawn from the fitted model.
+- [x] 6. Parity: C# recomputes the report's likelihoods from the same files to about 1e-9, and draws the same outcomes from fixed uniforms. The first slice is complete.
+- [x] 7. `LinearSpline`: knots at quantiles, flat beyond the end knots, centre and scale fitted in Python; through the schema, both sides, golden files and parity.
+- [x] 8. Categorical: K − 1 log-odds, each with its own terms; through the same path.
+- [x] 9. JSU: four predicted parameters, the given bound, floor edges; the normal distribution function and its inverse in C# (our own); through the same path.
+- [x] 10. `ActionTime` on real data in the new stack: the extraction writes the contract's training-data format, the trainer fits JSU, the plots are redrawn from the fitted model. About a million action times (802,653 training, 202,299 validation): written in 2.5 s, read in 1.1 s, trained in 48 s (493 iterations); validation negative log-likelihood 2.76916 against the SciPy experiment's 2.76947, and the predicted distributions lie on top of each other except in the thin, two-humped rows where the period clock binds. The data and plots stay outside the repository (`C:\Data\GameGraph\nba\analysis\action-time`); the extraction is still a scratchpad script, so this fit is a check, not a model in use.
+
+Next, each its own pull request:
+
+- [ ] 11. Regularisation and pruning: a smoothness penalty for splines, a penalty for linear terms, their strength chosen on the validation set, and how a term is dropped; designed first.
+- [ ] 12. The hook-up: `GameGraph.Models` replaces `GameGraph.ModelFamilies` in the engine, Python replaces the C# trainer, the old code goes.
+- [ ] 13. The clock (`clock.md`) on the new stack.
 
 ## The structure
 
@@ -91,6 +97,20 @@ From the bottom up; each layer knows only the one below it.
 3. **A distribution for `ActionTime`**, chosen by experiment (see below): a count of seconds from 0 to a bound that is given, not predicted (the shot clock or the period clock, whichever is shorter). The bound is a given parameter, so no distribution needs a special argument.
 
 One interface for all distributions: every one is a probability over outcomes given parameters, and training and simulation need the same operations from each.
+
+## Training
+
+1. **L-BFGS** (PyTorch, strong Wolfe line search, the whole training set at every step) on the mean negative log-likelihood; automatic differentiation gives the gradient.
+2. **It stops when the mean negative log-likelihood changes by less than 1e-10 between iterations**, at most 2,000 iterations and 4,000 evaluations; not converging fails loudly and writes nothing. A gradient test (1e-9) is kept but never decides: on a million rows the gradient settles above it.
+3. **The split**: the latest 20% of games by start time are validation; the report records how many games are training, so C# never reimplements the rule.
+4. **Starting point**: zero coefficients and each intercept at the link of a simple estimate (the mean outcome, the category shares, the mean and spread of the times).
+
+## Numerics
+
+1. **Log-space differences**: the probability of a range is computed as log[Φ(b) − Φ(a)] from log Φ, on the upper side when both points are above the median, so neither tail underflows.
+2. **Φ is exp(log Φ) in both languages**: torch's `ndtr` cancels to exactly 0 below about z = −8 (it computes 0.5·(1 + erf)), which made JSU sampling wrong when the mass sat far below 0; `log_ndtr` is accurate.
+3. **log(1 + x) is our own in C#**: .NET's `double.LogP1` evaluates log(1 + x) naively and loses up to about 10 digits for small x; `LogOnePlus` uses log(u)·x/(u − 1) with u = 1 + x.
+4. **Golden tolerances**: 1e-12 relative for model values; the normal functions 1e-13 relative (1e-12 for Φ, which comes through an exponential), ignoring values below 1e-300, which no model needs and subnormals cannot hold precisely.
 
 ## Linear splines
 
@@ -119,9 +139,5 @@ One interface for all distributions: every one is a probability over outcomes gi
    - **discretised truncated JSU (Johnson's SU: location, scale, skew and tail)**: 2.769, the best, and it fits the sharp peaks; chosen, with floor edges (second k is the probability of [k, k + 1), truncated to [0, n + 1)), which fit as well as rounding and are simpler.
 
    What no distribution fits is structure: spikes at 0 (putbacks, a quarter of fouls) and the two humps when the period clock binds (acting early or holding for the last shot). Candidates: a hurdle node ("acts immediately") or richer features, and the `PeriodRunsOut` gate.
-2. **Data-dependent structure**: knots (quantiles) and scaling (centres and scales) come from the training data, so they are fitted before the coefficients and recorded in the parameters file next to them. What the node declares is then the number of knots, not the knots.
-3. **Which quantiles**, and how many knots by default.
-4. **The Python's practicalities**: package layout, typing, tests, its environment, and how it is run next to the C#.
-5. **The public contracts**: exactly which types are public in `GameGraph.Models` (the model's declaration, its fitted parameters, an example), and the parameters file as the contract with Python.
-6. **Regularisation**: the smoothness penalty for splines and a penalty for linear terms, chosen on the validation set.
-7. **Speed**: links and bases are closed sets and distributions are pure functions of their parameters, so the compiler plan in `plan.md` still holds.
+2. **A nearly flat direction in the real `ActionTime` fit**: after convergence the largest gradient stays at about 1e-6 while the fit creeps on, most likely parameters trading off (location against skew, scale against tail) or overlapping features (`Bound`, `LogBound`, `PeriodClockBinds`); step 11's penalties should pin it down.
+3. **Speed**: links and bases are closed sets and distributions are pure functions of their parameters, so the compiler plan in `plan.md` still holds. If larger models make L-BFGS slow, Newton's method with the exact Hessian (from automatic differentiation) is the next candidate.

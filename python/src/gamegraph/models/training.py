@@ -15,10 +15,10 @@ from gamegraph.models.model import Model
 from gamegraph.models.training_data import Examples, TrainingData
 
 VALIDATION_FRACTION = 0.2
-MAX_ITERATIONS = 500
-MAX_EVALUATIONS = 1000
+MAX_ITERATIONS = 2000
+MAX_EVALUATIONS = 4000
 GRADIENT_TOLERANCE = 1e-9
-CHANGE_TOLERANCE = 1e-12
+CHANGE_TOLERANCE = 1e-10
 
 
 def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:

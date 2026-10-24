@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "distribution": {
+    "name": "categorical",
+    "categories": [
+      "first",
+      "second",
+      "third"
+    ]
+  },
+  "parameters": {
+    "second": {
+      "source": "predicted",
+      "link": "identity",
+      "intercept": 0.345314253421684,
+      "terms": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian",
+          "centre": 3.004354610694197,
+          "scale": 1.9907802287387353,
+          "coefficients": [
+            0.2092961533977121
+          ]
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5,
+          "knotPositions": [
+            0.0,
+            6.0,
+            12.0,
+            18.0,
+            24.0
+          ],
+          "centres": [
+            5.175,
+            3.77375,
+            2.2775,
+            0.835625
+          ],
+          "scales": [
+            1.7082520305856503,
+            2.658018234982597,
+            2.6325830946049944,
+            1.7061963132579432
+          ],
+          "coefficients": [
+            0.09913480406437385,
+            0.05010021435736256,
+            -0.18248713837171035,
+            -0.011767131578779781
+          ]
+        }
+      ]
+    },
+    "third": {
+      "source": "predicted",
+      "link": "identity",
+      "intercept": -1.0681851023627742,
+      "terms": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian",
+          "centre": 3.004354610694197,
+          "scale": 1.9907802287387353,
+          "coefficients": [
+            -0.29506419275422024
+          ]
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5,
+          "knotPositions": [
+            0.0,
+            6.0,
+            12.0,
+            18.0,
+            24.0
+          ],
+          "centres": [
+            5.175,
+            3.77375,
+            2.2775,
+            0.835625
+          ],
+          "scales": [
+            1.7082520305856503,
+            2.658018234982597,
+            2.6325830946049944,
+            1.7061963132579432
+          ],
+          "coefficients": [
+            -0.020287930338805535,
+            -0.22676429453401406,
+            0.28352605355322674,
+            -0.04879834545142528
+          ]
+        }
+      ]
+    }
+  }
+}
