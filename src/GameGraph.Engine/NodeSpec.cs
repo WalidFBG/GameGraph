@@ -12,6 +12,7 @@ public sealed class NodeSpec<TState, TIncidentCollector>
         Features = features;
         Model = model;
         Transition = transition;
+        AsNext = new(this);
     }
 
     public string Name { get; }
@@ -21,4 +22,6 @@ public sealed class NodeSpec<TState, TIncidentCollector>
     public ModelDeclaration Model { get; }
 
     public Transition<TState, TIncidentCollector> Transition { get; }
+
+    internal NextNode<TState, TIncidentCollector> AsNext { get; }
 }
