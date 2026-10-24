@@ -1,7 +1,7 @@
 using GameGraph.Models.Contract;
 using Xunit;
 
-namespace GameGraph.Models.Tests;
+namespace GameGraph.Models.Tests.Unit;
 
 public sealed class ForwardPassTests
 {

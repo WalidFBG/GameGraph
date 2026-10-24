@@ -1,7 +1,7 @@
 using System.Globalization;
 using GameGraph.Models.Contract;
 
-namespace GameGraph.Models.Tests;
+namespace GameGraph.Models.Tests.Unit;
 
 internal sealed record TrainingData(TrainingDataManifest Manifest, int[] GameExamples, double[][] Features, int[] Outcomes)
 {

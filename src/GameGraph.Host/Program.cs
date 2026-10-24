@@ -1,6 +1,5 @@
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
-using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Sportradar;
 using GameGraph.Nba.TrainingDataGeneration;
 using GameGraph.TrainingDataGeneration;
@@ -16,7 +15,7 @@ public static class Program
     {
         var games = new ValidatedGameReader(ValidatedData).ReadAll();
         var tally = new GameTally();
-        var collector = new TrainingDataCollector<NbaState, INbaIncidentCollector>(NbaGameSpec.Instance);
+        var collector = new TrainingDataCollector<NbaState>(NbaGameSpec.Instance);
 
         new TrainingDataSeason(collector, tally).Walk(games, new TeamHistory());
 

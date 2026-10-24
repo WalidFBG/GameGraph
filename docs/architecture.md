@@ -11,7 +11,7 @@ The engine performs the walk, in both modes. At every node it:
 1. computes the node's features from the game state, using the sport's feature definitions;
 2. asks the **outcome decider** for the node's outcome, given the state and the features;
 3. hands the node, the state, the features and the outcome to the **decision collector**;
-4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome, reports to the **incident collector** whatever the rules say happened (for example, a possession ended with 2 points), and returns the next node.
+4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome, reports to the state's **incident collector** whatever the rules say happened (for example, a possession ended with 2 points), and returns the next node.
 
 It repeats this until a transition returns the end of the game.
 
@@ -29,11 +29,11 @@ The walk has two outputs, for two audiences:
 |---|---|---|
 | Outcome decider | samples from the node's model | reads the observed outcome from a real game, as the sport says how |
 | Decision collector | does nothing | the training-data collector: stores node, features and outcome as training data |
-| Incident collector | the outside world's | ignores incidents |
+| Incident collector | the outside world's, one per simulation | ignores incidents |
 
 Who provides what:
 
-- **The sport**: the game state, the transitions (update the state with an outcome, report incidents, return the next node), the feature definitions, its incident types and collector interface, and how to read observed outcomes from its data.
+- **The sport**: the game state (which holds the incident collector, so the engine never sees incidents), the transitions (update the state with an outcome, report incidents, return the next node), the feature definitions, its incident types and collector interface, and how to read observed outcomes from its data.
 - **The engine**: the walk itself. The only thing that differs between modes is where each node's outcome comes from and who receives the two outputs.
 - **The training-data collector**: nothing but a decision collector. It never tracks the score, applies a rule or computes a feature.
 
@@ -72,7 +72,7 @@ GameGraph.Nba.QualityAssurance (tests)
 
 - **Models** knows nothing about sports, games or the engine (see `models.md`). It holds the contract with Python (a model's declaration, the training-data manifest, the fitted model and the training report, read and written against the schemas) and the forward pass: a fitted model's parameter values, log-probability and samples, from the node's features.
 - **Engine** owns the walk and the outcome-decider and decision-collector interfaces. Each node declares its model (a distribution, the terms of each predicted parameter, the feature of each given one) from its own features, and the engine checks that the model uses exactly those features. It knows nothing about any sport and nothing about training.
-- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the caller's incident collector. It fails if a fitted model was declared differently from its node; it reads no files.
+- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
 - **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
 - **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file, with the node's declared model in the manifest.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.

@@ -3,7 +3,7 @@ using System.Text.Json.Nodes;
 using GameGraph.Models.Contract;
 using Xunit;
 
-namespace GameGraph.Models.Tests;
+namespace GameGraph.Models.Tests.Unit;
 
 public sealed class ContractFilesTests : IDisposable
 {

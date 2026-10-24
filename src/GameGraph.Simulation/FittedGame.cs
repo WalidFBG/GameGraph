@@ -4,11 +4,11 @@ using GameGraph.Models.Contract;
 
 namespace GameGraph.Simulation;
 
-public static class SimulationModels
+public sealed class FittedGame<TState>
 {
-    public static Dictionary<NodeSpec<TState, TIncidentCollector>, Model> For<TState, TIncidentCollector>(
-        GameSpec<TState, TIncidentCollector> spec,
-        IReadOnlyList<FittedModel> fitted)
+    private readonly Model[] _models;
+
+    public FittedGame(GameSpec<TState> spec, IReadOnlyList<FittedModel> fitted)
     {
         var byNode = fitted.ToDictionary(f => f.Node);
         var nodes = spec.Nodes.Select(n => n.Name).ToArray();
@@ -16,10 +16,15 @@ public static class SimulationModels
         if (!byNode.Keys.Order(StringComparer.Ordinal).SequenceEqual(nodes.Order(StringComparer.Ordinal)))
             throw new ArgumentException($"Fitted models are for {string.Join(", ", byNode.Keys)}, the game has nodes {string.Join(", ", nodes)}", nameof(fitted));
 
-        return spec.Nodes.ToDictionary(n => n, n => For(n, byNode[n.Name]));
+        Spec = spec;
+        _models = [.. spec.Nodes.Select(n => ModelFor(n, byNode[n.Name]))];
     }
 
-    private static Model For<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, FittedModel fitted)
+    public GameSpec<TState> Spec { get; }
+
+    public Model ModelOf(NodeSpec<TState> node) => _models[Spec.IndexOf(node)];
+
+    private static Model ModelFor(NodeSpec<TState> node, FittedModel fitted)
     {
         if (!fitted.Model.Equals(node.Model))
             throw new ArgumentException($"The fitted model of {node.Name} was declared differently from the node's model", nameof(fitted));

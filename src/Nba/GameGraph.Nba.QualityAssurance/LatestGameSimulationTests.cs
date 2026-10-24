@@ -23,14 +23,12 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
         var (game, context) = LatestGeneratedGame();
         var schedule = game.Schedule();
         var fitted = NbaGameSpec.Instance.Nodes.Select(n => ContractFiles.ReadFittedModel(Path.Combine(FittedModels, $"{n.Name}.json"))).ToArray();
-        var scores = new ScoreCollector(Simulations);
+        var scores = new Scores(Simulations);
 
         Simulator.Run(
-            NbaGameSpec.Instance,
-            fitted,
+            new FittedGame<NbaState>(NbaGameSpec.Instance, fitted),
             Simulations,
-            simulationIndex => new NbaState(simulationIndex, schedule, context.HomeScoringRate, context.AwayScoringRate),
-            scores);
+            simulationIndex => new NbaState(scores.For(simulationIndex), schedule, context.HomeScoringRate, context.AwayScoringRate));
 
         var homeWins = 0;
         var awayWins = 0;
@@ -81,7 +79,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     private static int Observed(ObservedGame game, int side) =>
         game.Possessions.Where(p => p.TeamInPossession == side).Sum(p => p.Points);
 
-    private static string Write(ObservedGame game, ScoreCollector scores)
+    private static string Write(ObservedGame game, Scores scores)
     {
         Directory.CreateDirectory(Output);
 

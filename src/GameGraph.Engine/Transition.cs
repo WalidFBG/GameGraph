@@ -1,3 +1,3 @@
 namespace GameGraph.Engine;
 
-public delegate Next<TState, TIncidentCollector> Transition<TState, TIncidentCollector>(TState state, int outcome, TIncidentCollector incidentCollector);
+public delegate Next<TState> Transition<TState>(TState state, int outcome);

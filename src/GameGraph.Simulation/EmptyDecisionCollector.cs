@@ -2,9 +2,9 @@ using GameGraph.Engine;
 
 namespace GameGraph.Simulation;
 
-public sealed class EmptyDecisionCollector<TState, TIncidentCollector> : IDecisionCollector<TState, TIncidentCollector>
+public sealed class EmptyDecisionCollector<TState> : IDecisionCollector<TState>
 {
-    public void Collect(NodeSpec<TState, TIncidentCollector> node, TState state, double[] features, int outcome)
+    public void Collect(NodeSpec<TState> node, TState state, ReadOnlySpan<double> features, int outcome)
     {
     }
 }

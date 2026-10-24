@@ -1,20 +1,22 @@
+using GameGraph.Nba.Incidents;
+
 namespace GameGraph.Nba.Graph;
 
 public sealed class NbaState
 {
-    public NbaState(int simulationIndex, PeriodSchedule[] periods, double homeScoringRate, double awayScoringRate)
+    public NbaState(INbaIncidentCollector incidents, PeriodSchedule[] periods, double homeScoringRate, double awayScoringRate)
     {
         if (periods.Length == 0)
             throw new ArgumentException("A game needs at least one period", nameof(periods));
 
-        SimulationIndex = simulationIndex;
+        Incidents = incidents;
         Periods = periods;
         ScoringRate = [homeScoringRate, awayScoringRate];
         TeamInPossession = periods[0].StartingTeamInPossession;
         RemainingInPeriod = periods[0].Possessions;
     }
 
-    public int SimulationIndex { get; }
+    public INbaIncidentCollector Incidents { get; }
 
     public PeriodSchedule[] Periods { get; }
 

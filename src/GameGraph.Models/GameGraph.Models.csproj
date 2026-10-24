@@ -5,7 +5,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <InternalsVisibleTo Include="GameGraph.Models.Tests" />
+    <InternalsVisibleTo Include="GameGraph.Models.Tests.Unit" />
   </ItemGroup>
 
   <ItemGroup>

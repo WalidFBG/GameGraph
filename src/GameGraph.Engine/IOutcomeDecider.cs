@@ -1,6 +1,6 @@
 namespace GameGraph.Engine;
 
-public interface IOutcomeDecider<TState, TIncidentCollector>
+public interface IOutcomeDecider<TState>
 {
-    int Decide(NodeSpec<TState, TIncidentCollector> node, TState state, double[] features);
+    int Decide(NodeSpec<TState> node, TState state, ReadOnlySpan<double> features);
 }

@@ -11,6 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GameGraph.Models\GameGraph.Models.csproj" />
+    <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
   </ItemGroup>
 </Project>
