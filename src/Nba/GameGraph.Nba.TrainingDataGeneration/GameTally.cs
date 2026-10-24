@@ -19,13 +19,11 @@ public sealed class GameTally
         Add($"Rejected{reason}");
     }
 
-    public Dictionary<string, int> ToDictionary() => _games.OrderBy(g => g.Key, StringComparer.Ordinal).ToDictionary();
-
     public string Describe()
     {
         var text = new StringBuilder($"Games read: {_games.Values.Sum()}");
 
-        foreach (var (decision, count) in ToDictionary())
+        foreach (var (decision, count) in _games.OrderBy(g => g.Key, StringComparer.Ordinal))
             text.AppendLine().Append($"  {decision}: {count}");
 
         return text.ToString();

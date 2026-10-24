@@ -4,9 +4,6 @@ public sealed class GameSpec<TState, TIncidentCollector>
 {
     public GameSpec(NodeSpec<TState, TIncidentCollector>[] nodes, NodeSpec<TState, TIncidentCollector> start)
     {
-        if (nodes.Contains(NodeSpec<TState, TIncidentCollector>.End))
-            throw new ArgumentException("End is not a node of the game", nameof(nodes));
-
         if (nodes.Select(n => n.Name).Distinct().Count() != nodes.Length)
             throw new ArgumentException("Node names must be unique", nameof(nodes));
 

@@ -5,7 +5,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GameGraph.Training\GameGraph.Training.csproj" />
     <ProjectReference Include="..\GameGraph.TrainingDataGeneration\GameGraph.TrainingDataGeneration.csproj" />
     <ProjectReference Include="..\Nba\GameGraph.Nba.Sportradar\GameGraph.Nba.Sportradar.csproj" />
     <ProjectReference Include="..\Nba\GameGraph.Nba.TrainingDataGeneration\GameGraph.Nba.TrainingDataGeneration.csproj" />

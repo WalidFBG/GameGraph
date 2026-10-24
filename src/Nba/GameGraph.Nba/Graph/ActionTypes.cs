@@ -4,6 +4,8 @@ public static class ActionTypes
 {
     public const int Count = 4;
 
+    public static string[] Names { get; } = [.. Enumerable.Range(0, Count).Select(c => FromCategory(c).ToString())];
+
     public static int Category(ActionType type)
     {
         if (type == ActionType.NotSet)

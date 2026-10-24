@@ -1,15 +1,12 @@
 using System.Globalization;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using GameGraph.Engine;
+using GameGraph.Models.Contract;
 
 namespace GameGraph.TrainingDataGeneration;
 
 public sealed class TrainingDataWriter(string root)
 {
-    private static readonly JsonSerializerOptions ManifestJson = new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
-
-    public string Write<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, string source, IReadOnlyList<GameExamples> games, Dictionary<string, int> tally)
+    public string Write<TState, TIncidentCollector>(NodeSpec<TState, TIncidentCollector> node, string source, IReadOnlyList<GameExamples> games)
     {
         var directory = Path.Combine(root, node.Name);
         var features = node.Features.Select(f => f.Name).ToArray();
@@ -41,8 +38,8 @@ public sealed class TrainingDataWriter(string root)
                 writer.WriteLine($"{game.GameId},{game.StartUtc.ToString("O", CultureInfo.InvariantCulture)},{game.Examples.Count.ToString(CultureInfo.InvariantCulture)}");
         }
 
-        var manifest = new TrainingDataManifest(node.Name, node.Model.Describe(), source, DateTime.UtcNow, features, games.Sum(g => g.Examples.Count), tally);
-        File.WriteAllText(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(manifest, ManifestJson));
+        var manifest = new TrainingDataManifest(node.Name, source, DateTime.UtcNow, features, games.Sum(g => g.Examples.Count), node.Model);
+        ContractFiles.WriteTrainingDataManifest(Path.Combine(directory, "manifest.json"), manifest);
 
         return directory;
     }

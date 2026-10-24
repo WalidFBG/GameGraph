@@ -9,9 +9,9 @@ public static class GameWalker
         IDecisionCollector<TState, TIncidentCollector> decisionCollector,
         TIncidentCollector incidentCollector)
     {
-        var node = spec.Start;
+        Next<TState, TIncidentCollector> next = spec.Start;
 
-        while (node != NodeSpec<TState, TIncidentCollector>.End)
+        while (next is NextNode<TState, TIncidentCollector>(var node))
         {
             var features = new double[node.Features.Length];
 
@@ -22,12 +22,10 @@ public static class GameWalker
 
             decisionCollector.Collect(node, state, features, outcome);
 
-            var next = node.Transition(state, outcome, incidentCollector);
+            next = node.Transition(state, outcome, incidentCollector);
 
-            if (next != NodeSpec<TState, TIncidentCollector>.End && !spec.Nodes.Contains(next))
-                throw new InvalidOperationException($"The transition from {node.Name} returned {next.Name}, which is not one of the game's nodes");
-
-            node = next;
+            if (next is NextNode<TState, TIncidentCollector>(var target) && !spec.Nodes.Contains(target))
+                throw new InvalidOperationException($"The transition from {node.Name} returned {target.Name}, which is not one of the game's nodes");
         }
     }
 }
