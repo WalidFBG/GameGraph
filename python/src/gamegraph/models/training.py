@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
@@ -56,7 +57,7 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
             fits.append(model.to_fitted(manifest.node))
     if not attempts:
         raise NotConverged(f"Every attempt to fit {manifest.node} failed: " + "; ".join(f.reason for f in failures))
-    chosen = min(range(len(attempts)), key=lambda i: attempts[i].negative_log_likelihood.validation)
+    chosen = choose(attempts)
 
     report = TrainingReport(
         manifest.node,
@@ -68,6 +69,15 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
         tuple(failures),
     )
     return fits[chosen], report
+
+
+def choose(attempts: Sequence[Attempt]) -> int:
+    best: dict[float, int] = {}
+    for i, attempt in enumerate(attempts):
+        incumbent = best.get(attempt.ridge)
+        if incumbent is None or _training(attempt) < _training(attempts[incumbent]):
+            best[attempt.ridge] = i
+    return min(best.values(), key=lambda i: attempts[i].negative_log_likelihood.validation)
 
 
 def write_training_result(directory: Path, fitted: FittedModel, report: TrainingReport) -> None:
@@ -119,6 +129,10 @@ def fit(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: to
 def _loss(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor, ridge: float) -> torch.Tensor:
     squared = sum(((p.coefficients**2).sum() for p in model.predictors), torch.zeros((), dtype=torch.float64))
     return -model.log_prob_of(designs, outcomes).mean() + ridge * squared
+
+
+def _training(attempt: Attempt) -> float:
+    return attempt.negative_log_likelihood.training
 
 
 def _negative_log_likelihood(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> float:

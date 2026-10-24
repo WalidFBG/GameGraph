@@ -16,11 +16,18 @@ from synthetic import (
 )
 
 from gamegraph.models import training
-from gamegraph.models.contract import Route
+from gamegraph.models.contract import Attempt, Route, TrainingAndValidation
 from gamegraph.models.contract_files import read_fitted_model, read_training_report
 from gamegraph.models.distributions import DiscreteJohnsonSu
 from gamegraph.models.model import Model
-from gamegraph.models.training import RIDGE_PATH, NotConverged, require_converged, train, write_training_result
+from gamegraph.models.training import (
+    RIDGE_PATH,
+    NotConverged,
+    choose,
+    require_converged,
+    train,
+    write_training_result,
+)
 from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
 
 
@@ -80,18 +87,35 @@ def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
         require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes, 0.0)
 
 
-def test_training_fits_directly_and_along_the_ridge_path_and_keeps_the_attempt_best_on_validation() -> None:
+def test_training_fits_directly_and_along_the_ridge_path_and_chooses_among_the_attempts() -> None:
     fitted, report = train(synthetic(games=50))
-    validations = [a.negative_log_likelihood.validation for a in report.attempts]
     assert [(a.route, a.ridge) for a in report.attempts] == [
         (Route.DIRECT, 0.0),
         *((Route.RIDGE_PATH, ridge) for ridge in RIDGE_PATH),
     ]
-    assert report.chosen == validations.index(min(validations))
+    assert report.chosen == choose(report.attempts)
     model = Model.from_fitted(fitted, synthetic(games=50).manifest.features)
     training = synthetic(games=50).split(report.training_games).training
     likelihood = -model.log_prob(training.features, training.outcomes).mean()
     assert float(likelihood) == pytest.approx(report.chosen_attempt().negative_log_likelihood.training, rel=1e-12)
+
+
+def attempt(route: Route, ridge: float, training: float, validation: float) -> Attempt:
+    return Attempt(route, ridge, TrainingAndValidation[float](training, validation), 1)
+
+
+def test_at_one_ridge_the_better_optimum_on_training_wins_even_if_validation_prefers_the_other() -> None:
+    attempts = [attempt(Route.DIRECT, 0.0, 2.70, 2.80), attempt(Route.RIDGE_PATH, 0.0, 2.75, 2.75)]
+    assert choose(attempts) == 0
+
+
+def test_across_ridges_validation_chooses() -> None:
+    attempts = [
+        attempt(Route.DIRECT, 0.0, 2.70, 2.80),
+        attempt(Route.RIDGE_PATH, 1e-2, 2.74, 2.76),
+        attempt(Route.RIDGE_PATH, 0.0, 2.75, 2.75),
+    ]
+    assert choose(attempts) == 1
 
 
 def test_an_attempt_that_does_not_converge_is_reported_and_its_route_stopped(monkeypatch: pytest.MonkeyPatch) -> None:
