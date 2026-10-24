@@ -19,6 +19,10 @@ Planning. See `docs/plan.md`.
 | Path | What it holds |
 |---|---|
 | `src/GameGraph.ModelFamilies` | Models as GLMs: terms (a feature and its basis), linear predictors, and families (Bernoulli, Categorical) |
+| `src/GameGraph.Models` | The new models (GAMLSS), evaluated and sampled in C#; being built on its own (`docs/models.md`) |
+| `python/` | Training in Python, for the new models; being built on its own (`docs/models.md`) |
+| `schemas/` | The contract between C# and Python: JSON Schemas for the training data, fitted models and training reports |
+| `golden/` | Reference outputs written by Python (`uv run python -m gamegraph.models.golden`) and checked by both test suites |
 | `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
 | `src/GameGraph.Parameters` | Trained parameters by node, predictor and term, and their file format |
 | `src/GameGraph.Simulation` | Simulates a game many times: samples each decision from its model, reports incidents |
@@ -39,7 +43,17 @@ dotnet build GameGraph.slnx
 dotnet test --solution GameGraph.slnx
 ```
 
-Requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.
+The Python, from `python/`, needs [uv](https://docs.astral.sh/uv/), which installs Python 3.13 and the packages:
+
+```
+uv sync
+uv run pytest
+uv run ruff check
+uv run ruff format --check
+uv run pyright
+```
+
+The C# requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.
 
 ## Data
 

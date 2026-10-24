@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "source": "synthetic",
+  "createdUtc": "2024-01-01T00:00:00Z",
+  "features": [
+    "Margin",
+    "Three"
+  ],
+  "examples": 2000,
+  "model": {
+    "distribution": "bernoulli",
+    "parameters": {
+      "probability": {
+        "source": "predicted",
+        "link": "logit",
+        "terms": [
+          {
+            "basis": "linear",
+            "feature": "Margin"
+          },
+          {
+            "basis": "linear",
+            "feature": "Three"
+          }
+        ]
+      }
+    }
+  }
+}

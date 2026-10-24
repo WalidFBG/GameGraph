@@ -1,0 +1,92 @@
+from pathlib import Path
+
+import numpy as np
+import pytest
+import torch
+
+from gamegraph.models.contract import FittedModel
+from gamegraph.models.contract_files import read_fitted_model, read_training_report
+from gamegraph.models.synthetic import INTERCEPT, MARGIN, THREE, bernoulli
+from gamegraph.models.training import train, write_training_result
+from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
+
+
+def synthetic(games: int = 1000) -> TrainingData:
+    return bernoulli("Synthetic", games, rows_per_game=200, seed=7)
+
+
+def raw_coefficients(fitted: FittedModel) -> tuple[float, float, float]:
+    parameter = fitted.parameters["probability"]
+    slopes = [t.coefficients[0] / t.scale for t in parameter.terms]
+    intercept = parameter.intercept - sum(t.coefficients[0] * t.centre / t.scale for t in parameter.terms)
+    return intercept, slopes[0], slopes[1]
+
+
+def test_training_recovers_known_coefficients(tmp_path: Path) -> None:
+    write_training_data(tmp_path / "data", synthetic())
+    fitted, report = train(read_training_data(tmp_path / "data"))
+    intercept, margin, three = raw_coefficients(fitted)
+    assert intercept == pytest.approx(INTERCEPT, abs=0.03)
+    assert margin == pytest.approx(MARGIN, abs=0.01)
+    assert three == pytest.approx(THREE, abs=0.03)
+    assert report.training_games == 800
+    assert (report.examples.training, report.examples.validation) == (160_000, 40_000)
+    assert 0 < report.negative_log_likelihood.training < np.log(2)
+    assert report.optimiser.iterations > 0
+
+
+def test_a_training_result_is_written_as_contract_files(tmp_path: Path) -> None:
+    fitted, report = train(synthetic(games=50))
+    write_training_result(tmp_path, fitted, report)
+    assert read_fitted_model(tmp_path / "Synthetic.json") == fitted
+    assert read_training_report(tmp_path / "Synthetic.training.json") == report
+
+
+def test_training_data_round_trips(tmp_path: Path) -> None:
+    data = synthetic(games=3)
+    write_training_data(tmp_path, data)
+    read = read_training_data(tmp_path)
+    assert read.manifest == data.manifest
+    assert read.games == data.games
+    assert torch.equal(read.examples.features, data.examples.features)
+    assert torch.equal(read.examples.outcomes, data.examples.outcomes)
+
+
+def test_reading_examples_with_the_wrong_header_fails(tmp_path: Path) -> None:
+    write_training_data(tmp_path, synthetic(games=3))
+    examples = tmp_path / "examples.csv"
+    examples.write_text(
+        examples.read_text(encoding="utf-8").replace("Margin,Three", "Three,Margin", 1), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="header"):
+        read_training_data(tmp_path)
+
+
+def test_reading_fewer_examples_than_the_manifest_says_fails(tmp_path: Path) -> None:
+    write_training_data(tmp_path, synthetic(games=3))
+    examples = tmp_path / "examples.csv"
+    lines = examples.read_text(encoding="utf-8").splitlines(keepends=True)
+    examples.write_text("".join(lines[:-1]), encoding="utf-8")
+    with pytest.raises(ValueError, match="the manifest says"):
+        read_training_data(tmp_path)
+
+
+def test_games_out_of_start_time_order_fail() -> None:
+    data = synthetic(games=3)
+    with pytest.raises(ValueError, match="start-time order"):
+        TrainingData(data.manifest, tuple(reversed(data.games)), data.examples)
+
+
+def test_a_feature_constant_in_training_fails() -> None:
+    data = synthetic(games=10)
+    features = data.examples.features.clone()
+    features[:, 1] = 1.0
+    with pytest.raises(ValueError, match="Three is constant"):
+        train(TrainingData(data.manifest, data.games, Examples(features, data.examples.outcomes)))
+
+
+def test_outcomes_that_are_all_the_same_fail() -> None:
+    data = synthetic(games=10)
+    outcomes = torch.ones_like(data.examples.outcomes)
+    with pytest.raises(ValueError, match="nothing to fit"):
+        train(TrainingData(data.manifest, data.games, Examples(data.examples.features, outcomes)))

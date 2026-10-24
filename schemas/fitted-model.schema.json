@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/WalidFBG/GameGraph/schemas/fitted-model.schema.json",
+  "title": "Fitted model: one node's model and what fitting found, written by Python and read by C#",
+  "type": "object",
+  "required": ["schemaVersion", "node"],
+  "properties": {
+    "schemaVersion": { "$ref": "model.schema.json#/$defs/schemaVersion" },
+    "node": { "$ref": "model.schema.json#/$defs/name" }
+  },
+  "$ref": "model.schema.json#/$defs/fitted",
+  "unevaluatedProperties": false
+}

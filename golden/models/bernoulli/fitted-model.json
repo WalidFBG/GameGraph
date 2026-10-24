@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "distribution": "bernoulli",
+  "parameters": {
+    "probability": {
+      "source": "predicted",
+      "link": "logit",
+      "intercept": -0.12,
+      "terms": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin",
+          "centre": 0.31,
+          "scale": 8.4,
+          "coefficients": [
+            0.021
+          ]
+        },
+        {
+          "basis": "linear",
+          "feature": "ShotIsThree",
+          "centre": 0.38,
+          "scale": 0.49,
+          "coefficients": [
+            -0.18
+          ]
+        }
+      ]
+    }
+  }
+}

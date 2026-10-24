@@ -3,6 +3,8 @@
     <Project Path="src/GameGraph.Engine/GameGraph.Engine.csproj" />
     <Project Path="src/GameGraph.Host/GameGraph.Host.csproj" />
     <Project Path="src/GameGraph.ModelFamilies/GameGraph.ModelFamilies.csproj" />
+    <Project Path="src/GameGraph.Models/GameGraph.Models.csproj" />
+    <Project Path="src/GameGraph.Models.Tests/GameGraph.Models.Tests.csproj" />
     <Project Path="src/GameGraph.Parameters/GameGraph.Parameters.csproj" />
     <Project Path="src/GameGraph.Simulation/GameGraph.Simulation.csproj" />
     <Project Path="src/GameGraph.Training/GameGraph.Training.csproj" />
