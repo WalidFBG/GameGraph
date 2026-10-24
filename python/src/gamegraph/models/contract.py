@@ -86,10 +86,6 @@ def distribution_from_json(json: Json) -> DistributionDeclaration:
             raise ValueError(f"Unknown distribution {name}")
 
 
-class OptimiserName(StrEnum):
-    LBFGS = "lbfgs"
-
-
 class Route(StrEnum):
     DIRECT = "direct"
     RIDGE_PATH = "ridgePath"
@@ -357,19 +353,6 @@ class TrainingAndValidation[T]:
 
 
 @dataclass(frozen=True)
-class Optimiser:
-    name: OptimiserName
-    iterations: int
-
-    def to_json(self) -> Json:
-        return {"name": self.name.value, "iterations": self.iterations}
-
-    @staticmethod
-    def from_json(json: Json) -> Optimiser:
-        return Optimiser(OptimiserName(json["name"]), json["iterations"])
-
-
-@dataclass(frozen=True)
 class Attempt:
     route: Route
     ridge: float
@@ -419,7 +402,6 @@ class TrainingReport:
     ridge: float
     attempts: tuple[Attempt, ...]
     failures: tuple[Failure, ...]
-    optimiser: Optimiser
 
     def to_json(self) -> Json:
         return {
@@ -432,7 +414,6 @@ class TrainingReport:
             "ridge": self.ridge,
             "attempts": [a.to_json() for a in self.attempts],
             "failures": [f.to_json() for f in self.failures],
-            "optimiser": self.optimiser.to_json(),
         }
 
     @staticmethod
@@ -447,7 +428,6 @@ class TrainingReport:
             json["ridge"],
             tuple(Attempt.from_json(a) for a in json["attempts"]),
             tuple(Failure.from_json(f) for f in json["failures"]),
-            Optimiser.from_json(json["optimiser"]),
         )
 
 

@@ -11,8 +11,7 @@ public sealed record TrainingReport
         Route route,
         double ridge,
         Attempt[] attempts,
-        Failure[] failures,
-        Optimiser optimiser)
+        Failure[] failures)
     {
         Node = node;
         CreatedUtc = Utc.Require(createdUtc);
@@ -23,7 +22,6 @@ public sealed record TrainingReport
         Ridge = ridge;
         Attempts = attempts;
         Failures = failures;
-        Optimiser = optimiser;
     }
 
     public string Node { get; }
@@ -43,6 +41,4 @@ public sealed record TrainingReport
     public Attempt[] Attempts { get; }
 
     public Failure[] Failures { get; }
-
-    public Optimiser Optimiser { get; }
 }

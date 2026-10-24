@@ -19,8 +19,6 @@ from gamegraph.models.contract import (
     LinearSplineTerm,
     LinearTerm,
     ModelDeclaration,
-    Optimiser,
-    OptimiserName,
     PredictorFit,
     Route,
     TrainingAndValidation,
@@ -75,7 +73,6 @@ REPORT = TrainingReport(
         Attempt(Route.RIDGE_PATH, 1e-4, TrainingAndValidation[float](0.6712, 0.6731), 21),
     ),
     (Failure(Route.RIDGE_PATH, 1e-5, "Example did not converge at ridge 1e-05"),),
-    Optimiser(OptimiserName.LBFGS, 41),
 )
 
 

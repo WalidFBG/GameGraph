@@ -39,7 +39,6 @@ def test_training_recovers_a_known_shape(tmp_path: Path) -> None:
     assert report.training_games == 800
     assert (report.examples.training, report.examples.validation) == (160_000, 40_000)
     assert 0 < report.negative_log_likelihood.training < np.log(2)
-    assert report.optimiser.iterations > 0
 
 
 def test_training_recovers_known_log_odds() -> None:
@@ -94,7 +93,6 @@ def test_training_fits_directly_and_along_the_ridge_path_and_keeps_the_attempt_b
         best.ridge,
         best.negative_log_likelihood,
     )
-    assert report.optimiser.iterations == sum(a.iterations for a in report.attempts)
     model = Model.from_fitted(fitted, synthetic(games=50).manifest.features)
     training = synthetic(games=50).split(report.training_games).training
     likelihood = -model.log_prob(training.features, training.outcomes).mean()

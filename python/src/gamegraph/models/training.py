@@ -7,8 +7,6 @@ from gamegraph.models.contract import (
     Attempt,
     Failure,
     FittedModel,
-    Optimiser,
-    OptimiserName,
     Route,
     TrainingAndValidation,
     TrainingReport,
@@ -68,7 +66,6 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
         attempts[chosen].ridge,
         tuple(attempts),
         tuple(failures),
-        Optimiser(OptimiserName.LBFGS, sum(a.iterations for a in attempts)),
     )
     return fits[chosen], report
 

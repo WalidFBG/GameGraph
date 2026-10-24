@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "createdUtc": "2026-10-24T15:24:23.613528Z",
+  "createdUtc": "2026-10-24T15:37:43.821264Z",
   "trainingGames": 32,
   "examples": {
     "training": 1600,
@@ -69,9 +69,5 @@
       "iterations": 5
     }
   ],
-  "failures": [],
-  "optimiser": {
-    "name": "lbfgs",
-    "iterations": 53
-  }
+  "failures": []
 }
