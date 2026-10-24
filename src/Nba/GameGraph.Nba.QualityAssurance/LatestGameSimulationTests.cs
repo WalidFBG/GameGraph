@@ -26,8 +26,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
         var scores = new Scores(Simulations);
 
         Simulator.Run(
-            NbaGameSpec.Instance,
-            fitted,
+            new FittedGame<NbaState>(NbaGameSpec.Instance, fitted),
             Simulations,
             simulationIndex => new NbaState(scores.For(simulationIndex), schedule, context.HomeScoringRate, context.AwayScoringRate));
 

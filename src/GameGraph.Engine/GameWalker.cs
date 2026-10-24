@@ -24,7 +24,7 @@ public static class GameWalker
 
             next = node.Transition(state, outcome);
 
-            if (next is NextNode<TState>(var target) && !spec.Nodes.Contains(target))
+            if (next is NextNode<TState>(var target) && !spec.Contains(target))
                 throw new InvalidOperationException($"The transition from {node.Name} returned {target.Name}, which is not one of the game's nodes");
         }
     }
