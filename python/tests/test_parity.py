@@ -27,8 +27,9 @@ def test_the_parity_model_reproduces_its_report(name: str) -> None:
     with torch.no_grad():
         training = float(-model.log_prob(split.training.features, split.training.outcomes).mean())
         validation = float(-model.log_prob(split.validation.features, split.validation.outcomes).mean())
-    assert training == pytest.approx(report.negative_log_likelihood.training, rel=1e-12)
-    assert validation == pytest.approx(report.negative_log_likelihood.validation, rel=1e-12)
+    likelihood = report.chosen_attempt().negative_log_likelihood
+    assert training == pytest.approx(likelihood.training, rel=1e-12)
+    assert validation == pytest.approx(likelihood.validation, rel=1e-12)
 
 
 @pytest.mark.parametrize("name", SETS.keys())

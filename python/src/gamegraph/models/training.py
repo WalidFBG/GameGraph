@@ -61,9 +61,7 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
         datetime.now(UTC),
         training_games,
         TrainingAndValidation[int](len(training.outcomes), len(validation.outcomes)),
-        attempts[chosen].negative_log_likelihood,
-        attempts[chosen].route,
-        attempts[chosen].ridge,
+        chosen,
         tuple(attempts),
         tuple(failures),
     )

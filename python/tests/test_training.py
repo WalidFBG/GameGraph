@@ -38,7 +38,7 @@ def test_training_recovers_a_known_shape(tmp_path: Path) -> None:
     assert np.abs(fitted_logit - bernoulli_logit(grid[:, 0], grid[:, 1], grid[:, 2])).max() < 0.05
     assert report.training_games == 800
     assert (report.examples.training, report.examples.validation) == (160_000, 40_000)
-    assert 0 < report.negative_log_likelihood.training < np.log(2)
+    assert 0 < report.chosen_attempt().negative_log_likelihood.training < np.log(2)
 
 
 def test_training_recovers_known_log_odds() -> None:
@@ -83,20 +83,15 @@ def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
 def test_training_fits_directly_and_along_the_ridge_path_and_keeps_the_attempt_best_on_validation() -> None:
     fitted, report = train(synthetic(games=50))
     validations = [a.negative_log_likelihood.validation for a in report.attempts]
-    best = report.attempts[validations.index(min(validations))]
     assert [(a.route, a.ridge) for a in report.attempts] == [
         (Route.DIRECT, 0.0),
         *((Route.RIDGE_PATH, ridge) for ridge in RIDGE_PATH),
     ]
-    assert (report.route, report.ridge, report.negative_log_likelihood) == (
-        best.route,
-        best.ridge,
-        best.negative_log_likelihood,
-    )
+    assert report.chosen == validations.index(min(validations))
     model = Model.from_fitted(fitted, synthetic(games=50).manifest.features)
     training = synthetic(games=50).split(report.training_games).training
     likelihood = -model.log_prob(training.features, training.outcomes).mean()
-    assert float(likelihood) == pytest.approx(report.negative_log_likelihood.training, rel=1e-12)
+    assert float(likelihood) == pytest.approx(report.chosen_attempt().negative_log_likelihood.training, rel=1e-12)
 
 
 def test_an_attempt_that_does_not_converge_is_reported_and_its_route_stopped(monkeypatch: pytest.MonkeyPatch) -> None:

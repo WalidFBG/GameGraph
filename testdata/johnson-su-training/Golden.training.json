@@ -1,18 +1,13 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "createdUtc": "2026-10-24T15:37:44.295067Z",
+  "createdUtc": "2026-10-24T15:39:03.212752Z",
   "trainingGames": 32,
   "examples": {
     "training": 1600,
     "validation": 400
   },
-  "negativeLogLikelihood": {
-    "training": 2.4816596708844574,
-    "validation": 2.4647522481876973
-  },
-  "route": "direct",
-  "ridge": 0.0,
+  "chosen": 0,
   "attempts": [
     {
       "route": "direct",

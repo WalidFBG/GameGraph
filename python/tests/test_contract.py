@@ -1,6 +1,7 @@
 import json
 import re
 from collections.abc import Callable
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -65,9 +66,7 @@ REPORT = TrainingReport(
     CREATED,
     3067,
     TrainingAndValidation[int](330112, 82233),
-    TrainingAndValidation[float](0.6712, 0.6731),
-    Route.RIDGE_PATH,
-    1e-4,
+    1,
     (
         Attempt(Route.DIRECT, 0.0, TrainingAndValidation[float](0.6709, 0.6738), 30),
         Attempt(Route.RIDGE_PATH, 1e-4, TrainingAndValidation[float](0.6712, 0.6731), 21),
@@ -265,6 +264,11 @@ def test_a_categorical_distribution_with_one_category_fails() -> None:
 def test_the_same_term_twice_fails() -> None:
     with pytest.raises(ValueError, match="appear more than once"):
         ModelDeclaration(BernoulliDistribution(), {"probability": (LinearTerm("Gaussian"), LinearTerm("Gaussian"))}, {})
+
+
+def test_a_report_whose_chosen_attempt_is_not_among_its_attempts_fails() -> None:
+    with pytest.raises(ValueError, match="Example chose attempt 2 of 2"):
+        replace(REPORT, chosen=2)
 
 
 def test_a_time_that_is_not_utc_fails() -> None:

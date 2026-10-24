@@ -3,7 +3,7 @@
   "$id": "https://github.com/WalidFBG/GameGraph/schemas/training-report.schema.json",
   "title": "Training report: how one node's model was fitted, written by Python and read by the parity tests",
   "type": "object",
-  "required": ["schemaVersion", "node", "createdUtc", "trainingGames", "examples", "negativeLogLikelihood", "route", "ridge", "attempts", "failures"],
+  "required": ["schemaVersion", "node", "createdUtc", "trainingGames", "examples", "chosen", "attempts", "failures"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": { "$ref": "model.schema.json#/$defs/schemaVersion" },
@@ -19,9 +19,7 @@
         "validation": { "type": "integer", "minimum": 1 }
       }
     },
-    "negativeLogLikelihood": { "$ref": "#/$defs/negativeLogLikelihood" },
-    "route": { "$ref": "#/$defs/route" },
-    "ridge": { "type": "number", "minimum": 0 },
+    "chosen": { "type": "integer", "minimum": 0 },
     "attempts": {
       "type": "array",
       "minItems": 1,
