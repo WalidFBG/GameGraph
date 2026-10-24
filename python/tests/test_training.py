@@ -3,11 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 import torch
-
-from gamegraph.models.contract_files import read_fitted_model, read_training_report
-from gamegraph.models.distributions import DiscreteJohnsonSu
-from gamegraph.models.model import Model
-from gamegraph.models.synthetic import (
+from synthetic import (
     BERNOULLI_FEATURES,
     CATEGORICAL_FEATURES,
     bernoulli,
@@ -17,6 +13,10 @@ from gamegraph.models.synthetic import (
     johnson_su,
     johnson_su_parameters,
 )
+
+from gamegraph.models.contract_files import read_fitted_model, read_training_report
+from gamegraph.models.distributions import DiscreteJohnsonSu
+from gamegraph.models.model import Model
 from gamegraph.models.training import require_converged, train, write_training_result
 from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
 

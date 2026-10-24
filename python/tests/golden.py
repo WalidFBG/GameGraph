@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from synthetic import bernoulli, categorical, johnson_su
 
 from gamegraph.models import normal
 from gamegraph.models.contract import (
@@ -20,10 +21,11 @@ from gamegraph.models.contract import (
 )
 from gamegraph.models.contract_files import write_fitted_model
 from gamegraph.models.model import Model
-from gamegraph.models.paths import GOLDEN
-from gamegraph.models.synthetic import bernoulli, categorical, johnson_su
+from gamegraph.models.paths import REPOSITORY
 from gamegraph.models.training import train, write_training_result
 from gamegraph.models.training_data import TrainingData, write_training_data
+
+TESTDATA = REPOSITORY / "testdata"
 
 type Case = tuple[tuple[float, ...], int, float]
 
@@ -249,8 +251,8 @@ def write_parity(directory: Path, data: TrainingData) -> None:
 
 
 if __name__ == "__main__":
-    write_normal(GOLDEN / "normal")
+    write_normal(TESTDATA / "normal")
     for name, (fitted, feature_names, cases) in CASES.items():
-        write_cases(GOLDEN / name, fitted, feature_names, cases)
+        write_cases(TESTDATA / name, fitted, feature_names, cases)
     for name, data in parity_sets().items():
-        write_parity(GOLDEN / name, data)
+        write_parity(TESTDATA / name, data)

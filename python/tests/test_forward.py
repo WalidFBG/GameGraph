@@ -1,14 +1,14 @@
 import math
 from pathlib import Path
 
+import golden
 import pytest
 import torch
 
-from gamegraph.models import golden, links
+from gamegraph.models import links
 from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
 from gamegraph.models.distributions import Bernoulli, Categorical, DiscreteJohnsonSu
 from gamegraph.models.model import Model
-from gamegraph.models.paths import GOLDEN
 from gamegraph.models.terms import LinearColumns, LinearSplineColumns
 
 BERNOULLI_FEATURES = golden.CASES["bernoulli"][1]
@@ -197,11 +197,11 @@ def test_the_model_rejects_features_that_are_not_float64() -> None:
 
 def test_the_normal_golden_file_is_current(tmp_path: Path) -> None:
     golden.write_normal(tmp_path)
-    assert (tmp_path / "cases.json").read_bytes() == (GOLDEN / "normal" / "cases.json").read_bytes()
+    assert (tmp_path / "cases.json").read_bytes() == (golden.TESTDATA / "normal" / "cases.json").read_bytes()
 
 
 @pytest.mark.parametrize("name", golden.CASES.keys())
 def test_the_golden_files_are_current(tmp_path: Path, name: str) -> None:
     golden.write_cases(tmp_path, *golden.CASES[name])
     for file in ("fitted-model.json", "cases.json"):
-        assert (tmp_path / file).read_bytes() == (GOLDEN / name / file).read_bytes()
+        assert (tmp_path / file).read_bytes() == (golden.TESTDATA / name / file).read_bytes()

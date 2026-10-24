@@ -58,7 +58,7 @@ public sealed class ParityTests
         }
     }
 
-    private static string Parity(string set) => Path.Combine(Repository.Root, "golden", "models", set);
+    private static string Parity(string set) => Path.Combine(Repository.Root, "testdata", set);
 
     private static double MeanNegativeLogLikelihood(Model model, TrainingData data, int from, int to)
     {
