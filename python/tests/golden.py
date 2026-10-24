@@ -1,10 +1,11 @@
 import json
+from dataclasses import replace
 from math import nextafter
 from pathlib import Path
 
 import numpy as np
 import torch
-from synthetic import bernoulli, categorical, johnson_su
+from synthetic import START, bernoulli, categorical, johnson_su
 
 from gamegraph.models import normal
 from gamegraph.models.contract import (
@@ -243,7 +244,7 @@ def parity_uniforms(rows: int) -> torch.Tensor:
 def write_parity(directory: Path, data: TrainingData) -> None:
     write_training_data(directory, data)
     fitted, report = train(data)
-    write_training_result(directory, fitted, report)
+    write_training_result(directory, fitted, replace(report, created_utc=START))
     uniforms = parity_uniforms(data.manifest.examples)
     samples = Model.from_fitted(fitted, data.manifest.features).sample(data.examples.features, uniforms)
     lines = ["uniform,sample", *(f"{float(u)!r},{int(s)}" for u, s in zip(uniforms, samples, strict=True))]

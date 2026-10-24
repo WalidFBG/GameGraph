@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "node": "Golden",
-  "createdUtc": "2026-10-24T15:39:02.878849Z",
+  "createdUtc": "2024-01-01T00:00:00Z",
   "trainingGames": 32,
   "examples": {
     "training": 1600,
