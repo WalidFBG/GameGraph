@@ -22,8 +22,7 @@ public sealed class FittedGame<TState>
 
     public GameSpec<TState> Spec { get; }
 
-    public Model ModelOf(NodeSpec<TState> node) =>
-        Spec.Contains(node) ? _models[node.Index] : throw new ArgumentException($"{node.Name} is not one of the game's nodes", nameof(node));
+    public Model ModelOf(NodeSpec<TState> node) => _models[Spec.IndexOf(node)];
 
     private static Model ModelFor(NodeSpec<TState> node, FittedModel fitted)
     {

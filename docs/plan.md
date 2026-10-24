@@ -106,7 +106,7 @@ What the C# models are today; items 1 to 4 are built. `models.md` replaces this:
 - **Plain-walk costs to remove on the way**:
   - nodes become integer indices into the game's node array, so the walk and the sampling decider find nodes and parameters by index: no dictionary by node, and no search of the node list at every step (an index outside the array still fails loudly): done, through `FittedGame`;
   - the walk allocates no features array per step: done;
-  - `Categorical` allocates no small arrays per call.
+  - `Categorical` allocates no small arrays per call: done, it works on spans and `Model` puts the parameters on the stack.
 - **Parallel simulations**: each simulation already has its own seed, so simulations run in parallel, one walk at a time per thread. Each simulation's state holds its own incident collector, writing into its own preallocated slot, so they need no locks. A test checks that the results do not depend on the number of threads.
 
 ## Open questions

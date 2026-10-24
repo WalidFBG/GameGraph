@@ -9,18 +9,17 @@ public sealed class GameSpecTests
     {
         var game = new ToyGame();
 
-        Assert.Equal(0, game.Wide.Index);
-        Assert.Equal(1, game.Narrow.Index);
+        Assert.Equal(0, game.Spec.IndexOf(game.Wide));
+        Assert.Equal(1, game.Spec.IndexOf(game.Narrow));
     }
 
     [Fact]
-    public void ANodeInNoGameHasNoIndex()
+    public void AGameHasNoIndexForAnotherGamesNodeOrANodeInNoGame()
     {
-        var node = ToyGame.Ending("Alone");
+        var game = new ToyGame();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => node.Index);
-
-        Assert.Equal("Alone is not one of a game's nodes", exception.Message);
+        Assert.Throws<ArgumentException>(() => game.Spec.IndexOf(new ToyGame().Narrow));
+        Assert.Throws<ArgumentException>(() => game.Spec.IndexOf(ToyGame.Ending("Alone")));
     }
 
     [Fact]
@@ -29,9 +28,21 @@ public sealed class GameSpecTests
         var node = ToyGame.Ending("Shared");
         _ = new GameSpec<ToyState>([node], node);
 
-        var exception = Assert.Throws<InvalidOperationException>(() => new GameSpec<ToyState>([node], node));
+        var exception = Assert.Throws<ArgumentException>(() => new GameSpec<ToyState>([node], node));
 
-        Assert.Equal("Shared is already one of a game's nodes", exception.Message);
+        Assert.StartsWith("Already in a game: Shared", exception.Message);
+    }
+
+    [Fact]
+    public void AGameThatFailsToBuildLeavesItsOtherNodesFree()
+    {
+        var taken = ToyGame.Ending("Taken");
+        _ = new GameSpec<ToyState>([taken], taken);
+        var free = ToyGame.Ending("Free");
+
+        Assert.Throws<ArgumentException>(() => new GameSpec<ToyState>([free, taken], free));
+
+        Assert.Equal(0, new GameSpec<ToyState>([free], free).IndexOf(free));
     }
 
     [Fact]
