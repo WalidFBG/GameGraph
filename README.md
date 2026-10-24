@@ -12,7 +12,7 @@ The NBA is the first (and for now only) sport.
 
 ## Status
 
-In progress. See `docs/plan.md`, and `docs/models.md` for the new models (trained in Python, evaluated in C#).
+In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in Python, evaluated in C#).
 
 ## Layout
 
