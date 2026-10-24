@@ -287,6 +287,27 @@ public sealed class ContractFilesTests : IDisposable
     }
 
     [Fact]
+    public void DeclarationsOfDifferentDistributionsWithTheSameTermsDiffer()
+    {
+        var terms = new Dictionary<string, Term[]> { ["probability"] = Terms };
+
+        Assert.NotEqual(new ModelDeclaration(new BernoulliDistribution(), terms, NoGiven), new ModelDeclaration(new CategoricalDistribution(["other", "probability"]), terms, NoGiven));
+    }
+
+    [Fact]
+    public void DeclarationsWithADifferentGivenFeatureDiffer()
+    {
+        ModelDeclaration JohnsonSu(string maximum) =>
+            new(
+                new DiscreteJohnsonSuDistribution(),
+                new Dictionary<string, Term[]> { ["location"] = Terms, ["scale"] = [], ["skew"] = [], ["tail"] = [] },
+                new Dictionary<string, string> { ["maximum"] = maximum });
+
+        Assert.Equal(JohnsonSu("Bound"), JohnsonSu("Bound"));
+        Assert.NotEqual(JohnsonSu("Bound"), JohnsonSu("Clock"));
+    }
+
+    [Fact]
     public void ACategoricalDistributionWithOneCategoryFails() =>
         Assert.Throws<ArgumentException>(() => new CategoricalDistribution(["first"]));
 
