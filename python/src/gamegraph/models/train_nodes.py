@@ -1,3 +1,4 @@
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -7,13 +8,19 @@ from gamegraph.models.training_data import MANIFEST, read_training_data
 
 
 def train_nodes(training_data: Path, fitted_models: Path) -> None:
-    directories = sorted(d for d in training_data.iterdir() if (d / MANIFEST).is_file())
+    directories = sorted(d for d in training_data.iterdir() if d.is_dir())
     if not directories:
         raise ValueError(f"No node's training data under {training_data}")
+    missing = [d.name for d in directories if not (d / MANIFEST).is_file()]
+    if missing:
+        raise ValueError(f"{missing} under {training_data} have no {MANIFEST}")
+    staging = fitted_models.with_name(fitted_models.name + ".partial")
+    if staging.exists():
+        shutil.rmtree(staging)
     for directory in directories:
         started = time.perf_counter()
         fitted, report = train(read_training_data(directory))
-        write_training_result(fitted_models, fitted, report)
+        write_training_result(staging, fitted, report)
         chosen = report.chosen_attempt()
         failed = f", {len(report.failures)} failed attempts" if report.failures else ""
         print(
@@ -22,6 +29,9 @@ def train_nodes(training_data: Path, fitted_models: Path) -> None:
             f"{time.perf_counter() - started:.1f} s{failed}",
             flush=True,
         )
+    if fitted_models.exists():
+        shutil.rmtree(fitted_models)
+    staging.rename(fitted_models)
 
 
 def main() -> None:
