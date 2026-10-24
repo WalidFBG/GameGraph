@@ -1,29 +1,56 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
-using GameGraph.Nba.Observed;
+using GameGraph.Nba.Incidents;
 
-namespace GameGraph.Nba.TrainingDataGeneration;
+namespace GameGraph.Nba.Observed;
 
 public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 {
+    private const double UnreadScoringRate = 0;
+
     private readonly ObservedDecision[] _decisions;
     private int _next;
 
-    public ObservedOutcomeDecider(Possession[] possessions) => _decisions = [.. possessions.SelectMany(Decisions)];
+    public ObservedOutcomeDecider(Possession[] possessions)
+    {
+        var decisions = new List<ObservedDecision>();
+
+        for (var i = 0; i < possessions.Length; i++)
+        {
+            var possession = possessions[i];
+
+            if ((i == 0 || possessions[i - 1].Period != possession.Period) && (possession.Period == 0 || possession.Period >= Periods.Regulation))
+                decisions.Add(new ObservedDecision(NbaNodes.JumpBall, _ => Number(possession.TeamInPossession == Sides.Home), Sides.Home, possession.Period));
+
+            decisions.AddRange(Decisions(possession));
+        }
+
+        _decisions = [.. decisions];
+    }
 
     public int ActionTimes { get; private set; }
 
     public int ClampedActionTimes { get; private set; }
 
+    public static bool Follows(Possession[] possessions)
+    {
+        var decider = new ObservedOutcomeDecider(possessions);
+        var state = new NbaState(new EmptyIncidentCollector(), UnreadScoringRate, UnreadScoringRate);
+
+        try
+        {
+            GameWalker.Walk(NbaGameSpec.Instance, state, decider, new EmptyDecisionCollector<NbaState>());
+            decider.EnsureAllUsed();
+            return true;
+        }
+        catch (RulesDisagreeWithDataException)
+        {
+            return false;
+        }
+    }
+
     public int Decide(NodeSpec<NbaState> node, NbaState state, ReadOnlySpan<double> features)
     {
-        if (node == NbaNodes.JumpBall)
-        {
-            var first = UpcomingIn(state.Period) ?? throw new RulesDisagreeWithDataException($"The rules ask for a jump ball in period {state.Period}, which has no observed decisions");
-
-            return Number(first.TeamInPossession == Sides.Home);
-        }
-
         if (node == NbaNodes.AwardedFreeThrow && !IsUpcoming(node, state))
             return AwardedFreeThrows.None;
 
@@ -70,16 +97,15 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     private IEnumerable<ObservedDecision> Decisions(Possession possession)
     {
+        var team = possession.TeamInPossession;
+
         foreach (var action in possession.Actions)
         {
-            foreach (var awarded in action.AwardedBefore)
-            {
-                yield return Decision(NbaNodes.AwardedFreeThrow, awarded.Team == possession.TeamInPossession ? AwardedFreeThrows.Offence : AwardedFreeThrows.Defence);
-                yield return Decision(NbaNodes.AwardedFreeThrowMade, Number(awarded.Made));
-            }
+            foreach (var decision in Awarded(action.AwardedBefore, team))
+                yield return decision;
 
             yield return Decision(NbaNodes.ActionType, ActionTypes.Category(action.Type));
-            yield return new ObservedDecision(NbaNodes.ActionTime, s => ActionTime(s, action.Clock), possession.TeamInPossession, possession.Period);
+            yield return new ObservedDecision(NbaNodes.ActionTime, s => ActionTime(s, action.Clock), team, possession.Period);
 
             switch (action)
             {
@@ -111,8 +137,21 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             }
         }
 
+        var last = possession.Actions[^1];
+        var after = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(team) : team;
+
+        foreach (var decision in Awarded(possession.AwardedAfter, after))
+            yield return decision;
+
+        IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
+            awarded.SelectMany(f => new[]
+            {
+                new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => f.Team == inPossession ? AwardedFreeThrows.Offence : AwardedFreeThrows.Defence, inPossession, possession.Period),
+                new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period),
+            });
+
         ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
-            new(node, _ => outcome, possession.TeamInPossession, possession.Period);
+            new(node, _ => outcome, team, possession.Period);
     }
 
     private static int Number(bool value) => value ? 1 : 0;

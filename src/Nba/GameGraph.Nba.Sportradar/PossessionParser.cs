@@ -21,8 +21,6 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
 
     public int PossessionsCutByPeriodEnd { get; private set; }
 
-    public int AwardedFreeThrowsAfterLastPlay => _awarded.Count;
-
     public void Read(Event e)
     {
         if (_reboundAtZero is { } offensive && e is FieldGoalAttempt or Turnover or Foul { FoulType: FoulType.Shooting or FoulType.Personal })
@@ -82,6 +80,14 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
             PossessionsCutByPeriodEnd++;
 
         ClosePossession();
+
+        if (_awarded.Count == 0)
+            return;
+
+        if (_possessions.Count == 0 || _possessions[^1].Period != _period)
+            throw new RejectedGameException(RejectionReason.UnmatchedFreeThrow);
+
+        _possessions[^1] = _possessions[^1] with { AwardedAfter = TakeAwarded() };
     }
 
     private void Shot(FieldGoalAttempt shot)

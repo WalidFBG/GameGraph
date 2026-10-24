@@ -39,6 +39,11 @@ public sealed class RecentGamesSimulationTests(ITestOutputHelper output)
         }
 
         var path = Write(rows);
+        var realPossessions = rows.Average(r => r.Possessions);
+
+        Assert.InRange(rows.Average(r => r.SimulatedPossessions), realPossessions * 0.98, realPossessions * 1.02);
+        Assert.InRange(rows.Average(r => r.SimulatedOvertime), 0.01, 0.04);
+        Assert.InRange(rows.Average(r => r.SimulatedHome + r.SimulatedAway - r.Home - r.Away), -8, 8);
 
         output.WriteLine($"{Games} games from {games[0].Game.StartUtc:d} to {games[^1].Game.StartUtc:d}, {Simulations} simulations each");
         output.WriteLine($"Total: real {rows.Average(r => r.Home + r.Away):F1}, simulated {rows.Average(r => r.SimulatedHome + r.SimulatedAway):F1}; mean absolute error {rows.Average(r => Math.Abs(r.Home + r.Away - r.SimulatedHome - r.SimulatedAway)):F1}");

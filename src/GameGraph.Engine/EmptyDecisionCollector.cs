@@ -1,6 +1,4 @@
-using GameGraph.Engine;
-
-namespace GameGraph.Simulation;
+namespace GameGraph.Engine;
 
 public sealed class EmptyDecisionCollector<TState> : IDecisionCollector<TState>
 {

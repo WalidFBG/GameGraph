@@ -42,9 +42,10 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
         output.WriteLine($"Non-shooting fouls: {fouls.Length}, in the bonus {Rate(fouls.Count(f => f.InBonus), fouls.Length)}");
         output.WriteLine($"Free throws: {freeThrows.Length}, made {Rate(freeThrows.Count(m => m), freeThrows.Length)}");
         output.WriteLine($"Rebounds after a miss: {rebounds.Length}, offensive {Rate(rebounds.Count(o => o), rebounds.Length)}");
-        var awarded = actions.SelectMany(a => a.AwardedBefore).ToArray();
+        var atPeriodEnds = possessions.SelectMany(p => p.AwardedAfter).ToArray();
+        var awarded = actions.SelectMany(a => a.AwardedBefore).Concat(atPeriodEnds).ToArray();
 
-        output.WriteLine($"Free throws outside the play: {(double)awarded.Length / accepted.Length:F2} a game, made {Rate(awarded.Count(f => f.Made), awarded.Length)}; {accepted.Sum(g => g.AwardedFreeThrowsAfterLastPlay)} after a game's last play");
+        output.WriteLine($"Free throws outside the play: {(double)awarded.Length / accepted.Length:F2} a game, made {Rate(awarded.Count(f => f.Made), awarded.Length)}; {atPeriodEnds.Length} after a period's last action");
         output.WriteLine($"Possessions scoring a made shot: {Rate(possessions.Count(p => p.Scored), possessions.Length)}");
 
         var periodStarts = new List<int>();

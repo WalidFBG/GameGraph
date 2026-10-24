@@ -1,6 +1,7 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
 using GameGraph.TrainingDataGeneration;
 
@@ -35,18 +36,8 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
         var decider = new ObservedOutcomeDecider(game.Possessions);
 
         collector.BeginGame(game.Id, game.StartUtc);
-
-        try
-        {
-            GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
-            decider.EnsureAllUsed();
-        }
-        catch (RulesDisagreeWithDataException)
-        {
-            collector.DiscardGame();
-            tally.Rejected(RejectionReason.RulesDisagreeWithData);
-            return;
-        }
+        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
+        decider.EnsureAllUsed();
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

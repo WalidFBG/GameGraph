@@ -157,7 +157,7 @@ public static class NbaTransitions
     private static Next<NbaState> NextPlay(NbaState state) => NbaNodes.AwardedFreeThrow;
 
     private static Next<NbaState> AfterMiss(NbaState state) =>
-        state.PeriodClock == 0 ? NbaNodes.PeriodRunsOut : NbaNodes.OffensiveRebound;
+        state.PeriodClock == 0 ? NextPlay(state) : NbaNodes.OffensiveRebound;
 
     private static Next<NbaState> EndOfPossession(NbaState state, PlayStart next)
     {
@@ -181,7 +181,10 @@ public static class NbaTransitions
         StartPossession(state, PlayStart.PeriodStart);
 
         if (state.Period >= Periods.Regulation)
+        {
+            state.TeamInPossession = Sides.Home;
             return NbaNodes.JumpBall;
+        }
 
         state.TeamInPossession = state.Period == Periods.Regulation - 1 ? state.FirstPeriodStarter : Sides.Opponent(state.FirstPeriodStarter);
         return NextPlay(state);

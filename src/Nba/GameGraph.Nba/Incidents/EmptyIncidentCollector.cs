@@ -1,6 +1,4 @@
-using GameGraph.Nba.Incidents;
-
-namespace GameGraph.Nba.TrainingDataGeneration;
+namespace GameGraph.Nba.Incidents;
 
 public sealed class EmptyIncidentCollector : INbaIncidentCollector
 {
