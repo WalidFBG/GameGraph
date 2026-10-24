@@ -22,7 +22,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the new models (traine
 | `src/GameGraph.Models` | The new models (GAMLSS), evaluated and sampled in C#; being built on its own (`docs/models.md`) |
 | `python/` | Training in Python, for the new models; being built on its own (`docs/models.md`) |
 | `schemas/` | The contract between C# and Python: JSON Schemas for the training data, fitted models and training reports |
-| `golden/` | Reference outputs written by Python (`uv run python -m gamegraph.models.golden`) and checked by both test suites |
+| `testdata/` | Test data only: reference outputs (golden files) written by `python/tests/golden.py` (`uv run python tests/golden.py`) and checked by both test suites |
 | `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
 | `src/GameGraph.Parameters` | Trained parameters by node, predictor and term, and their file format |
 | `src/GameGraph.Simulation` | Simulates a game many times: samples each decision from its model, reports incidents |
@@ -57,4 +57,4 @@ The C# requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `O
 
 ## Data
 
-No data is stored in this repository. Real game data stays on your machine; its location is set in `src/GameGraph.Host/Program.cs`.
+No real data is stored in this repository; `testdata/` holds only synthetic test data. Real game data stays on your machine; its location is set in `src/GameGraph.Host/Program.cs`.

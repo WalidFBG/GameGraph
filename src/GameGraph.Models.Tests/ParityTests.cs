@@ -22,8 +22,10 @@ public sealed class ParityTests
         var training = data.ExamplesIn(report.TrainingGames);
 
         Assert.Equal(report.Examples, new TrainingAndValidation<int>(training, data.Outcomes.Length - training));
-        AssertClose(report.NegativeLogLikelihood.Training, MeanNegativeLogLikelihood(model, data, 0, training));
-        AssertClose(report.NegativeLogLikelihood.Validation, MeanNegativeLogLikelihood(model, data, training, data.Outcomes.Length));
+        var likelihood = report.ChosenAttempt().NegativeLogLikelihood;
+
+        AssertClose(likelihood.Training, MeanNegativeLogLikelihood(model, data, 0, training));
+        AssertClose(likelihood.Validation, MeanNegativeLogLikelihood(model, data, training, data.Outcomes.Length));
     }
 
     [Theory]
@@ -58,7 +60,7 @@ public sealed class ParityTests
         }
     }
 
-    private static string Parity(string set) => Path.Combine(Repository.Root, "golden", "models", set);
+    private static string Parity(string set) => Path.Combine(Repository.Root, "testdata", set);
 
     private static double MeanNegativeLogLikelihood(Model model, TrainingData data, int from, int to)
     {

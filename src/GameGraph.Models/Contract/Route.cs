@@ -1,7 +1,8 @@
 namespace GameGraph.Models.Contract;
 
-public enum OptimiserName
+public enum Route
 {
     NotSet = 0,
-    Lbfgs = 1,
+    Direct = 1,
+    RidgePath = 2,
 }

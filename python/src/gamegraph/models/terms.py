@@ -62,7 +62,10 @@ class LinearSplineColumns:
     def fit(term: LinearSplineTerm, features: Sequence[str], examples: torch.Tensor) -> "LinearSplineColumns":
         column = column_of(term.feature, features)
         values = examples[:, column]
-        quantiles = torch.quantile(values, torch.linspace(0, 1, term.knots, dtype=values.dtype))
+        distinct = cast(torch.Tensor, torch.unique(values))
+        quantiles = torch.quantile(
+            distinct, torch.linspace(0, 1, term.knots, dtype=values.dtype), interpolation="nearest"
+        )
         positions = _floats(cast(torch.Tensor, torch.unique(quantiles)))
         if len(positions) < 2:
             raise ValueError(f"{term.feature} is constant in the training examples and cannot be fitted")

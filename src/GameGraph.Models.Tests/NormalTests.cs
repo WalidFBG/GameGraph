@@ -9,7 +9,7 @@ public sealed class NormalTests
     private const double SmallestCompared = 1e-300;
 
     private static readonly NormalCases Golden = JsonSerializer.Deserialize<NormalCases>(
-            File.ReadAllText(Path.Combine(Repository.Root, "golden", "models", "normal", "cases.json")),
+            File.ReadAllText(Path.Combine(Repository.Root, "testdata", "normal", "cases.json")),
             JsonSerializerOptions.Web)
         ?? throw new InvalidDataException("No golden normal cases");
 

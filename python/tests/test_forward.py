@@ -1,14 +1,14 @@
 import math
 from pathlib import Path
 
+import golden
 import pytest
 import torch
 
-from gamegraph.models import golden, links
+from gamegraph.models import links
 from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
 from gamegraph.models.distributions import Bernoulli, Categorical, DiscreteJohnsonSu
 from gamegraph.models.model import Model
-from gamegraph.models.paths import GOLDEN
 from gamegraph.models.terms import LinearColumns, LinearSplineColumns
 
 BERNOULLI_FEATURES = golden.CASES["bernoulli"][1]
@@ -38,11 +38,18 @@ def test_a_linear_spline_term_measures_each_segment_and_is_flat_beyond_its_end_k
     )
 
 
-def test_a_linear_spline_places_its_knots_at_quantiles_and_merges_repeats() -> None:
+def test_a_linear_spline_places_its_knots_at_quantiles_of_the_distinct_values() -> None:
     values = tensor([[v] for v in [0.0] * 50 + [1.0, 2.0, 3.0] + [24.0] * 47])
     term = LinearSplineColumns.fit(LinearSplineTerm("x", 5), ("x",), values)
-    assert term.knot_positions == (0.0, 0.5, 24.0)
-    assert term.count == 2
+    assert term.knot_positions == (0.0, 1.0, 2.0, 3.0, 24.0)
+    assert term.count == 4
+
+
+def test_a_linear_spline_with_fewer_distinct_values_than_knots_merges_repeats() -> None:
+    values = tensor([[v] for v in [0.0] * 60 + [1.0] * 40])
+    term = LinearSplineColumns.fit(LinearSplineTerm("x", 5), ("x",), values)
+    assert term.knot_positions == (0.0, 1.0)
+    assert term.count == 1
 
 
 def test_a_linear_spline_of_a_constant_feature_fails() -> None:
@@ -190,11 +197,11 @@ def test_the_model_rejects_features_that_are_not_float64() -> None:
 
 def test_the_normal_golden_file_is_current(tmp_path: Path) -> None:
     golden.write_normal(tmp_path)
-    assert (tmp_path / "cases.json").read_bytes() == (GOLDEN / "normal" / "cases.json").read_bytes()
+    assert (tmp_path / "cases.json").read_bytes() == (golden.TESTDATA / "normal" / "cases.json").read_bytes()
 
 
 @pytest.mark.parametrize("name", golden.CASES.keys())
 def test_the_golden_files_are_current(tmp_path: Path, name: str) -> None:
     golden.write_cases(tmp_path, *golden.CASES[name])
     for file in ("fitted-model.json", "cases.json"):
-        assert (tmp_path / file).read_bytes() == (GOLDEN / name / file).read_bytes()
+        assert (tmp_path / file).read_bytes() == (golden.TESTDATA / name / file).read_bytes()

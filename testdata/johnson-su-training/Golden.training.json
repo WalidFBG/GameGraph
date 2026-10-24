@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "createdUtc": "2024-01-01T00:00:00Z",
+  "trainingGames": 32,
+  "examples": {
+    "training": 1600,
+    "validation": 400
+  },
+  "chosen": 0,
+  "attempts": [
+    {
+      "route": "direct",
+      "ridge": 0.0,
+      "negativeLogLikelihood": {
+        "training": 2.4816596708844574,
+        "validation": 2.4647522481876973
+      },
+      "iterations": 28
+    },
+    {
+      "route": "ridgePath",
+      "ridge": 0.01,
+      "negativeLogLikelihood": {
+        "training": 2.490826346625775,
+        "validation": 2.476750919472584
+      },
+      "iterations": 31
+    },
+    {
+      "route": "ridgePath",
+      "ridge": 0.001,
+      "negativeLogLikelihood": {
+        "training": 2.48837692651149,
+        "validation": 2.4780152959149135
+      },
+      "iterations": 30
+    },
+    {
+      "route": "ridgePath",
+      "ridge": 0.0001,
+      "negativeLogLikelihood": {
+        "training": 2.4872343441977556,
+        "validation": 2.4792307642576614
+      },
+      "iterations": 23
+    },
+    {
+      "route": "ridgePath",
+      "ridge": 1e-05,
+      "negativeLogLikelihood": {
+        "training": 2.4871927097626747,
+        "validation": 2.4794972310428953
+      },
+      "iterations": 18
+    },
+    {
+      "route": "ridgePath",
+      "ridge": 0.0,
+      "negativeLogLikelihood": {
+        "training": 2.48719269692798,
+        "validation": 2.4795149135761805
+      },
+      "iterations": 5
+    }
+  ],
+  "failures": []
+}

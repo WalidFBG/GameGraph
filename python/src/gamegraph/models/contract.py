@@ -86,8 +86,9 @@ def distribution_from_json(json: Json) -> DistributionDeclaration:
             raise ValueError(f"Unknown distribution {name}")
 
 
-class OptimiserName(StrEnum):
-    LBFGS = "lbfgs"
+class Route(StrEnum):
+    DIRECT = "direct"
+    RIDGE_PATH = "ridgePath"
 
 
 @dataclass(frozen=True)
@@ -352,16 +353,42 @@ class TrainingAndValidation[T]:
 
 
 @dataclass(frozen=True)
-class Optimiser:
-    name: OptimiserName
+class Attempt:
+    route: Route
+    ridge: float
+    negative_log_likelihood: TrainingAndValidation[float]
     iterations: int
 
     def to_json(self) -> Json:
-        return {"name": self.name.value, "iterations": self.iterations}
+        return {
+            "route": self.route.value,
+            "ridge": self.ridge,
+            "negativeLogLikelihood": self.negative_log_likelihood.to_json(),
+            "iterations": self.iterations,
+        }
 
     @staticmethod
-    def from_json(json: Json) -> Optimiser:
-        return Optimiser(OptimiserName(json["name"]), json["iterations"])
+    def from_json(json: Json) -> Attempt:
+        return Attempt(
+            Route(json["route"]),
+            json["ridge"],
+            TrainingAndValidation[float].from_json(json["negativeLogLikelihood"]),
+            json["iterations"],
+        )
+
+
+@dataclass(frozen=True)
+class Failure:
+    route: Route
+    ridge: float
+    reason: str
+
+    def to_json(self) -> Json:
+        return {"route": self.route.value, "ridge": self.ridge, "reason": self.reason}
+
+    @staticmethod
+    def from_json(json: Json) -> Failure:
+        return Failure(Route(json["route"]), json["ridge"], json["reason"])
 
 
 @dataclass(frozen=True)
@@ -370,8 +397,16 @@ class TrainingReport:
     created_utc: datetime
     training_games: int
     examples: TrainingAndValidation[int]
-    negative_log_likelihood: TrainingAndValidation[float]
-    optimiser: Optimiser
+    chosen: int
+    attempts: tuple[Attempt, ...]
+    failures: tuple[Failure, ...]
+
+    def __post_init__(self) -> None:
+        if not 0 <= self.chosen < len(self.attempts):
+            raise ValueError(f"{self.node} chose attempt {self.chosen} of {len(self.attempts)}")
+
+    def chosen_attempt(self) -> Attempt:
+        return self.attempts[self.chosen]
 
     def to_json(self) -> Json:
         return {
@@ -379,8 +414,9 @@ class TrainingReport:
             "createdUtc": utc_to_text(self.created_utc),
             "trainingGames": self.training_games,
             "examples": self.examples.to_json(),
-            "negativeLogLikelihood": self.negative_log_likelihood.to_json(),
-            "optimiser": self.optimiser.to_json(),
+            "chosen": self.chosen,
+            "attempts": [a.to_json() for a in self.attempts],
+            "failures": [f.to_json() for f in self.failures],
         }
 
     @staticmethod
@@ -390,8 +426,9 @@ class TrainingReport:
             utc_from_text(json["createdUtc"]),
             json["trainingGames"],
             TrainingAndValidation[int].from_json(json["examples"]),
-            TrainingAndValidation[float].from_json(json["negativeLogLikelihood"]),
-            Optimiser.from_json(json["optimiser"]),
+            json["chosen"],
+            tuple(Attempt.from_json(a) for a in json["attempts"]),
+            tuple(Failure.from_json(f) for f in json["failures"]),
         )
 
 

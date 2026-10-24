@@ -1,13 +1,10 @@
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
 import torch
-
-from gamegraph.models.contract_files import read_fitted_model, read_training_report
-from gamegraph.models.distributions import DiscreteJohnsonSu
-from gamegraph.models.model import Model
-from gamegraph.models.synthetic import (
+from synthetic import (
     BERNOULLI_FEATURES,
     CATEGORICAL_FEATURES,
     bernoulli,
@@ -17,7 +14,20 @@ from gamegraph.models.synthetic import (
     johnson_su,
     johnson_su_parameters,
 )
-from gamegraph.models.training import require_converged, train, write_training_result
+
+from gamegraph.models import training
+from gamegraph.models.contract import Attempt, Route, TrainingAndValidation
+from gamegraph.models.contract_files import read_fitted_model, read_training_report
+from gamegraph.models.distributions import DiscreteJohnsonSu
+from gamegraph.models.model import Model
+from gamegraph.models.training import (
+    RIDGE_PATH,
+    NotConverged,
+    choose,
+    require_converged,
+    train,
+    write_training_result,
+)
 from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
 
 
@@ -35,8 +45,7 @@ def test_training_recovers_a_known_shape(tmp_path: Path) -> None:
     assert np.abs(fitted_logit - bernoulli_logit(grid[:, 0], grid[:, 1], grid[:, 2])).max() < 0.05
     assert report.training_games == 800
     assert (report.examples.training, report.examples.validation) == (160_000, 40_000)
-    assert 0 < report.negative_log_likelihood.training < np.log(2)
-    assert report.optimiser.iterations > 0
+    assert 0 < report.chosen_attempt().negative_log_likelihood.training < np.log(2)
 
 
 def test_training_recovers_known_log_odds() -> None:
@@ -65,8 +74,8 @@ def test_training_recovers_a_known_discrete_johnson_su() -> None:
 def test_the_starting_model_has_not_converged() -> None:
     data = synthetic(games=50)
     model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
-    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is"):
-        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
+    with pytest.raises(RuntimeError, match="Synthetic did not converge at ridge 0: its largest gradient is"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes, 0.0)
 
 
 def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
@@ -74,8 +83,63 @@ def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
     model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
     with torch.no_grad():
         model.coefficients()[1][0] = float("nan")
-    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is nan"):
-        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
+    with pytest.raises(RuntimeError, match="Synthetic did not converge at ridge 0: its largest gradient is nan"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes, 0.0)
+
+
+def test_training_fits_directly_and_along_the_ridge_path_and_chooses_among_the_attempts() -> None:
+    fitted, report = train(synthetic(games=50))
+    assert [(a.route, a.ridge) for a in report.attempts] == [
+        (Route.DIRECT, 0.0),
+        *((Route.RIDGE_PATH, ridge) for ridge in RIDGE_PATH),
+    ]
+    assert report.chosen == choose(report.attempts)
+    model = Model.from_fitted(fitted, synthetic(games=50).manifest.features)
+    training = synthetic(games=50).split(report.training_games).training
+    likelihood = -model.log_prob(training.features, training.outcomes).mean()
+    assert float(likelihood) == pytest.approx(report.chosen_attempt().negative_log_likelihood.training, rel=1e-12)
+
+
+def attempt(route: Route, ridge: float, training: float, validation: float) -> Attempt:
+    return Attempt(route, ridge, TrainingAndValidation[float](training, validation), 1)
+
+
+def test_at_one_ridge_the_better_optimum_on_training_wins_even_if_validation_prefers_the_other() -> None:
+    attempts = [attempt(Route.DIRECT, 0.0, 2.70, 2.80), attempt(Route.RIDGE_PATH, 0.0, 2.75, 2.75)]
+    assert choose(attempts) == 0
+
+
+def test_across_ridges_validation_chooses() -> None:
+    attempts = [
+        attempt(Route.DIRECT, 0.0, 2.70, 2.80),
+        attempt(Route.RIDGE_PATH, 1e-2, 2.74, 2.76),
+        attempt(Route.RIDGE_PATH, 0.0, 2.75, 2.75),
+    ]
+    assert choose(attempts) == 1
+
+
+def test_an_attempt_that_does_not_converge_is_reported_and_its_route_stopped(monkeypatch: pytest.MonkeyPatch) -> None:
+    original = training.fit
+    calls: list[None] = []
+
+    def failing_at_the_third_attempt(*arguments: Any) -> int:
+        calls.append(None)
+        if len(calls) == 3:
+            raise NotConverged("stalled")
+        return original(*arguments)
+
+    monkeypatch.setattr(training, "fit", failing_at_the_third_attempt)
+    _, report = train(synthetic(games=50))
+    assert [(a.route, a.ridge) for a in report.attempts] == [(Route.DIRECT, 0.0), (Route.RIDGE_PATH, RIDGE_PATH[0])]
+    assert [(f.route, f.ridge, f.reason) for f in report.failures] == [(Route.RIDGE_PATH, RIDGE_PATH[1], "stalled")]
+
+
+def test_training_fails_when_every_attempt_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(training, "MAX_ITERATIONS", 1)
+    with pytest.raises(
+        NotConverged, match="Every attempt to fit Synthetic failed: Synthetic did not converge at ridge 0"
+    ):
+        train(synthetic(games=50))
 
 
 def test_the_fitted_model_carries_its_manifest_s_declaration() -> None:

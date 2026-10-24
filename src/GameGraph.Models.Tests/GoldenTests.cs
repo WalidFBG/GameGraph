@@ -14,7 +14,7 @@ public sealed class GoldenTests
     [MemberData(nameof(Distributions))]
     public void CSharpAgreesWithPython(string distribution)
     {
-        var directory = Path.Combine(Repository.Root, "golden", "models", distribution);
+        var directory = Path.Combine(Repository.Root, "testdata", distribution);
         var golden = JsonSerializer.Deserialize<GoldenCases>(File.ReadAllText(Path.Combine(directory, "cases.json")), JsonSerializerOptions.Web)
             ?? throw new InvalidDataException("No golden cases");
         var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(directory, "fitted-model.json")), golden.Features);

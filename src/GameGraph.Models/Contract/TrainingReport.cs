@@ -7,15 +7,20 @@ public sealed record TrainingReport
         DateTime createdUtc,
         int trainingGames,
         TrainingAndValidation<int> examples,
-        TrainingAndValidation<double> negativeLogLikelihood,
-        Optimiser optimiser)
+        int chosen,
+        Attempt[] attempts,
+        Failure[] failures)
     {
         Node = node;
         CreatedUtc = Utc.Require(createdUtc);
         TrainingGames = trainingGames;
         Examples = examples;
-        NegativeLogLikelihood = negativeLogLikelihood;
-        Optimiser = optimiser;
+        if (chosen < 0 || chosen >= attempts.Length)
+            throw new ArgumentOutOfRangeException(nameof(chosen), chosen, $"{node} chose attempt {chosen} of {attempts.Length}");
+
+        Chosen = chosen;
+        Attempts = attempts;
+        Failures = failures;
     }
 
     public string Node { get; }
@@ -26,7 +31,11 @@ public sealed record TrainingReport
 
     public TrainingAndValidation<int> Examples { get; }
 
-    public TrainingAndValidation<double> NegativeLogLikelihood { get; }
+    public int Chosen { get; }
 
-    public Optimiser Optimiser { get; }
+    public Attempt[] Attempts { get; }
+
+    public Failure[] Failures { get; }
+
+    public Attempt ChosenAttempt() => Attempts[Chosen];
 }
