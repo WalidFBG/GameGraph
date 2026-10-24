@@ -3,9 +3,11 @@
     <Project Path="src/GameGraph.Engine/GameGraph.Engine.csproj" />
     <Project Path="src/GameGraph.Host/GameGraph.Host.csproj" />
     <Project Path="src/GameGraph.Models/GameGraph.Models.csproj" />
-    <Project Path="src/GameGraph.Models.Tests/GameGraph.Models.Tests.csproj" />
     <Project Path="src/GameGraph.Simulation/GameGraph.Simulation.csproj" />
     <Project Path="src/GameGraph.TrainingDataGeneration/GameGraph.TrainingDataGeneration.csproj" />
+  </Folder>
+  <Folder Name="/src/Tests/">
+    <Project Path="src/Tests/GameGraph.Models.Tests.Unit/GameGraph.Models.Tests.Unit.csproj" />
   </Folder>
   <Folder Name="/src/Nba/">
     <Project Path="src/Nba/GameGraph.Nba/GameGraph.Nba.csproj" />

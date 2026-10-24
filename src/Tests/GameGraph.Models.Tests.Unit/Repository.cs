@@ -1,4 +1,4 @@
-namespace GameGraph.Models.Tests;
+namespace GameGraph.Models.Tests.Unit;
 
 internal static class Repository
 {

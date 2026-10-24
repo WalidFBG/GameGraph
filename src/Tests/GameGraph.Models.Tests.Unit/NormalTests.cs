@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Xunit;
 
-namespace GameGraph.Models.Tests;
+namespace GameGraph.Models.Tests.Unit;
 
 public sealed class NormalTests
 {
