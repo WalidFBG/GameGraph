@@ -37,7 +37,7 @@ It mirrors the C# layers (terms, links, distributions, model), so the parity tes
 1. **Vectorised**: every operation works on whole columns of examples, never one example at a time; no loop over examples in Python. The abstraction then costs a few dozen tensor operations per step, nothing next to the arithmetic.
 2. **No hand-written gradients**: a distribution writes its log-probability; PyTorch differentiates the whole model.
 3. **Built once, expanded once**: knots and scales are fixed during fitting, so each term's columns are computed once before the optimiser starts, and each parameter's terms are joined into one design matrix; a step is one matrix product per parameter, then the distribution.
-4. **Fitting-only steps live only in Python**: knots at quantiles, scales, the split, the optimiser and, later, penalties. C# reads their results from the file.
+4. **Fitting-only steps live only in Python**: knot positions, scales, the split, the optimiser and, later, penalties. C# reads their results from the file.
 5. **Float64 throughout**, so the parity tests can agree to 1e-12 relative.
 6. **Small closed sets of plain classes** for bases, links and distributions; no plugin registries, deep hierarchies or code that inspects types to decide what to do.
 
@@ -68,7 +68,10 @@ Layout: `schemas/` (the contract, JSON Schema), `python/` (the trainer, `src` la
 
 Next, each its own pull request:
 
-- [ ] 11. Regularisation and pruning: a smoothness penalty for splines, a penalty for linear terms, their strength chosen on the validation set, and how a term is dropped; designed first.
+- [ ] 11. Regularisation and pruning (see "Regularisation and pruning" below), in three pieces:
+  - [ ] 11a. The baseline: the real `ActionTime` data rewritten in the current format, with splines on location and scale, fitted without penalties.
+  - [ ] 11b. Smoothness: the roughness penalty on splines, its strength chosen on validation.
+  - [ ] 11c. Pruning: the group lasso path, relaxed refits, pruned terms left out of the fit, the point chosen on validation.
 - [ ] 12. The hook-up: `GameGraph.Models` replaces `GameGraph.ModelFamilies` in the engine, Python replaces the C# trainer, the old code goes.
 - [ ] 13. The clock (`clock.md`) on the new stack.
 
@@ -108,6 +111,18 @@ One interface for all distributions: every one is a probability over outcomes gi
 4. **The split**: the latest 20% of games by start time are validation; the report records how many games are training, so C# never reimplements the rule.
 5. **Starting point**: zero coefficients and each intercept at the link of a simple estimate (the mean outcome, the category shares, the mean and spread of the times).
 
+## Regularisation and pruning
+
+What a person decides is only what could matter: each node declares every plausible feature, mostly as splines. Training decides what does, for each node separately and with nothing to set; the ranges searched are constants in the code, like the tolerances.
+
+1. **Smoothness**: the loss is the mean negative log-likelihood plus a strength times the roughness of every spline, the sum of squared changes of slope between neighbouring segments. Slopes are measured across the spline's knot range, so the strength is free of the feature's units, and a stiff spline tends to a straight line, not a flat one. Intercepts and linear terms are not smoothed.
+2. **The smoothness strength**: a few fits of the full model on a small log grid, warm-started; the best validation negative log-likelihood wins, and it is then held fixed.
+3. **Pruning by a group lasso**: a strength times the sum, over terms, of √(columns) times the length of the term's coefficients, so a term (all of a spline's segments together) is kept or pruned whole. Its kink at zero is what makes exact zeros, so it is fitted by accelerated proximal gradient descent, not L-BFGS.
+4. **The path**: from the smallest strength that prunes every term (exact, from the gradient of the intercept-only model) down geometrically, about 10 points, each warm-started from the last.
+5. **Relaxed refits**: at each point the lasso only chooses the terms; L-BFGS refits the kept terms with the smoothness penalty and no lasso, so coefficients are not shrunk and the gradient verdict still decides convergence. The point with the best validation negative log-likelihood is the model.
+6. **Training games only**: the chosen refit is the final model, so the report's validation stays honest.
+7. **In the files**: a pruned term is left out of the fit (the declaration stays the manifest's), C# skips a declared term without a fit, and the report records the strengths, the path and the pruned terms.
+
 ## Numerics
 
 1. **Log-space differences**: the probability of a range is computed as log[Φ(b) − Φ(a)] from log Φ, on the upper side when both points are above the median, so neither tail underflows.
@@ -117,7 +132,7 @@ One interface for all distributions: every one is a probability over outcomes gi
 
 ## Linear splines
 
-1. Knots at quantiles of the data.
+1. Knots at evenly spaced quantiles of the feature's distinct values, each the nearest actual value (so a feature with fewer distinct values than knots gets a knot at each, and never two segments with the same data), not quantiles of the data: a feature with heavily repeated values would otherwise lose its knots to them (`Bound` is 24 in most rows and 14 in most others, so 8 knots at quantiles of the data merged into 0, 14 and 24, leaving one straight line below 14, where the period clock binds). For a continuous feature it is almost the same.
 2. Flat beyond the end knots: the value is clamped to the first and last knot before it is expanded.
 3. The smoothness penalty (on changes of slope between knots) comes later; the basics first.
 
@@ -143,4 +158,5 @@ One interface for all distributions: every one is a probability over outcomes gi
 
    What no distribution fits is structure: spikes at 0 (putbacks, a quarter of fouls) and the two humps when the period clock binds (acting early or holding for the last shot). Candidates: a hurdle node ("acts immediately") or richer features, and the `PeriodRunsOut` gate.
 2. **A nearly flat direction in the real `ActionTime` fit**: after convergence the largest gradient stays at about 1e-6 while the fit creeps on, most likely parameters trading off (location against skew, scale against tail) or overlapping features (`Bound`, `LogBound`, `PeriodClockBinds`); step 11's penalties should pin it down.
-3. **Speed**: links and bases are closed sets and distributions are pure functions of their parameters, so the compiler plan in `plan.md` still holds. If larger models make L-BFGS slow, Newton's method with the exact Hessian (from automatic differentiation) is the next candidate.
+3. **Refitting on all games**: training only on the earlier 80% means the final model never sees the newest games, which in sport are often the most relevant (rules and styles drift). If that matters, refit once on all games with the chosen strengths and terms, and report validation from the selection run.
+4. **Speed**: links and bases are closed sets and distributions are pure functions of their parameters, so the compiler plan in `plan.md` still holds. If larger models make L-BFGS slow, Newton's method with the exact Hessian (from automatic differentiation) is the next candidate.

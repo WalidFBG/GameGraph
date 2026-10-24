@@ -38,11 +38,18 @@ def test_a_linear_spline_term_measures_each_segment_and_is_flat_beyond_its_end_k
     )
 
 
-def test_a_linear_spline_places_its_knots_at_quantiles_and_merges_repeats() -> None:
+def test_a_linear_spline_places_its_knots_at_quantiles_of_the_distinct_values() -> None:
     values = tensor([[v] for v in [0.0] * 50 + [1.0, 2.0, 3.0] + [24.0] * 47])
     term = LinearSplineColumns.fit(LinearSplineTerm("x", 5), ("x",), values)
-    assert term.knot_positions == (0.0, 0.5, 24.0)
-    assert term.count == 2
+    assert term.knot_positions == (0.0, 1.0, 2.0, 3.0, 24.0)
+    assert term.count == 4
+
+
+def test_a_linear_spline_with_fewer_distinct_values_than_knots_merges_repeats() -> None:
+    values = tensor([[v] for v in [0.0] * 60 + [1.0] * 40])
+    term = LinearSplineColumns.fit(LinearSplineTerm("x", 5), ("x",), values)
+    assert term.knot_positions == (0.0, 1.0)
+    assert term.count == 1
 
 
 def test_a_linear_spline_of_a_constant_feature_fails() -> None:
