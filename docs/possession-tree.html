@@ -152,7 +152,7 @@ tr:last-child td { border-bottom: none; }
 </nav>
 <main>
   <h1>The NBA possession tree</h1>
-  <p class="lead">The team-level model as built (step 13 in <code>models.md</code>, rules in <code>clock.md</code>): every decision in a game, which distribution decides it, what its outcome is, and where each outcome leads. Click any box to jump to its details.</p>
+  <p class="lead">The team-level model as built (step 13 in <code>models.md</code>; the measurements behind its clock rules are in <code>data.md</code>): every decision in a game, which distribution decides it, what its outcome is, and where each outcome leads. Click any box to jump to its details.</p>
 
   <section id="idea">
     <h2>The idea</h2>
@@ -233,7 +233,7 @@ tr:last-child td { border-bottom: none; }
   <text class="label" x="790" y="905">last one made</text>
   <path class="edge" d="M320,819 H180 V249 H318" marker-end="url(#arrow)"/>
   <text class="label" x="0" y="0" transform="translate(170,690) rotate(-90)">offensive rebound: shot clock 14 s, possession continues</text>
-  <text class="label" x="430" y="866">with 0 on the clock, a miss asks PeriodRunsOut first</text>
+  <text class="label" x="430" y="866">with 0 on the clock, a miss starts a new play first</text>
   <path class="edge" d="M420,848 V979"/>
   <text class="label" x="430" y="940">defensive rebound</text>
   <path class="edge" d="M780,1008 V1050 H100 V149 H318" marker-end="url(#arrow)"/>
@@ -290,7 +290,7 @@ tr:last-child td { border-bottom: none; }
       <li><strong>The action comes first, then its time.</strong> The team picks what to do (<a href="#ActionType">ActionType</a>) knowing both clocks, and only then is the time it took drawn (<a href="#ActionTime">ActionTime</a>), depending on the action and how the play started.</li>
       <li><strong>Time is measured from the previous action</strong>, so every second of a period is counted once, the time from a shot to its rebound included.</li>
       <li><strong>The bound is the shot clock plus 4 seconds, or the period clock if shorter.</strong> The slack covers the gap between the event an action is timed from and the real shot clock's start (the rebound secured, the inbound touched); 0.3% of observed times are above it and clamped.</li>
-      <li><strong>A period ends only through <a href="#PeriodRunsOut">PeriodRunsOut</a></strong>: asked at the start of a play when the period clock is the bound, and after a miss with 0 on the clock (whole seconds: 0:00 can mean up to a second left, and 2.5% of misses at 0:00 are followed by more play).</li>
+      <li><strong>A period ends only through <a href="#PeriodRunsOut">PeriodRunsOut</a></strong>: asked at the start of a play when the period clock is the bound; a miss with 0 on the clock starts a play (whole seconds: 0:00 can mean up to a second left, and 2.5% of misses at 0:00 are followed by more play).</li>
       <li><strong>Shot-clock violations are turnovers</strong>: a turnover whose time uses up the bound.</li>
       <li><strong>Free throws take no time.</strong></li>
     </ul>
@@ -318,7 +318,7 @@ tr:last-child td { border-bottom: none; }
           <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence</dd>
           <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li></ul></dd>
           <dt>Transition</dt><dd>offence or defence → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
-          <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period</dd>
+          <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period, or asked before the period ends after its last play</dd>
         </dl>
       </article>
 
@@ -336,7 +336,7 @@ tr:last-child td { border-bottom: none; }
         <h3>PeriodRunsOut <span class="tag">Bernoulli · gated</span></h3>
         <p class="question">Does the period run out before anything else happens?</p>
         <dl>
-          <dt>Exists when</dt><dd>a play starts with the period clock below the shot clock plus 4 seconds, or a miss leaves 0 on the clock</dd>
+          <dt>Exists when</dt><dd>a play starts with the period clock below the shot clock plus 4 seconds; a miss that leaves 0 on the clock starts a play</dd>
           <dt>Features</dt><dd><ul><li>seconds left in the period</li><li>score margin</li><li>which period</li><li>whether it follows a miss</li></ul></dd>
           <dt>Transition</dt><dd>yes → <a href="#PeriodEnds">PeriodEnds</a>; no → <a href="#ActionType">ActionType</a>, or <a href="#OffensiveRebound">OffensiveRebound</a> after a miss</dd>
           <dt>Observed as</dt><dd>yes when the period has no further action</dd>
@@ -492,7 +492,7 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Home advantage: no feature says which team is at home, so simulated margins lean 2.5 points less to the home team than real ones</li>
+      <li>Home advantage: no feature says which team is at home, so simulated margins lean 2.4 points less to the home team than real ones</li>
       <li>The ball after a flagrant or a take foul: the fouled team keeps it in reality, not in a simulation</li>
       <li>Players: who shoots, rebounds, turns it over and is fouled, together with substitutions</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>

@@ -32,7 +32,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests: simulate real games, compare, write CSVs |
 | `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game) and `GameGraph.Models.Tests.Unit` (the forward pass and the contract) |
 | `src/GameGraph.Host` | Command line: generates the training data |
-| `docs/` | Architecture, plan, data, lessons, the possession tree as built (`possession-tree.html`) and its clock (`clock.md`) |
+| `docs/` | Architecture, plan, data, lessons, and the possession tree as built (`possession-tree.html`) |
 
 ## Build
 
