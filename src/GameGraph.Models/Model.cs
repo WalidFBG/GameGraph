@@ -13,19 +13,28 @@ public sealed class Model
         _parameters = parameters;
     }
 
-    public double[] ParameterValues(double[] features)
+    public void ParameterValues(ReadOnlySpan<double> features, Span<double> values)
     {
-        var values = new double[_parameters.Length];
+        if (values.Length != _parameters.Length)
+            throw new ArgumentException($"Expected {_parameters.Length} parameter values, got {values.Length}", nameof(values));
 
         for (var p = 0; p < values.Length; p++)
             values[p] = _parameters[p].Value(features);
-
-        return values;
     }
 
-    public double LogProbability(double[] features, int outcome) => _distribution.LogProbability(ParameterValues(features), outcome);
+    public double LogProbability(ReadOnlySpan<double> features, int outcome)
+    {
+        Span<double> parameters = stackalloc double[_parameters.Length];
+        ParameterValues(features, parameters);
+        return _distribution.LogProbability(parameters, outcome);
+    }
 
-    public int Sample(double[] features, double uniform) => _distribution.Sample(ParameterValues(features), uniform);
+    public int Sample(ReadOnlySpan<double> features, double uniform)
+    {
+        Span<double> parameters = stackalloc double[_parameters.Length];
+        ParameterValues(features, parameters);
+        return _distribution.Sample(parameters, uniform);
+    }
 
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features) =>
         new(

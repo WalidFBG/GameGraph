@@ -1,6 +1,6 @@
 # Models
 
-A redesign of `GameGraph.ModelFamilies` as GAMLSS (generalised additive models for location, scale and shape): every parameter of a distribution gets its own additive predictor and its own link. Nothing is built yet.
+A redesign of `GameGraph.ModelFamilies` as GAMLSS (generalised additive models for location, scale and shape): every parameter of a distribution gets its own additive predictor and its own link. Built on its own (steps 1–10 below) and not yet used by the engine.
 
 ## How it is built
 
@@ -8,7 +8,7 @@ A redesign of `GameGraph.ModelFamilies` as GAMLSS (generalised additive models f
 2. **C# keeps the forward pass**: a new project, `GameGraph.Models`, holds terms, links, each distribution's probabilities and sampling, and reading the parameters file. It does not train. It is built on its own and not hooked up to anything until it is good; `GameGraph.ModelFamilies` and the C# trainer stay as they are meanwhile, and the swap is a later step.
 3. **The files are the boundary**, as today: C# generates the training data (the engine computes every feature, Python never recomputes one), Python reads it and writes the parameters files and a training report, C# reads the parameters to simulate.
 4. **Parity tests are the contract** between the two:
-   - likelihood: C# recomputes the training report's training and validation negative log-likelihood from the same files and parameters, and must agree to about 1e-9; this covers the parameters file, terms, knots, links and every distribution's probabilities;
+   - likelihood: C# recomputes the training report's training and validation negative log-likelihood from the same files and parameters, and must agree to 1e-12 relative; this covers the parameters file, terms, knots, links and every distribution's probabilities;
    - sampling: given fixed uniforms, C# draws the outcomes Python's inverse distribution function gives.
 5. **Only contracts are public** in `GameGraph.Models`; everything else is internal.
 6. **Unit tests** on both sides, once the structure is agreed.
@@ -22,9 +22,9 @@ Two documents cross the boundary, plus the training data:
 
 Two kinds of duplication, handled differently:
 
-1. **Shape** (fields, names, types, which kinds are allowed): a JSON Schema per document, checked into `schemas/` (for example `model-declaration.schema.json` and `fitted-model.schema.json`), is the contract. Types are written by hand on both sides and checked against it:
-   - C#: records; a test exports their schema (`JsonSchemaExporter`, built into .NET) and fails if it differs from the checked-in one;
-   - Python: dataclasses; every file it reads or writes is validated against the same schema (the `jsonschema` package), in tests and at run time, failing loudly;
+1. **Shape** (fields, names, types, which kinds are allowed): a JSON Schema per document, checked into `schemas/` (`model.schema.json` for the declaration and its parts, `training-data-manifest.schema.json`, `fitted-model.schema.json`, `training-report.schema.json`), is the contract. Types are written by hand on both sides, and every document either side reads or writes is validated against the schema at run time, failing loudly:
+   - C#: classes and records, validated with `JsonSchema.Net`;
+   - Python: dataclasses, validated with the `jsonschema` package;
    - every document carries a `schemaVersion`, and a file from another version is rejected with a clear message.
 2. **Meaning** (what a spline with these knots computes, what a link does, a distribution's probabilities): written in both languages by nature, and checked numerically by the parity tests.
 
@@ -37,17 +37,17 @@ It mirrors the C# layers (terms, links, distributions, model), so the parity tes
 1. **Vectorised**: every operation works on whole columns of examples, never one example at a time; no loop over examples in Python. The abstraction then costs a few dozen tensor operations per step, nothing next to the arithmetic.
 2. **No hand-written gradients**: a distribution writes its log-probability; PyTorch differentiates the whole model.
 3. **Built once, expanded once**: knots and scales are fixed during fitting, so each term's columns are computed once before the optimiser starts, and each parameter's terms are joined into one design matrix; a step is one matrix product per parameter, then the distribution.
-4. **Fitting-only steps live only in Python**: knots at quantiles, scales, the split, early stopping, penalties. C# reads their results from the file.
-5. **Float64 throughout**, so the parity tests can agree to about 1e-9.
+4. **Fitting-only steps live only in Python**: knots at quantiles, scales, the split, the optimiser and, later, penalties. C# reads their results from the file.
+5. **Float64 throughout**, so the parity tests can agree to 1e-12 relative.
 6. **Small closed sets of plain classes** for bases, links and distributions; no plugin registries, deep hierarchies or code that inspects types to decide what to do.
 
 The layers:
 
 - `terms`: `Linear`, `LinearSpline`; fitted from data (knots, centre, scale), then expand a column into columns;
 - `links`: `Identity`, `Log`, `Logit`, each its inverse;
-- `distributions`: `log_prob(parameters, outcome, given)`, and for plots and the parity tests `pmf` and sampling from a uniform;
+- `distributions`: `log_prob(parameters, outcomes)` and `sample(parameters, uniforms)`, given parameters arriving like any other;
 - `model`: a distribution and, per parameter, a link and terms or a given feature; coefficients by parameter and term;
-- `training`: reading training data, the split, the optimiser, early stopping, writing the fitted model and the report.
+- `training`: reading training data, the split, the optimiser, writing the fitted model and the report.
 
 ## Build steps
 
@@ -60,7 +60,7 @@ Layout: `schemas/` (the contract, JSON Schema), `python/` (the trainer, `src` la
 - [x] 3. Types on both sides (Python dataclasses, C# records): read, write, validate against the schema, round-trip tests.
 - [x] 4. The forward pass in Python and C#: `Linear`, `Logit`, Bernoulli's probability and sampling, the model; unit tests; the first golden files, checked by C#.
 - [x] 5. Python training: reading training data, the split by game, L-BFGS, writing the fitted model and the report; recovering known coefficients from synthetic data.
-- [x] 6. Parity: C# recomputes the report's likelihoods from the same files to about 1e-9, and draws the same outcomes from fixed uniforms. The first slice is complete.
+- [x] 6. Parity: C# recomputes the report's likelihoods from the same files to 1e-12 relative, and draws the same outcomes from fixed uniforms. The first slice is complete.
 - [x] 7. `LinearSpline`: knots at quantiles, flat beyond the end knots, centre and scale fitted in Python; through the schema, both sides, golden files and parity.
 - [x] 8. Categorical: K − 1 log-odds, each with its own terms; through the same path.
 - [x] 9. JSU: four predicted parameters, the given bound, floor edges; the normal distribution function and its inverse in C# (our own); through the same path.
@@ -80,8 +80,8 @@ From the bottom up; each layer knows only the one below it.
    - linear, `x`: only where a feature should obviously stay linear (indicators, for example);
    - linear spline: the default (see below).
 2. **Additive predictor**: η = intercept + the sum of coefficients times the columns of its own terms.
-3. **Link**: a closed set (identity, log, logit). The link takes a parameter to η (logit(p) = η); its inverse takes η to the parameter (p = sigmoid(η)). Each link gives the inverse and its derivative.
-4. **Distribution**: knows only its parameters (p; μ and r), never η, links or features. It gives the negative log-likelihood of an outcome and a sample from one uniform number; in Python, automatic differentiation gives the derivatives.
+3. **Link**: a closed set (identity, log, logit). The link takes a parameter to η (logit(p) = η); its inverse takes η to the parameter (p = sigmoid(η)). Each link gives its inverse; automatic differentiation supplies the derivatives in training, and C# needs none.
+4. **Distribution**: knows only its parameters (p; the log-odds; location, scale, skew, tail and maximum), never η, links or features. It gives the negative log-likelihood of an outcome and a sample from one uniform number; in Python, automatic differentiation gives the derivatives.
 5. **Model**: a distribution and, per parameter, where its value comes from:
    - **predicted**: an additive predictor and a link, with coefficients to fit;
    - **given**: read straight from a feature, with no coefficients (the bound of a truncated distribution).

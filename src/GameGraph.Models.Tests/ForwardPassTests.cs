@@ -102,10 +102,17 @@ public sealed class ForwardPassTests
     {
         var model = Model.FromFitted(Fitted, Features);
         var expected = 1 / (1 + Math.Exp(-(-0.12 + 0.021 * (4 - 0.31) / 8.4 - 0.18 * (1 - 0.38) / 0.49)));
+        var values = new double[1];
 
-        Assert.Equal(expected, model.ParameterValues([4, 1])[0], 1e-15);
+        model.ParameterValues([4, 1], values);
+
+        Assert.Equal(expected, values[0], 1e-15);
         Assert.Equal(Math.Log(expected), model.LogProbability([4, 1], 1), 1e-15);
     }
+
+    [Fact]
+    public void TheModelRejectsTheWrongNumberOfParameterValues() =>
+        Assert.Throws<ArgumentException>(() => Model.FromFitted(Fitted, Features).ParameterValues([4, 1], new double[2]));
 
     [Fact]
     public void AModelWithTheWrongParametersFails()

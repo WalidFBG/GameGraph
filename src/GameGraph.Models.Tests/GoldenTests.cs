@@ -23,9 +23,8 @@ public sealed class GoldenTests
 
         foreach (var c in golden.Cases)
         {
-            var parameters = model.ParameterValues(c.Features);
-
-            Assert.Equal(c.Parameters.Length, parameters.Length);
+            var parameters = new double[c.Parameters.Length];
+            model.ParameterValues(c.Features, parameters);
 
             for (var p = 0; p < parameters.Length; p++)
                 AssertClose(c.Parameters[p], parameters[p]);
