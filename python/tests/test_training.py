@@ -11,6 +11,7 @@ from synthetic import (
     bernoulli_logit,
     categorical,
     categorical_log_odds,
+    intercept_only,
     johnson_su,
     johnson_su_parameters,
 )
@@ -69,6 +70,15 @@ def test_training_recovers_a_known_discrete_johnson_su() -> None:
         true_parameters = johnson_su_parameters(features[:, 0], features[:, 1])
         true_probabilities = torch.exp(DiscreteJohnsonSu().log_prob(true_parameters, times))
         assert float((fitted_probabilities - true_probabilities).abs().max()) < 0.005
+
+
+def test_a_model_without_terms_trains_to_the_rate_it_saw(tmp_path: Path) -> None:
+    write_training_data(tmp_path / "data", intercept_only("Tip", games=100, rows_per_game=20, seed=5, probability=0.3))
+    data = read_training_data(tmp_path / "data")
+    fitted, _ = train(data)
+    seen = data.split(80).training.outcomes.double().mean()
+    assert fitted.fit["probability"].terms == {}
+    assert torch.sigmoid(torch.tensor(fitted.fit["probability"].intercept)) == pytest.approx(float(seen), abs=1e-6)
 
 
 def test_the_starting_model_has_not_converged() -> None:

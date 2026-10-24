@@ -18,6 +18,7 @@ public static class ObservedGameReader
 
         Possession[] possessions;
         int cut;
+        int awardedAfterLastPlay;
 
         try
         {
@@ -28,6 +29,7 @@ public static class ObservedGameReader
 
             possessions = parser.Build();
             cut = parser.PossessionsCutByPeriodEnd;
+            awardedAfterLastPlay = parser.AwardedFreeThrowsAfterLastPlay;
         }
         catch (RejectedGameException rejected)
         {
@@ -42,7 +44,7 @@ public static class ObservedGameReader
         if (BreaksAlternation(possessions))
             return Rejected(game, RejectionReason.PeriodStartBreaksAlternation);
 
-        return Observed(game, RejectionReason.NotSet, possessions, cut);
+        return Observed(game, RejectionReason.NotSet, possessions, cut, awardedAfterLastPlay);
     }
 
     private static bool BreaksAlternation(Possession[] possessions)
@@ -53,10 +55,10 @@ public static class ObservedGameReader
         return starters[1] != Sides.Opponent(first) || starters[2] != Sides.Opponent(first) || starters[3] != first;
     }
 
-    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], 0);
+    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], 0, 0);
 
-    private static ObservedGame Observed(Game game, RejectionReason rejection, Possession[] possessions, int cut) =>
-        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, possessions, cut);
+    private static ObservedGame Observed(Game game, RejectionReason rejection, Possession[] possessions, int cut, int awardedAfterLastPlay) =>
+        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, possessions, cut, awardedAfterLastPlay);
 
     private static Dictionary<long, TeamType> TeamsByPlayer(Game game) =>
         game.TeamA.Players.Select(p => (p.Player.Id, TeamType.HomeOrA))

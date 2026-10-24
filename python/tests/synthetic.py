@@ -32,6 +32,8 @@ CATEGORICAL_DECLARATION = ModelDeclaration(
     {},
 )
 
+INTERCEPT_ONLY_DECLARATION = ModelDeclaration(BernoulliDistribution(), {"probability": ()}, {})
+
 JOHNSON_SU_FEATURES = ("Gaussian", "Bound")
 JOHNSON_SU_DECLARATION = ModelDeclaration(
     DiscreteJohnsonSuDistribution(),
@@ -82,6 +84,13 @@ def categorical(node: str, games: int, rows_per_game: int, seed: int) -> Trainin
     outcomes = (probabilities.cumsum(axis=1) <= generator.random(rows)[:, None]).sum(axis=1)
     manifest = TrainingDataManifest(node, "synthetic", START, CATEGORICAL_FEATURES, rows, CATEGORICAL_DECLARATION)
     return _training_data(manifest, rows_per_game, np.column_stack([gaussian, uniform]), outcomes)
+
+
+def intercept_only(node: str, games: int, rows_per_game: int, seed: int, probability: float) -> TrainingData:
+    rows = games * rows_per_game
+    outcomes = np.random.default_rng(seed).binomial(1, probability, rows)
+    manifest = TrainingDataManifest(node, "synthetic", START, (), rows, INTERCEPT_ONLY_DECLARATION)
+    return _training_data(manifest, rows_per_game, np.zeros((rows, 0)), outcomes)
 
 
 def johnson_su(node: str, games: int, rows_per_game: int, seed: int) -> TrainingData:

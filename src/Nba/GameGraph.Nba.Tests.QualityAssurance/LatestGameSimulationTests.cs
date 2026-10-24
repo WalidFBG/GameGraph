@@ -21,39 +21,25 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     public void SimulatesTheLatestGeneratedGame()
     {
         var (game, context) = LatestGeneratedGame();
-        var schedule = game.Schedule();
         var fitted = NbaGameSpec.Instance.Nodes.Select(n => ContractFiles.ReadFittedModel(Path.Combine(FittedModels, $"{n.Name}.json"))).ToArray();
         var scores = new Scores(Simulations);
 
         Simulator.Run(
             new FittedGame<NbaState>(NbaGameSpec.Instance, fitted),
             Simulations,
-            simulationIndex => new NbaState(scores.For(simulationIndex), schedule, context.HomeScoringRate, context.AwayScoringRate));
+            simulationIndex => new NbaState(scores.For(simulationIndex), context.HomeScoringRate, context.AwayScoringRate));
 
-        var homeWins = 0;
-        var awayWins = 0;
-        var ties = 0;
+        var simulations = Enumerable.Range(0, Simulations).ToArray();
 
-        for (var simulationIndex = 0; simulationIndex < Simulations; simulationIndex++)
-        {
-            Assert.Equal(game.Possessions.Length, scores.Possessions[simulationIndex]);
+        Assert.DoesNotContain(simulations, s => scores.Home(s) == scores.Away(s));
 
-            if (scores.Home(simulationIndex) > scores.Away(simulationIndex))
-                homeWins++;
-            else if (scores.Home(simulationIndex) < scores.Away(simulationIndex))
-                awayWins++;
-            else
-                ties++;
-        }
-
-        Assert.Equal(Simulations, homeWins + awayWins + ties);
-
+        var homeWins = simulations.Count(s => scores.Home(s) > scores.Away(s));
+        var overtime = simulations.Count(s => scores.Periods[s] > Periods.Regulation);
         var path = Write(game, scores);
-        var meanTotal = Enumerable.Range(0, Simulations).Average(s => scores.Home(s) + scores.Away(s));
 
-        output.WriteLine($"Game {game.Id}, {game.StartUtc:O}: {game.Possessions.Length} possessions in {schedule.Length} periods");
+        output.WriteLine($"Game {game.Id}, {game.StartUtc:O}: {game.Possessions.Length} possessions in {game.Possessions.Max(p => p.Period) + 1} periods");
         output.WriteLine($"Observed: home {Observed(game, Sides.Home)}, away {Observed(game, Sides.Away)}");
-        output.WriteLine($"Simulated: home win {(double)homeWins / Simulations:P1}, away win {(double)awayWins / Simulations:P1}, tie {(double)ties / Simulations:P1}, mean total {meanTotal:F1}");
+        output.WriteLine($"Simulated: home win {(double)homeWins / Simulations:P1}, away win {(double)(Simulations - homeWins) / Simulations:P1}, overtime {(double)overtime / Simulations:P1}, mean total {simulations.Average(s => scores.Home(s) + scores.Away(s)):F1}, mean possessions {simulations.Average(s => scores.Possessions[s]):F1}");
         output.WriteLine($"Written to {path}");
     }
 
@@ -62,7 +48,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
         var history = new TeamHistory();
         (ObservedGame Game, GameContext Context)? latest = null;
 
-        foreach (var game in new ValidatedGameReader(ValidatedData).ReadAll().OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal).Select(g => g.WithoutCutPossessions()))
+        foreach (var game in new ValidatedGameReader(ValidatedData).ReadAll().OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
         {
             if (!game.IsAccepted)
                 continue;
@@ -77,7 +63,8 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     }
 
     private static int Observed(ObservedGame game, int side) =>
-        game.Possessions.Where(p => p.TeamInPossession == side).Sum(p => p.Points);
+        game.Possessions.Where(p => p.TeamInPossession == side).Sum(p => p.Points)
+        + game.Possessions.SelectMany(p => p.Actions).SelectMany(a => a.AwardedBefore).Count(f => f.Team == side && f.Made);
 
     private static string Write(ObservedGame game, Scores scores)
     {

@@ -17,4 +17,5 @@ public enum RejectionReason
     ClockRunsBackwards = 12,
     PeriodStartBreaksAlternation = 13,
     PeriodEndsMidAction = 14,
+    RulesDisagreeWithData = 15,
 }

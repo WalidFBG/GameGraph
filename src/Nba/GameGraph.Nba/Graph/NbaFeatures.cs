@@ -4,6 +4,8 @@ namespace GameGraph.Nba.Graph;
 
 public static class NbaFeatures
 {
+    private const int LateSeconds = 120;
+
     public static readonly Feature<NbaState> ScoreMargin =
         new(nameof(ScoreMargin), s => s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)]);
 
@@ -30,4 +32,58 @@ public static class NbaFeatures
 
     public static readonly Feature<NbaState> MissedFreeThrow =
         new(nameof(MissedFreeThrow), s => s.LastMiss == Miss.FreeThrow ? 1 : 0);
+
+    public static readonly Feature<NbaState> ShooterMargin =
+        new(nameof(ShooterMargin), s => s.Score[s.AwardedTeam] - s.Score[Sides.Opponent(s.AwardedTeam)]);
+
+    public static readonly Feature<NbaState> ShooterScoringRate =
+        new(nameof(ShooterScoringRate), s => s.ScoringRate[s.AwardedTeam]);
+
+    public static readonly Feature<NbaState> AfterMiss =
+        new(nameof(AfterMiss), s => s.LastMiss != Miss.NotSet ? 1 : 0);
+
+    public static readonly Feature<NbaState> ShotClock =
+        new(nameof(ShotClock), s => s.ShotClock);
+
+    public static readonly Feature<NbaState> PeriodClock =
+        new(nameof(PeriodClock), s => s.PeriodClock);
+
+    public static readonly Feature<NbaState> Bound =
+        new(nameof(Bound), s => s.Bound);
+
+    public static readonly Feature<NbaState> LogBound =
+        new(nameof(LogBound), s => Math.Log(s.Bound + 1));
+
+    public static readonly Feature<NbaState> PeriodClockBinds =
+        new(nameof(PeriodClockBinds), s => s.PeriodClockBinds ? 1 : 0);
+
+    public static readonly Feature<NbaState> LateInGame =
+        new(nameof(LateInGame), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? 1 : 0);
+
+    public static readonly Feature<NbaState> ActionThree =
+        new(nameof(ActionThree), s => s.Action == ActionType.ThreePointAttempt ? 1 : 0);
+
+    public static readonly Feature<NbaState> ActionTurnover =
+        new(nameof(ActionTurnover), s => s.Action == ActionType.Turnover ? 1 : 0);
+
+    public static readonly Feature<NbaState> ActionFoul =
+        new(nameof(ActionFoul), s => s.Action == ActionType.NonShootingFoul ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterOffensiveRebound =
+        new(nameof(AfterOffensiveRebound), s => s.Start == PlayStart.OffensiveRebound ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterMadeShot =
+        new(nameof(AfterMadeShot), s => s.Start == PlayStart.MadeShot ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterMadeFreeThrow =
+        new(nameof(AfterMadeFreeThrow), s => s.Start == PlayStart.MadeFreeThrow ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterTurnover =
+        new(nameof(AfterTurnover), s => s.Start == PlayStart.Turnover ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterSideOut =
+        new(nameof(AfterSideOut), s => s.Start == PlayStart.SideOut ? 1 : 0);
+
+    public static readonly Feature<NbaState> AfterPeriodStart =
+        new(nameof(AfterPeriodStart), s => s.Start == PlayStart.PeriodStart ? 1 : 0);
 }

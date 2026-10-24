@@ -12,7 +12,7 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 
     public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
     {
-        foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal).Select(g => g.WithoutCutPossessions()))
+        foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
         {
             if (!game.IsAccepted)
             {
@@ -21,14 +21,9 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
             }
 
             if (history.IsComplete(game))
-            {
                 Generate(game, history.ContextFor(game));
-                tally.Generated();
-            }
             else
-            {
                 tally.ShortHistory();
-            }
 
             history.Advance(game);
         }
@@ -36,12 +31,24 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 
     private void Generate(ObservedGame game, GameContext context)
     {
-        var state = new NbaState(_incidentCollector, game.Schedule(), context.HomeScoringRate, context.AwayScoringRate);
+        var state = new NbaState(_incidentCollector, context.HomeScoringRate, context.AwayScoringRate);
         var decider = new ObservedOutcomeDecider(game.Possessions);
 
         collector.BeginGame(game.Id, game.StartUtc);
-        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
 
-        decider.EnsureAllUsed();
+        try
+        {
+            GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
+            decider.EnsureAllUsed();
+        }
+        catch (RulesDisagreeWithDataException)
+        {
+            collector.DiscardGame();
+            tally.Rejected(RejectionReason.RulesDisagreeWithData);
+            return;
+        }
+
+        tally.Generated();
+        tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);
     }
 }

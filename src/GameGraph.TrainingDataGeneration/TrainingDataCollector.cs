@@ -12,6 +12,17 @@ public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IDeci
             games.Add(new GameExamples(gameId, startUtc, []));
     }
 
+    public void DiscardGame()
+    {
+        foreach (var games in _games.Values)
+        {
+            if (games.Count == 0)
+                throw new InvalidOperationException($"{nameof(BeginGame)} must be called before a game is discarded");
+
+            games.RemoveAt(games.Count - 1);
+        }
+    }
+
     public void Collect(NodeSpec<TState> node, TState state, ReadOnlySpan<double> features, int outcome)
     {
         var games = _games[node];

@@ -8,6 +8,8 @@ public sealed class Scores(int simulations)
 
     public int[] Possessions { get; } = new int[simulations];
 
+    public int[] Periods { get; } = new int[simulations];
+
     public ScoreCollector For(int simulationIndex) => new(this, simulationIndex);
 
     public int Home(int simulationIndex) => Points[simulationIndex, Sides.Home];

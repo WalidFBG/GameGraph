@@ -6,10 +6,18 @@ namespace GameGraph.Nba.TrainingDataGeneration;
 public sealed class GameTally
 {
     private readonly Dictionary<string, int> _games = [];
+    private int _actionTimes;
+    private int _clampedActionTimes;
 
     public void Generated() => Add("Generated");
 
     public void ShortHistory() => Add("ShortHistory");
+
+    public void ActionTimes(int total, int clamped)
+    {
+        _actionTimes += total;
+        _clampedActionTimes += clamped;
+    }
 
     public void Rejected(RejectionReason reason)
     {
@@ -25,6 +33,8 @@ public sealed class GameTally
 
         foreach (var (decision, count) in _games.OrderBy(g => g.Key, StringComparer.Ordinal))
             text.AppendLine().Append($"  {decision}: {count}");
+
+        text.AppendLine().Append($"Action times clamped to their bound: {_clampedActionTimes} of {_actionTimes} ({(double)_clampedActionTimes / _actionTimes:P2})");
 
         return text.ToString();
     }

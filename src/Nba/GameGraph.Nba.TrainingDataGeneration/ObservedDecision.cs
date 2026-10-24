@@ -3,4 +3,4 @@ using GameGraph.Nba.Graph;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed record ObservedDecision(NodeSpec<NbaState> Node, int Outcome, int TeamInPossession, int Period);
+public sealed record ObservedDecision(NodeSpec<NbaState> Node, Func<NbaState, int> Outcome, int TeamInPossession, int Period);
