@@ -3,7 +3,7 @@
   "$id": "https://github.com/WalidFBG/GameGraph/schemas/training-report.schema.json",
   "title": "Training report: how one node's model was fitted, written by Python and read by the parity tests",
   "type": "object",
-  "required": ["schemaVersion", "node", "createdUtc", "trainingGames", "examples", "negativeLogLikelihood", "optimiser"],
+  "required": ["schemaVersion", "node", "createdUtc", "trainingGames", "examples", "negativeLogLikelihood", "route", "ridge", "attempts", "failures", "optimiser"],
   "additionalProperties": false,
   "properties": {
     "schemaVersion": { "$ref": "model.schema.json#/$defs/schemaVersion" },
@@ -19,13 +19,35 @@
         "validation": { "type": "integer", "minimum": 1 }
       }
     },
-    "negativeLogLikelihood": {
-      "type": "object",
-      "required": ["training", "validation"],
-      "additionalProperties": false,
-      "properties": {
-        "training": { "type": "number", "minimum": 0 },
-        "validation": { "type": "number", "minimum": 0 }
+    "negativeLogLikelihood": { "$ref": "#/$defs/negativeLogLikelihood" },
+    "route": { "$ref": "#/$defs/route" },
+    "ridge": { "type": "number", "minimum": 0 },
+    "attempts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["route", "ridge", "negativeLogLikelihood", "iterations"],
+        "additionalProperties": false,
+        "properties": {
+          "route": { "$ref": "#/$defs/route" },
+          "ridge": { "type": "number", "minimum": 0 },
+          "negativeLogLikelihood": { "$ref": "#/$defs/negativeLogLikelihood" },
+          "iterations": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["route", "ridge", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "route": { "$ref": "#/$defs/route" },
+          "ridge": { "type": "number", "minimum": 0 },
+          "reason": { "type": "string", "minLength": 1 }
+        }
       }
     },
     "optimiser": {
@@ -35,6 +57,18 @@
       "properties": {
         "name": { "const": "lbfgs" },
         "iterations": { "type": "integer", "minimum": 0 }
+      }
+    }
+  },
+  "$defs": {
+    "route": { "enum": ["direct", "ridgePath"] },
+    "negativeLogLikelihood": {
+      "type": "object",
+      "required": ["training", "validation"],
+      "additionalProperties": false,
+      "properties": {
+        "training": { "type": "number", "minimum": 0 },
+        "validation": { "type": "number", "minimum": 0 }
       }
     }
   }

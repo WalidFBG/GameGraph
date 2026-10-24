@@ -8,9 +8,11 @@ from typing import Any
 import pytest
 
 from gamegraph.models.contract import (
+    Attempt,
     BernoulliDistribution,
     CategoricalDistribution,
     DiscreteJohnsonSuDistribution,
+    Failure,
     FittedModel,
     LinearFit,
     LinearSplineFit,
@@ -20,6 +22,7 @@ from gamegraph.models.contract import (
     Optimiser,
     OptimiserName,
     PredictorFit,
+    Route,
     TrainingAndValidation,
     TrainingDataManifest,
     TrainingReport,
@@ -65,6 +68,13 @@ REPORT = TrainingReport(
     3067,
     TrainingAndValidation[int](330112, 82233),
     TrainingAndValidation[float](0.6712, 0.6731),
+    Route.RIDGE_PATH,
+    1e-4,
+    (
+        Attempt(Route.DIRECT, 0.0, TrainingAndValidation[float](0.6709, 0.6738), 30),
+        Attempt(Route.RIDGE_PATH, 1e-4, TrainingAndValidation[float](0.6712, 0.6731), 21),
+    ),
+    (Failure(Route.RIDGE_PATH, 1e-5, "Example did not converge at ridge 1e-05"),),
     Optimiser(OptimiserName.LBFGS, 41),
 )
 

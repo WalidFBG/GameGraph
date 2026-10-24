@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pytest
@@ -14,10 +15,12 @@ from synthetic import (
     johnson_su_parameters,
 )
 
+from gamegraph.models import training
+from gamegraph.models.contract import Route
 from gamegraph.models.contract_files import read_fitted_model, read_training_report
 from gamegraph.models.distributions import DiscreteJohnsonSu
 from gamegraph.models.model import Model
-from gamegraph.models.training import require_converged, train, write_training_result
+from gamegraph.models.training import RIDGE_PATH, NotConverged, require_converged, train, write_training_result
 from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
 
 
@@ -65,8 +68,8 @@ def test_training_recovers_a_known_discrete_johnson_su() -> None:
 def test_the_starting_model_has_not_converged() -> None:
     data = synthetic(games=50)
     model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
-    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is"):
-        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
+    with pytest.raises(RuntimeError, match="Synthetic did not converge at ridge 0: its largest gradient is"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes, 0.0)
 
 
 def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
@@ -74,8 +77,52 @@ def test_a_model_whose_gradient_is_not_a_number_has_not_converged() -> None:
     model = Model.initial(data.manifest.model, data.manifest.features, data.examples.features, data.examples.outcomes)
     with torch.no_grad():
         model.coefficients()[1][0] = float("nan")
-    with pytest.raises(RuntimeError, match="Synthetic did not converge: its largest gradient is nan"):
-        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes)
+    with pytest.raises(RuntimeError, match="Synthetic did not converge at ridge 0: its largest gradient is nan"):
+        require_converged("Synthetic", model, model.designs(data.examples.features), data.examples.outcomes, 0.0)
+
+
+def test_training_fits_directly_and_along_the_ridge_path_and_keeps_the_attempt_best_on_validation() -> None:
+    fitted, report = train(synthetic(games=50))
+    validations = [a.negative_log_likelihood.validation for a in report.attempts]
+    best = report.attempts[validations.index(min(validations))]
+    assert [(a.route, a.ridge) for a in report.attempts] == [
+        (Route.DIRECT, 0.0),
+        *((Route.RIDGE_PATH, ridge) for ridge in RIDGE_PATH),
+    ]
+    assert (report.route, report.ridge, report.negative_log_likelihood) == (
+        best.route,
+        best.ridge,
+        best.negative_log_likelihood,
+    )
+    assert report.optimiser.iterations == sum(a.iterations for a in report.attempts)
+    model = Model.from_fitted(fitted, synthetic(games=50).manifest.features)
+    training = synthetic(games=50).split(report.training_games).training
+    likelihood = -model.log_prob(training.features, training.outcomes).mean()
+    assert float(likelihood) == pytest.approx(report.negative_log_likelihood.training, rel=1e-12)
+
+
+def test_an_attempt_that_does_not_converge_is_reported_and_its_route_stopped(monkeypatch: pytest.MonkeyPatch) -> None:
+    original = training.fit
+    calls: list[None] = []
+
+    def failing_at_the_third_attempt(*arguments: Any) -> int:
+        calls.append(None)
+        if len(calls) == 3:
+            raise NotConverged("stalled")
+        return original(*arguments)
+
+    monkeypatch.setattr(training, "fit", failing_at_the_third_attempt)
+    _, report = train(synthetic(games=50))
+    assert [(a.route, a.ridge) for a in report.attempts] == [(Route.DIRECT, 0.0), (Route.RIDGE_PATH, RIDGE_PATH[0])]
+    assert [(f.route, f.ridge, f.reason) for f in report.failures] == [(Route.RIDGE_PATH, RIDGE_PATH[1], "stalled")]
+
+
+def test_training_fails_when_every_attempt_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(training, "MAX_ITERATIONS", 1)
+    with pytest.raises(
+        NotConverged, match="Every attempt to fit Synthetic failed: Synthetic did not converge at ridge 0"
+    ):
+        train(synthetic(games=50))
 
 
 def test_the_fitted_model_carries_its_manifest_s_declaration() -> None:

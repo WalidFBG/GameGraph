@@ -40,6 +40,10 @@ public sealed class ContractFilesTests : IDisposable
         3067,
         new TrainingAndValidation<int>(330112, 82233),
         new TrainingAndValidation<double>(0.6712, 0.6731),
+        Route.RidgePath,
+        1e-4,
+        [new Attempt(Route.Direct, 0, new TrainingAndValidation<double>(0.6709, 0.6738), 30), new Attempt(Route.RidgePath, 1e-4, new TrainingAndValidation<double>(0.6712, 0.6731), 21)],
+        [new Failure(Route.RidgePath, 1e-5, "Example did not converge at ridge 1e-05")],
         new Optimiser(OptimiserName.Lbfgs, 41));
 
     private readonly string _directory = Directory.CreateTempSubdirectory("gamegraph-contract-").FullName;
@@ -91,6 +95,9 @@ public sealed class ContractFilesTests : IDisposable
         Assert.Equal(Report.Examples, read.Examples);
         Assert.Equal(Report.NegativeLogLikelihood, read.NegativeLogLikelihood);
         Assert.Equal(Report.Optimiser, read.Optimiser);
+        Assert.Equal((Report.Route, Report.Ridge), (read.Route, read.Ridge));
+        Assert.Equal(Report.Attempts, read.Attempts);
+        Assert.Equal(Report.Failures, read.Failures);
         AssertRewrittenIdentically(path, p => ContractFiles.WriteTrainingReport(p, read));
     }
 
@@ -291,7 +298,7 @@ public sealed class ContractFilesTests : IDisposable
     [Fact]
     public void ATimeThatIsNotUtcFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => new TrainingReport("Example", DateTime.Now, 1, Report.Examples, Report.NegativeLogLikelihood, Report.Optimiser));
+        var error = Assert.Throws<ArgumentException>(() => new TrainingReport("Example", DateTime.Now, 1, Report.Examples, Report.NegativeLogLikelihood, Report.Route, Report.Ridge, Report.Attempts, Report.Failures, Report.Optimiser));
 
         Assert.Contains("not in UTC", error.Message);
     }

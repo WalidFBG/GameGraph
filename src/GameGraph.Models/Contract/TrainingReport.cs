@@ -8,6 +8,10 @@ public sealed record TrainingReport
         int trainingGames,
         TrainingAndValidation<int> examples,
         TrainingAndValidation<double> negativeLogLikelihood,
+        Route route,
+        double ridge,
+        Attempt[] attempts,
+        Failure[] failures,
         Optimiser optimiser)
     {
         Node = node;
@@ -15,6 +19,10 @@ public sealed record TrainingReport
         TrainingGames = trainingGames;
         Examples = examples;
         NegativeLogLikelihood = negativeLogLikelihood;
+        Route = route;
+        Ridge = ridge;
+        Attempts = attempts;
+        Failures = failures;
         Optimiser = optimiser;
     }
 
@@ -27,6 +35,14 @@ public sealed record TrainingReport
     public TrainingAndValidation<int> Examples { get; }
 
     public TrainingAndValidation<double> NegativeLogLikelihood { get; }
+
+    public Route Route { get; }
+
+    public double Ridge { get; }
+
+    public Attempt[] Attempts { get; }
+
+    public Failure[] Failures { get; }
 
     public Optimiser Optimiser { get; }
 }

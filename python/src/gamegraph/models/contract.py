@@ -90,6 +90,11 @@ class OptimiserName(StrEnum):
     LBFGS = "lbfgs"
 
 
+class Route(StrEnum):
+    DIRECT = "direct"
+    RIDGE_PATH = "ridgePath"
+
+
 @dataclass(frozen=True)
 class LinearTerm:
     feature: str
@@ -365,12 +370,55 @@ class Optimiser:
 
 
 @dataclass(frozen=True)
+class Attempt:
+    route: Route
+    ridge: float
+    negative_log_likelihood: TrainingAndValidation[float]
+    iterations: int
+
+    def to_json(self) -> Json:
+        return {
+            "route": self.route.value,
+            "ridge": self.ridge,
+            "negativeLogLikelihood": self.negative_log_likelihood.to_json(),
+            "iterations": self.iterations,
+        }
+
+    @staticmethod
+    def from_json(json: Json) -> Attempt:
+        return Attempt(
+            Route(json["route"]),
+            json["ridge"],
+            TrainingAndValidation[float].from_json(json["negativeLogLikelihood"]),
+            json["iterations"],
+        )
+
+
+@dataclass(frozen=True)
+class Failure:
+    route: Route
+    ridge: float
+    reason: str
+
+    def to_json(self) -> Json:
+        return {"route": self.route.value, "ridge": self.ridge, "reason": self.reason}
+
+    @staticmethod
+    def from_json(json: Json) -> Failure:
+        return Failure(Route(json["route"]), json["ridge"], json["reason"])
+
+
+@dataclass(frozen=True)
 class TrainingReport:
     node: str
     created_utc: datetime
     training_games: int
     examples: TrainingAndValidation[int]
     negative_log_likelihood: TrainingAndValidation[float]
+    route: Route
+    ridge: float
+    attempts: tuple[Attempt, ...]
+    failures: tuple[Failure, ...]
     optimiser: Optimiser
 
     def to_json(self) -> Json:
@@ -380,6 +428,10 @@ class TrainingReport:
             "trainingGames": self.training_games,
             "examples": self.examples.to_json(),
             "negativeLogLikelihood": self.negative_log_likelihood.to_json(),
+            "route": self.route.value,
+            "ridge": self.ridge,
+            "attempts": [a.to_json() for a in self.attempts],
+            "failures": [f.to_json() for f in self.failures],
             "optimiser": self.optimiser.to_json(),
         }
 
@@ -391,6 +443,10 @@ class TrainingReport:
             json["trainingGames"],
             TrainingAndValidation[int].from_json(json["examples"]),
             TrainingAndValidation[float].from_json(json["negativeLogLikelihood"]),
+            Route(json["route"]),
+            json["ridge"],
+            tuple(Attempt.from_json(a) for a in json["attempts"]),
+            tuple(Failure.from_json(f) for f in json["failures"]),
             Optimiser.from_json(json["optimiser"]),
         )
 

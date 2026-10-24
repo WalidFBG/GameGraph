@@ -4,17 +4,22 @@ from pathlib import Path
 import torch
 
 from gamegraph.models.contract import (
+    Attempt,
+    Failure,
     FittedModel,
     Optimiser,
     OptimiserName,
+    Route,
     TrainingAndValidation,
     TrainingReport,
 )
 from gamegraph.models.contract_files import write_fitted_model, write_training_report
 from gamegraph.models.model import Model
-from gamegraph.models.training_data import Examples, TrainingData
+from gamegraph.models.training_data import TrainingData
 
 VALIDATION_FRACTION = 0.2
+RIDGE_PATH = (1e-2, 1e-3, 1e-4, 1e-5, 0.0)
+ROUTES = ((Route.DIRECT, (0.0,)), (Route.RIDGE_PATH, RIDGE_PATH))
 MAX_ITERATIONS = 2000
 MAX_EVALUATIONS = 4000
 EXIT_GRADIENT = 1e-9
@@ -22,12 +27,71 @@ CHANGE_TOLERANCE = 1e-10
 CONVERGED_GRADIENT = 1e-4
 
 
+class NotConverged(RuntimeError):
+    pass
+
+
 def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
     training_games = len(data.games) - round(len(data.games) * VALIDATION_FRACTION)
     split = data.split(training_games)
     manifest = data.manifest
-    model = Model.initial(manifest.model, manifest.features, split.training.features, split.training.outcomes)
-    designs = model.designs(split.training.features)
+    training, validation = split.training, split.validation
+    attempts: list[Attempt] = []
+    failures: list[Failure] = []
+    fits: list[FittedModel] = []
+    for route, ridges in ROUTES:
+        model = Model.initial(manifest.model, manifest.features, training.features, training.outcomes)
+        designs, validation_designs = model.designs(training.features), model.designs(validation.features)
+        for ridge in ridges:
+            try:
+                iterations = fit(manifest.node, model, designs, training.outcomes, ridge)
+            except NotConverged as failure:
+                failures.append(Failure(route, ridge, str(failure)))
+                break
+            likelihood = TrainingAndValidation[float](
+                _negative_log_likelihood(model, designs, training.outcomes),
+                _negative_log_likelihood(model, validation_designs, validation.outcomes),
+            )
+            attempts.append(Attempt(route, ridge, likelihood, iterations))
+            fits.append(model.to_fitted(manifest.node))
+    if not attempts:
+        raise NotConverged(f"Every attempt to fit {manifest.node} failed: " + "; ".join(f.reason for f in failures))
+    chosen = min(range(len(attempts)), key=lambda i: attempts[i].negative_log_likelihood.validation)
+
+    report = TrainingReport(
+        manifest.node,
+        datetime.now(UTC),
+        training_games,
+        TrainingAndValidation[int](len(training.outcomes), len(validation.outcomes)),
+        attempts[chosen].negative_log_likelihood,
+        attempts[chosen].route,
+        attempts[chosen].ridge,
+        tuple(attempts),
+        tuple(failures),
+        Optimiser(OptimiserName.LBFGS, sum(a.iterations for a in attempts)),
+    )
+    return fits[chosen], report
+
+
+def write_training_result(directory: Path, fitted: FittedModel, report: TrainingReport) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    write_fitted_model(directory / f"{fitted.node}.json", fitted)
+    write_training_report(directory / f"{fitted.node}.training.json", report)
+
+
+def require_converged(
+    node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor, ridge: float
+) -> None:
+    gradients = torch.autograd.grad(_loss(model, designs, outcomes, ridge), model.coefficients())
+    largest = float(torch.cat([g.flatten() for g in gradients]).abs().max())
+    if not largest <= CONVERGED_GRADIENT:
+        raise NotConverged(
+            f"{node} did not converge at ridge {ridge:g}: its largest gradient is {largest:.3g}, "
+            f"above {CONVERGED_GRADIENT}"
+        )
+
+
+def fit(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor, ridge: float) -> int:
     coefficients = model.coefficients()
     optimiser = torch.optim.LBFGS(
         coefficients,
@@ -40,7 +104,7 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
 
     def closure() -> torch.Tensor:
         optimiser.zero_grad()
-        loss = _loss(model, designs, split.training.outcomes)
+        loss = _loss(model, designs, outcomes, ridge)
         loss.backward()
         return loss
 
@@ -48,41 +112,18 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
     state = optimiser.state[coefficients[0]]
     iterations, evaluations = int(state["n_iter"]), int(state["func_evals"])
     if iterations >= MAX_ITERATIONS or evaluations >= MAX_EVALUATIONS:
-        raise RuntimeError(f"{manifest.node} did not converge in {iterations} iterations and {evaluations} evaluations")
-    require_converged(manifest.node, model, designs, split.training.outcomes)
-
-    report = TrainingReport(
-        manifest.node,
-        datetime.now(UTC),
-        training_games,
-        TrainingAndValidation[int](len(split.training.outcomes), len(split.validation.outcomes)),
-        TrainingAndValidation[float](
-            _negative_log_likelihood(model, split.training), _negative_log_likelihood(model, split.validation)
-        ),
-        Optimiser(OptimiserName.LBFGS, iterations),
-    )
-    return model.to_fitted(manifest.node), report
-
-
-def write_training_result(directory: Path, fitted: FittedModel, report: TrainingReport) -> None:
-    directory.mkdir(parents=True, exist_ok=True)
-    write_fitted_model(directory / f"{fitted.node}.json", fitted)
-    write_training_report(directory / f"{fitted.node}.training.json", report)
-
-
-def require_converged(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> None:
-    gradients = torch.autograd.grad(_loss(model, designs, outcomes), model.coefficients())
-    largest = float(torch.cat([g.flatten() for g in gradients]).abs().max())
-    if not largest <= CONVERGED_GRADIENT:
-        raise RuntimeError(
-            f"{node} did not converge: its largest gradient is {largest:.3g}, above {CONVERGED_GRADIENT}"
+        raise NotConverged(
+            f"{node} did not converge at ridge {ridge:g} in {iterations} iterations and {evaluations} evaluations"
         )
+    require_converged(node, model, designs, outcomes, ridge)
+    return iterations
 
 
-def _loss(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
-    return -model.log_prob_of(designs, outcomes).mean()
+def _loss(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor, ridge: float) -> torch.Tensor:
+    squared = sum(((p.coefficients**2).sum() for p in model.predictors), torch.zeros((), dtype=torch.float64))
+    return -model.log_prob_of(designs, outcomes).mean() + ridge * squared
 
 
-def _negative_log_likelihood(model: Model, examples: Examples) -> float:
+def _negative_log_likelihood(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> float:
     with torch.no_grad():
-        return float(-model.log_prob(examples.features, examples.outcomes).mean())
+        return float(-model.log_prob_of(designs, outcomes).mean())
