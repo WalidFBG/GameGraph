@@ -1,6 +1,6 @@
 using GameGraph.Nba.Incidents;
 
-namespace GameGraph.Nba.QualityAssurance;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class ScoreCollector(Scores scores, int simulationIndex) : INbaIncidentCollector
 {

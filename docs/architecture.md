@@ -61,7 +61,7 @@ GameGraph.Host
         ├── GameGraph.Nba
         └── GameGraph.Engine
 
-GameGraph.Nba.QualityAssurance (tests)
+GameGraph.Nba.Tests.QualityAssurance
   ├── GameGraph.Nba.Sportradar
   ├── GameGraph.Nba.Augmentation
   ├── GameGraph.Simulation
@@ -79,7 +79,7 @@ GameGraph.Nba.QualityAssurance (tests)
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
 - **Nba.TrainingDataGeneration** walks the observed games: context, then the engine's walk with the observed outcome decider, then the history advances.
-- **Nba.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
+- **Nba.Tests.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
 - **Host** wires them together.
 
 The engine and training never meet: they share only files. What guarantees that what is trained is what runs is the parity tests: C# recomputes the training report's likelihoods from the same files and fitted models, and draws the same samples, to 1e-12.

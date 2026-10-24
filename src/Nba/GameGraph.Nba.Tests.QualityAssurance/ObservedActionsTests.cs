@@ -2,7 +2,7 @@ using GameGraph.Nba.Observed;
 using GameGraph.Nba.Sportradar;
 using Xunit;
 
-namespace GameGraph.Nba.QualityAssurance;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class ObservedActionsTests(ITestOutputHelper output)
 {

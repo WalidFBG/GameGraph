@@ -1,6 +1,6 @@
 using GameGraph.Nba.Graph;
 
-namespace GameGraph.Nba.QualityAssurance;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class Scores(int simulations)
 {

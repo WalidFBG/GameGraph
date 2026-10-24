@@ -7,7 +7,7 @@ using GameGraph.Models.Contract;
 using GameGraph.Simulation;
 using Xunit;
 
-namespace GameGraph.Nba.QualityAssurance;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class LatestGameSimulationTests(ITestOutputHelper output)
 {
