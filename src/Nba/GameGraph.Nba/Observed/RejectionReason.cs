@@ -16,4 +16,5 @@ public enum RejectionReason
     UnknownReboundType = 11,
     ClockRunsBackwards = 12,
     PeriodStartBreaksAlternation = 13,
+    PeriodEndsMidAction = 14,
 }

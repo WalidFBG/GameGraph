@@ -16,11 +16,18 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
     private int _period;
     private int? _lastClock;
     private OpenAction? _open;
+    private bool? _reboundAtZero;
 
     public int PossessionsCutByPeriodEnd { get; private set; }
 
     public void Read(Event e)
     {
+        if (_reboundAtZero is { } offensive && e is FieldGoalAttempt or Turnover or Foul { FoulType: FoulType.Shooting or FoulType.Personal })
+        {
+            _reboundAtZero = null;
+            Finish(offensive);
+        }
+
         switch (e)
         {
             case { EventType: EventType.EndPeriod }:
@@ -59,14 +66,17 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
     {
         CloseAndOneWindow();
 
-        if (_open is not null || (_team is not null && !_actions[^1].EndsPossession))
+        if (_open is { Phase: Phase.Rebound, Clock: 0 })
         {
-            PossessionsCutByPeriodEnd++;
-            _actions.Clear();
-            _open = null;
-            _team = null;
-            return;
+            _reboundAtZero = null;
+            Finish(null);
         }
+
+        if (_open is not null)
+            throw new RejectedGameException(RejectionReason.PeriodEndsMidAction);
+
+        if (_team is not null && !_actions[^1].EndsPossession)
+            PossessionsCutByPeriodEnd++;
 
         ClosePossession();
     }
@@ -197,7 +207,10 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
             _ => throw new RejectedGameException(RejectionReason.UnknownReboundType),
         };
 
-        Finish(offensive);
+        if (_open.Clock == 0)
+            _reboundAtZero ??= offensive;
+        else
+            Finish(offensive);
     }
 
     private void CloseAndOneWindow()

@@ -14,13 +14,20 @@ public abstract record ObservedAction
 
     public int Clock { get; }
 
+    public bool PeriodEndedBeforeRebound { get; private set; }
+
     public abstract ActionType Type { get; }
 
     public abstract bool EndsPossession { get; }
 
-    protected static void CheckRebound(bool endedInMiss, bool? offensiveRebound)
+    protected void CheckRebound(bool endedInMiss, bool? offensiveRebound)
     {
-        if (endedInMiss != offensiveRebound.HasValue)
-            throw new ArgumentException(endedInMiss ? "An action that ends in a miss needs its rebound" : "Only an action that ends in a miss has a rebound", nameof(offensiveRebound));
+        if (!endedInMiss && offensiveRebound.HasValue)
+            throw new ArgumentException("Only an action that ends in a miss has a rebound", nameof(offensiveRebound));
+
+        PeriodEndedBeforeRebound = endedInMiss && !offensiveRebound.HasValue;
+
+        if (PeriodEndedBeforeRebound && Clock > 0)
+            throw new ArgumentException("A miss with time left needs its rebound", nameof(offensiveRebound));
     }
 }

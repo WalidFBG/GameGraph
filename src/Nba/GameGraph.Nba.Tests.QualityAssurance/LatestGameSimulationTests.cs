@@ -62,7 +62,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
         var history = new TeamHistory();
         (ObservedGame Game, GameContext Context)? latest = null;
 
-        foreach (var game in new ValidatedGameReader(ValidatedData).ReadAll().OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
+        foreach (var game in new ValidatedGameReader(ValidatedData).ReadAll().OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal).Select(g => g.WithoutCutPossessions()))
         {
             if (!game.IsAccepted)
                 continue;

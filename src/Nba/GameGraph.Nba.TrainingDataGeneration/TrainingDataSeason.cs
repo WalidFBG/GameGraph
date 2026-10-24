@@ -12,7 +12,7 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 
     public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
     {
-        foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
+        foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal).Select(g => g.WithoutCutPossessions()))
         {
             if (!game.IsAccepted)
             {

@@ -75,7 +75,8 @@ Next, each its own pull request:
 - [ ] 13. The clock (`clock.md`) on the new stack.
   - [x] 13a. Terms over features: `ActionTime`'s terms differ by parameter, so a node declares its terms over the sport's `Feature` objects (`FeatureTerm.Linear`, `FeatureTerm.Spline`) and its given parameters as features, and takes its features from them in the order they first appear. The two can no longer disagree; the training data is unchanged.
   - [x] 13b. Reading the clock: each observed action keeps its period clock; games whose clock runs backwards (none) or whose periods 2 to 4 break the alternating rule (1 game, not the 9% the quick script guessed) are rejected. From a period's start to its first action takes over 24 seconds 3.6% of the time, between consecutive actions 2.7%: 13c's late-action rule must cover both.
-  - [ ] 13c. The graph: the clocks in the state, `PeriodRunsOut`, `ActionTime`, `JumpBall`, the possession a period end cuts, overtime; the schedule goes.
+  - [x] 13c1. The reader keeps what the period end cuts short: possessions whose last action does not end them, and misses at 0:00 the period ends before their rebound (a rebound at 0:00 counts only if play follows). Training-data generation drops them until 13c2.
+  - [ ] 13c2. The graph: the clocks in the state, `PeriodRunsOut` (the only way a period ends: asked when the period clock is below the shot clock plus 4 seconds, and after a miss at 0), `ActionTime`, `JumpBall`, overtime; the schedule goes.
   - [ ] 13d. End to end: generate, train, the quality-assurance simulation, the docs.
 
 ## The structure

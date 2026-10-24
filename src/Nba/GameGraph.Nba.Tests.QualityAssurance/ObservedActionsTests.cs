@@ -28,7 +28,7 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
         foreach (var reason in games.Where(g => !g.IsAccepted).GroupBy(g => g.Rejection).OrderBy(g => g.Key))
             output.WriteLine($"  rejected {reason.Key}: {reason.Count()}");
 
-        output.WriteLine($"Possessions {possessions.Length}, {(double)actions.Length / possessions.Length:F2} actions each; {accepted.Sum(g => g.PossessionsCutByPeriodEnd)} dropped because the period ended during them");
+        output.WriteLine($"Possessions {possessions.Length}, {(double)actions.Length / possessions.Length:F2} actions each; {accepted.Sum(g => g.PossessionsCutByPeriodEnd)} cut short by the end of a period");
 
         foreach (var type in actions.GroupBy(a => a.Type).OrderBy(g => g.Key))
             output.WriteLine($"  {type.Key}: {type.Count()} ({(double)type.Count() / actions.Length:P1})");
