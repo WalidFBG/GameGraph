@@ -44,13 +44,11 @@ So features, rules and state updates are the same code in both modes. Training d
 Sport-agnostic:
 
 ```
-GameGraph.Host
-  ├── GameGraph.TrainingDataGeneration ───► GameGraph.Engine ──► GameGraph.ModelFamilies
-  └── GameGraph.Training ─────────────────────────────────────► GameGraph.ModelFamilies
-
-GameGraph.Training ──► GameGraph.Parameters ──► GameGraph.ModelFamilies
-GameGraph.Simulation ──► GameGraph.Engine, GameGraph.ModelFamilies, GameGraph.Parameters
+GameGraph.Host ──► GameGraph.TrainingDataGeneration ──► GameGraph.Engine ──► GameGraph.Models
+GameGraph.Simulation ──► GameGraph.Engine, GameGraph.Models
 ```
+
+Training is Python (`python/`); it shares only files with the C#, written and read against the schemas in `schemas/`.
 
 The NBA, in `src/Nba/`:
 
@@ -67,29 +65,16 @@ GameGraph.Nba.QualityAssurance (tests)
   ├── GameGraph.Nba.Sportradar
   ├── GameGraph.Nba.Augmentation
   ├── GameGraph.Simulation
-  ├── GameGraph.Parameters
+  ├── GameGraph.Models
   ├── GameGraph.Nba
   └── GameGraph.Engine
 ```
 
-- **ModelFamilies** knows nothing about sports, games or the engine. A model is a generalised linear model in three parts:
-  - **terms**: a feature and a basis (linear now, splines later), which expand the feature's value into design columns, one coefficient each;
-  - **linear predictors**: η = intercept + the sum of coefficients times design columns; a family needs one (Bernoulli) or several (Categorical: one per category but the reference);
-  - **the family** (a struct implementing `IModelFamily`): link and distribution only. From the predictors' η it gives the negative log-likelihood of an outcome, its gradient with respect to η, and a sample from one uniform number. It never sees features or coefficients.
-
-  The loops use only a `Model` (family and terms, bound to the feature columns) and a flat `double[]` of coefficients, which only `Model` knows how to lay out. Files hold both as data, and `Model` converts each way:
-
-  | | In memory | In a file | To file | From file |
-  |---|---|---|---|---|
-  | Structure | `Model` | `ModelDescription` (manifest) | `model.Describe()` | `description.Create(features)` |
-  | Coefficients | `double[]` | `PredictorCoefficients[]` (parameters file) | `model.Describe(parameters)` | `model.Parameters(coefficients)` |
-
-  Each node declares its family and terms in the sport's spec, and builds its `Model` from its own features. Training-data generation writes the structure to the manifest; training recreates the `Model` from it; simulation uses the node's `Model` and fails if the parameters were trained for a different model.
-- **Engine** owns the walk, the outcome-decider and decision-collector interfaces, and (later) sampling from model families. It knows nothing about any sport and nothing about training.
-- **Parameters** is the contract between training and simulation: each node's family and the named form of its parameters (per predictor, an intercept and each term's feature, basis and coefficients), and their file format.
-- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its model with the trained parameters, decisions are discarded, and incidents go to the caller's incident collector. It lines the parameters up with each node's features and fails on any mismatch; it reads no files.
-- **Training** orchestrates training: reads training data, fits each model's parameters, writes them. It knows nothing about the engine. It moves to Python (see `models.md`), reading the same training-data files and writing the same parameters files.
-- **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file.
+- **Models** knows nothing about sports, games or the engine (see `models.md`). It holds the contract with Python (a model's declaration, the training-data manifest, the fitted model and the training report, read and written against the schemas) and the forward pass: a fitted model's parameter values, log-probability and samples, from the node's features.
+- **Engine** owns the walk and the outcome-decider and decision-collector interfaces. Each node declares its model (a distribution, the terms of each predicted parameter, the feature of each given one) from its own features, and the engine checks that the model uses exactly those features. It knows nothing about any sport and nothing about training.
+- **Simulation** simulates a game many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the caller's incident collector. It fails if a fitted model was declared differently from its node; it reads no files.
+- **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
+- **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file, with the node's declared model in the manifest.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period). It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
@@ -97,7 +82,7 @@ GameGraph.Nba.QualityAssurance (tests)
 - **Nba.QualityAssurance** holds analyses as tests: simulate real games, check the simulations, write CSVs to `quality-assurance`.
 - **Host** wires them together.
 
-Engine and Training never reference each other. They share only the model families, which is what guarantees that what is trained is what runs. Once training is Python, parity tests give that guarantee instead: C# recomputes the training report's likelihoods from the same files and parameters, and must agree.
+The engine and training never meet: they share only files. What guarantees that what is trained is what runs is the parity tests: C# recomputes the training report's likelihoods from the same files and fitted models, and draws the same samples, to 1e-12.
 
 ## Inputs to a node
 
@@ -113,7 +98,7 @@ In production, augmentation runs one game at a time: the latest histories are sa
 ## Lines drawn from day one
 
 - The engine performs the walk in both modes; game logic lives only in the sport's rules.
-- Model families are separate from the engine.
+- Models are separate from the engine.
 - An outcome decider (sample or observe) is the only difference between simulating and generating training data.
 - Every random draw comes from a seeded stream; every run is reproducible.
 - When the data and the rules disagree, fail loudly.

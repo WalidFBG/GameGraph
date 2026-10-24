@@ -276,6 +276,17 @@ public sealed class ContractFilesTests : IDisposable
     }
 
     [Fact]
+    public void DeclarationsWithTheSameContentAreEqual()
+    {
+        ModelDeclaration Categorical(string[] categories, Term[] terms) =>
+            new(new CategoricalDistribution(categories), categories[1..].ToDictionary(c => c, _ => terms), NoGiven);
+
+        Assert.Equal(Categorical(["first", "second"], [.. Terms]), Categorical(["first", "second"], [.. Terms]));
+        Assert.NotEqual(Categorical(["first", "second"], Terms), Categorical(["first", "other"], Terms));
+        Assert.NotEqual(Categorical(["first", "second"], Terms), Categorical(["first", "second"], Terms[..2]));
+    }
+
+    [Fact]
     public void ACategoricalDistributionWithOneCategoryFails() =>
         Assert.Throws<ArgumentException>(() => new CategoricalDistribution(["first"]));
 

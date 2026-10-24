@@ -2,6 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
-    <ProjectReference Include="..\..\GameGraph.ModelFamilies\GameGraph.ModelFamilies.csproj" />
+    <ProjectReference Include="..\..\GameGraph.Models\GameGraph.Models.csproj" />
   </ItemGroup>
 </Project>

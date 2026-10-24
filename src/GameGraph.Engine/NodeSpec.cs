@@ -1,17 +1,19 @@
-using GameGraph.ModelFamilies;
+using GameGraph.Models.Contract;
 
 namespace GameGraph.Engine;
 
 public sealed class NodeSpec<TState, TIncidentCollector>
 {
-    private readonly Model? _model;
+    private readonly ModelDeclaration? _model;
 
-    public NodeSpec(string name, Feature<TState>[] features, IModelFamily family, ITerm[] terms, Transition<TState, TIncidentCollector> transition)
+    public NodeSpec(string name, Feature<TState>[] features, ModelDeclaration model, Transition<TState, TIncidentCollector> transition)
     {
+        model.RequireFeatures(name, [.. features.Select(f => f.Name)]);
+
         Name = name;
         Features = features;
         Transition = transition;
-        _model = new Model(family, terms, features.Select(f => f.Name).ToArray());
+        _model = model;
     }
 
     private NodeSpec(string name)
@@ -27,7 +29,7 @@ public sealed class NodeSpec<TState, TIncidentCollector>
 
     public Feature<TState>[] Features { get; }
 
-    public Model Model => _model ?? throw new InvalidOperationException("The end of the game has no model");
+    public ModelDeclaration Model => _model ?? throw new InvalidOperationException("The end of the game has no model");
 
     public Transition<TState, TIncidentCollector> Transition { get; }
 }

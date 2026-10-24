@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text.Json;
 using GameGraph.Models.Contract;
 using Xunit;
 
@@ -36,7 +35,7 @@ public sealed class ParityTests
         var manifest = ContractFiles.ReadTrainingDataManifest(Path.Combine(parity, "manifest.json"));
         var fitted = ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json"));
 
-        Assert.Equal(JsonSerializer.Serialize(manifest.Model, JsonSerializerOptions.Web), JsonSerializer.Serialize(fitted.Model, JsonSerializerOptions.Web));
+        Assert.Equal(manifest.Model, fitted.Model);
     }
 
     [Theory]

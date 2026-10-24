@@ -3,7 +3,7 @@ using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Sportradar;
-using GameGraph.Parameters;
+using GameGraph.Models.Contract;
 using GameGraph.Simulation;
 using Xunit;
 
@@ -13,7 +13,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
 {
     private const string ValidatedData = @"C:\Data\Basketball\ValidatedData\PlayByPlay";
     private const string Root = @"C:\Data\GameGraph\nba";
-    private const string Parameters = Root + @"\parameters";
+    private const string FittedModels = Root + @"\fitted-models";
     private const string Output = Root + @"\quality-assurance\latest-game-simulation";
     private const int Simulations = 10_000;
 
@@ -22,12 +22,12 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     {
         var (game, context) = LatestGeneratedGame();
         var schedule = game.Schedule();
-        var parameters = NbaGameSpec.Instance.Nodes.Select(n => ParametersFile.Read(Parameters, n.Name)).ToArray();
+        var fitted = NbaGameSpec.Instance.Nodes.Select(n => ContractFiles.ReadFittedModel(Path.Combine(FittedModels, $"{n.Name}.json"))).ToArray();
         var scores = new ScoreCollector(Simulations);
 
         Simulator.Run(
             NbaGameSpec.Instance,
-            parameters,
+            fitted,
             Simulations,
             simulationIndex => new NbaState(simulationIndex, schedule, context.HomeScoringRate, context.AwayScoringRate),
             scores);

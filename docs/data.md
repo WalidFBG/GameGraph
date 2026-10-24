@@ -31,12 +31,12 @@ Lives in `C:\Data\GameGraph\nba\`:
 | Folder | What |
 |---|---|
 | `training-data\<node>` | Training data for one model: `examples.csv`, `games.csv` and `manifest.json` |
-| `parameters` | Per model: `<node>.json`, the parameters (the family, and per linear predictor an intercept and each term's feature, basis and coefficients: one predictor for Bernoulli, one per non-reference category for Categorical), and `<node>.training.json`, the training run (source, date, best and last step, training and validation NLL at the best step) |
+| `fitted-models` | Per model: `<node>.json`, the fitted model (the declaration, and per predicted parameter its intercept and each term's fit), and `<node>.training.json`, the training report (every attempt, its likelihoods, and the chosen one); both as the schemas in `schemas/` say |
 | `simulations` | Simulation outputs: one CSV per simulated game, one row per simulation |
 | `quality-assurance\<test>` | Output of the quality-assurance tests, for example one row per simulation of the latest game |
 
-- Parameters, settings and summaries are JSON; training data is CSV to start.
-- Each training-data folder has a `manifest.json`: node, the model the node declares (family, with its settings, and terms), source data, date, feature names, example count, and the tally: how many games were generated, short of history or rejected, by reason.
+- Fitted models, reports, settings and summaries are JSON; training data is CSV to start.
+- Each training-data folder has a `manifest.json`, as `schemas/training-data-manifest.schema.json` says: node, source data, date, feature names, example count, and the model the node declares. The tally (how many games were generated, short of history or rejected, by reason) is printed when the data is generated.
 - `examples.csv` holds one row per example, games one after another in start-time order; `games.csv` holds one row per game (id, start time, number of examples), so examples are grouped by game without repeating the game on every row.
 - Training splits by game: the latest 20% of games by start time are the validation set.
 - Augmentation values are never written: they are computed in memory as the season is walked (see `plan.md`).
