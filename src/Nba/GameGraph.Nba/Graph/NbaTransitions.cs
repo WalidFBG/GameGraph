@@ -7,7 +7,7 @@ public static class NbaTransitions
 {
     public const int BonusFreeThrows = 2;
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> ActionType(NbaState state, int category, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> ActionType(NbaState state, int category, INbaIncidentCollector incidentCollector)
     {
         switch (ActionTypes.FromCategory(category))
         {
@@ -27,7 +27,7 @@ public static class NbaTransitions
         }
     }
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> FouledOnShot(NbaState state, int fouled, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> FouledOnShot(NbaState state, int fouled, INbaIncidentCollector incidentCollector)
     {
         state.Fouled = Yes(fouled);
 
@@ -37,7 +37,7 @@ public static class NbaTransitions
         return NbaNodes.ShotMade;
     }
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> ShotMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> ShotMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
     {
         if (Yes(made))
             Score(state, state.ShotPoints);
@@ -55,7 +55,7 @@ public static class NbaTransitions
         return NbaNodes.OffensiveRebound;
     }
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> InBonus(NbaState state, int inBonus, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> InBonus(NbaState state, int inBonus, INbaIncidentCollector incidentCollector)
     {
         if (!Yes(inBonus))
             return NbaNodes.ActionType;
@@ -64,7 +64,7 @@ public static class NbaTransitions
         return NbaNodes.FreeThrowMade;
     }
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> FreeThrowMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> FreeThrowMade(NbaState state, int made, INbaIncidentCollector incidentCollector)
     {
         if (Yes(made))
             Score(state, 1);
@@ -81,7 +81,7 @@ public static class NbaTransitions
         return NbaNodes.OffensiveRebound;
     }
 
-    public static NodeSpec<NbaState, INbaIncidentCollector> OffensiveRebound(NbaState state, int offensive, INbaIncidentCollector incidentCollector)
+    public static Next<NbaState, INbaIncidentCollector> OffensiveRebound(NbaState state, int offensive, INbaIncidentCollector incidentCollector)
     {
         if (!Yes(offensive))
             return EndOfPossession(state, incidentCollector);
@@ -92,7 +92,7 @@ public static class NbaTransitions
         return NbaNodes.ActionType;
     }
 
-    private static NodeSpec<NbaState, INbaIncidentCollector> EndOfPossession(NbaState state, INbaIncidentCollector incidentCollector)
+    private static Next<NbaState, INbaIncidentCollector> EndOfPossession(NbaState state, INbaIncidentCollector incidentCollector)
     {
         incidentCollector.Possession(new PossessionIncident(state.SimulationIndex, state.TeamInPossession, state.Period, state.PossessionPoints));
 
@@ -111,7 +111,7 @@ public static class NbaTransitions
         state.Period++;
 
         if (state.Period == state.Periods.Length)
-            return NodeSpec<NbaState, INbaIncidentCollector>.End;
+            return Next<NbaState, INbaIncidentCollector>.GameOver;
 
         state.TeamInPossession = state.Periods[state.Period].StartingTeamInPossession;
         state.RemainingInPeriod = state.Periods[state.Period].Possessions;
