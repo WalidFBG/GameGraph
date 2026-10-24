@@ -7,12 +7,10 @@ namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class ObservedActionsTests(ITestOutputHelper output)
 {
-    private const string ValidatedData = @"C:\Data\Basketball\ValidatedData\PlayByPlay";
-
     [Fact]
     public void SummarisesTheObservedActions()
     {
-        var games = new ValidatedGameReader(ValidatedData).ReadAll().ToArray();
+        var games = new ValidatedGameReader(QualityAssuranceData.ValidatedData).ReadAll().ToArray();
         var accepted = games.Where(g => g.IsAccepted).ToArray();
         var possessions = accepted.SelectMany(g => g.Possessions).ToArray();
         var actions = possessions.SelectMany(p => p.Actions).ToArray();
