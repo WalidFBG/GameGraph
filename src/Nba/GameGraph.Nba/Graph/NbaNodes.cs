@@ -47,9 +47,8 @@ public static class NbaNodes
         Feature<NbaState>[] features,
         Transition<NbaState> transition)
     {
-        Term[] terms = [.. features.Select(f => new LinearTerm(f.Name))];
-        var model = new ModelDeclaration(distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, string>());
+        FeatureTerm<NbaState>[] terms = [.. features.Select(FeatureTerm.Linear)];
 
-        return new(name, features, model, transition);
+        return new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
     }
 }
