@@ -8,13 +8,22 @@ namespace GameGraph.Models.Contract;
 [JsonDerivedType(typeof(DiscreteJohnsonSuDistribution), "discreteJohnsonSu")]
 public abstract record DistributionDeclaration
 {
-    public abstract string[] ParameterNames();
+    public abstract PredictedParameter[] Predicted();
 
-    internal void RequireParameters(IEnumerable<string> names)
+    public abstract string[] Given();
+
+    internal void RequireParameters(IEnumerable<string> predicted, IEnumerable<string> given)
     {
-        var given = names.Order(StringComparer.Ordinal).ToArray();
+        Require("predicts", Predicted().Select(p => p.Name), predicted);
+        Require("is given", Given(), given);
+    }
 
-        if (!given.SequenceEqual(ParameterNames().Order(StringComparer.Ordinal)))
-            throw new ArgumentException($"{GetType().Name} has parameters {string.Join(", ", ParameterNames())}, got {string.Join(", ", given)}", nameof(names));
+    private void Require(string relation, IEnumerable<string> expected, IEnumerable<string> names)
+    {
+        var sortedExpected = expected.Order(StringComparer.Ordinal).ToArray();
+        var sortedNames = names.Order(StringComparer.Ordinal).ToArray();
+
+        if (!sortedNames.SequenceEqual(sortedExpected))
+            throw new ArgumentException($"{GetType().Name} {relation} [{string.Join(", ", sortedExpected)}], got [{string.Join(", ", sortedNames)}]", nameof(names));
     }
 }

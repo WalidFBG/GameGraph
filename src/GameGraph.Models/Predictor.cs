@@ -41,10 +41,10 @@ internal sealed class Predictor : IParameterValue
         return Links.Inverse(_link, eta);
     }
 
-    public static Predictor FromFitted(FittedPredictedParameter parameter, IReadOnlyList<string> features) =>
+    public static Predictor FromFitted(Link link, FittedPredictor predictor, IReadOnlyList<string> features) =>
         new(
-            parameter.Link,
-            parameter.Terms.Select(t => TermColumns.FromFitted(t, features)).ToArray(),
-            parameter.Intercept,
-            parameter.Terms.SelectMany(t => t.Coefficients).ToArray());
+            link,
+            predictor.Terms.Select(t => TermColumns.FromFitted(t, features)).ToArray(),
+            predictor.Intercept,
+            predictor.Terms.SelectMany(t => t.Coefficients).ToArray());
 }

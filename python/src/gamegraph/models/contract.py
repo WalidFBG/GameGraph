@@ -18,9 +18,18 @@ class Link(StrEnum):
 
 
 @dataclass(frozen=True)
+class PredictedParameter:
+    name: str
+    link: Link
+
+
+@dataclass(frozen=True)
 class BernoulliDistribution:
-    def parameter_names(self) -> tuple[str, ...]:
-        return ("probability",)
+    def predicted(self) -> tuple[PredictedParameter, ...]:
+        return (PredictedParameter("probability", Link.LOGIT),)
+
+    def given(self) -> tuple[str, ...]:
+        return ()
 
     def to_json(self) -> Json:
         return {"name": "bernoulli"}
@@ -35,8 +44,11 @@ class CategoricalDistribution:
             raise ValueError(f"A categorical distribution needs at least 2 categories, got {list(self.categories)}")
         _require_distinct(list(self.categories))
 
-    def parameter_names(self) -> tuple[str, ...]:
-        return self.categories[1:]
+    def predicted(self) -> tuple[PredictedParameter, ...]:
+        return tuple(PredictedParameter(category, Link.IDENTITY) for category in self.categories[1:])
+
+    def given(self) -> tuple[str, ...]:
+        return ()
 
     def to_json(self) -> Json:
         return {"name": "categorical", "categories": list(self.categories)}
@@ -44,8 +56,16 @@ class CategoricalDistribution:
 
 @dataclass(frozen=True)
 class DiscreteJohnsonSuDistribution:
-    def parameter_names(self) -> tuple[str, ...]:
-        return ("location", "scale", "skew", "tail", "maximum")
+    def predicted(self) -> tuple[PredictedParameter, ...]:
+        return (
+            PredictedParameter("location", Link.IDENTITY),
+            PredictedParameter("scale", Link.LOG),
+            PredictedParameter("skew", Link.IDENTITY),
+            PredictedParameter("tail", Link.LOG),
+        )
+
+    def given(self) -> tuple[str, ...]:
+        return ("maximum",)
 
     def to_json(self) -> Json:
         return {"name": "discreteJohnsonSu"}
@@ -113,77 +133,32 @@ def term_from_json(json: Json) -> Term:
 
 
 @dataclass(frozen=True)
-class PredictedParameter:
-    link: Link
-    terms: tuple[Term, ...]
-
-    def __post_init__(self) -> None:
-        _require_distinct([t.feature for t in self.terms])
-
-    def features(self) -> set[str]:
-        return {t.feature for t in self.terms}
-
-    def to_json(self) -> Json:
-        return {"source": "predicted", "link": self.link.value, "terms": [t.to_json() for t in self.terms]}
-
-    @staticmethod
-    def from_json(json: Json) -> PredictedParameter:
-        return PredictedParameter(Link(json["link"]), tuple(term_from_json(t) for t in json["terms"]))
-
-
-@dataclass(frozen=True)
-class GivenParameter:
-    feature: str
-
-    def features(self) -> set[str]:
-        return {self.feature}
-
-    def declaration(self) -> GivenParameter:
-        return self
-
-    def to_json(self) -> Json:
-        return {"source": "given", "feature": self.feature}
-
-    @staticmethod
-    def from_json(json: Json) -> GivenParameter:
-        return GivenParameter(json["feature"])
-
-
-type Parameter = PredictedParameter | GivenParameter
-
-
-def parameter_from_json(json: Json) -> Parameter:
-    match json["source"]:
-        case "predicted":
-            return PredictedParameter.from_json(json)
-        case "given":
-            return GivenParameter.from_json(json)
-        case source:
-            raise ValueError(f"Unknown parameter source {source}")
-
-
-@dataclass(frozen=True)
 class ModelDeclaration:
     distribution: DistributionDeclaration
-    parameters: dict[str, Parameter]
+    terms: dict[str, tuple[Term, ...]]
+    given: dict[str, str]
 
     def __post_init__(self) -> None:
-        _require_parameters(self.distribution, self.parameters.keys())
+        _require_parameters(self.distribution, self.terms.keys(), self.given.keys())
+        for terms in self.terms.values():
+            _require_distinct([t.feature for t in terms])
 
     def features(self) -> set[str]:
-        return {feature for p in self.parameters.values() for feature in p.features()}
+        return {t.feature for terms in self.terms.values() for t in terms} | set(self.given.values())
 
     def to_json(self) -> Json:
         return {
             "distribution": self.distribution.to_json(),
-            "parameters": {name: p.to_json() for name, p in self.parameters.items()},
+            "terms": {name: [t.to_json() for t in terms] for name, terms in self.terms.items()},
+            "given": dict(self.given),
         }
 
     @staticmethod
     def from_json(json: Json) -> ModelDeclaration:
         return ModelDeclaration(
             distribution_from_json(json["distribution"]),
-            {name: parameter_from_json(p) for name, p in json["parameters"].items()},
+            {name: tuple(term_from_json(t) for t in terms) for name, terms in json["terms"].items()},
+            dict(json["given"]),
         )
 
 
@@ -272,62 +247,45 @@ def fitted_term_from_json(json: Json) -> FittedTerm:
 
 
 @dataclass(frozen=True)
-class FittedPredictedParameter:
-    link: Link
+class FittedPredictor:
     intercept: float
     terms: tuple[FittedTerm, ...]
 
     def __post_init__(self) -> None:
         _require_distinct([t.feature for t in self.terms])
 
-    def declaration(self) -> PredictedParameter:
-        return PredictedParameter(self.link, tuple(t.declaration() for t in self.terms))
+    def declaration(self) -> tuple[Term, ...]:
+        return tuple(t.declaration() for t in self.terms)
 
     def to_json(self) -> Json:
-        return {
-            "source": "predicted",
-            "link": self.link.value,
-            "intercept": self.intercept,
-            "terms": [t.to_json() for t in self.terms],
-        }
+        return {"intercept": self.intercept, "terms": [t.to_json() for t in self.terms]}
 
     @staticmethod
-    def from_json(json: Json) -> FittedPredictedParameter:
-        return FittedPredictedParameter(
-            Link(json["link"]), json["intercept"], tuple(fitted_term_from_json(t) for t in json["terms"])
-        )
-
-
-type FittedParameter = FittedPredictedParameter | GivenParameter
-
-
-def fitted_parameter_from_json(json: Json) -> FittedParameter:
-    match json["source"]:
-        case "predicted":
-            return FittedPredictedParameter.from_json(json)
-        case "given":
-            return GivenParameter.from_json(json)
-        case source:
-            raise ValueError(f"Unknown parameter source {source}")
+    def from_json(json: Json) -> FittedPredictor:
+        return FittedPredictor(json["intercept"], tuple(fitted_term_from_json(t) for t in json["terms"]))
 
 
 @dataclass(frozen=True)
 class FittedModel:
     node: str
     distribution: DistributionDeclaration
-    parameters: dict[str, FittedParameter]
+    predictors: dict[str, FittedPredictor]
+    given: dict[str, str]
 
     def __post_init__(self) -> None:
-        _require_parameters(self.distribution, self.parameters.keys())
+        _require_parameters(self.distribution, self.predictors.keys(), self.given.keys())
 
     def declaration(self) -> ModelDeclaration:
-        return ModelDeclaration(self.distribution, {name: p.declaration() for name, p in self.parameters.items()})
+        return ModelDeclaration(
+            self.distribution, {name: p.declaration() for name, p in self.predictors.items()}, dict(self.given)
+        )
 
     def to_json(self) -> Json:
         return {
             "node": self.node,
             "distribution": self.distribution.to_json(),
-            "parameters": {name: p.to_json() for name, p in self.parameters.items()},
+            "predictors": {name: p.to_json() for name, p in self.predictors.items()},
+            "given": dict(self.given),
         }
 
     @staticmethod
@@ -335,7 +293,8 @@ class FittedModel:
         return FittedModel(
             json["node"],
             distribution_from_json(json["distribution"]),
-            {name: fitted_parameter_from_json(p) for name, p in json["parameters"].items()},
+            {name: FittedPredictor.from_json(p) for name, p in json["predictors"].items()},
+            dict(json["given"]),
         )
 
 
@@ -436,10 +395,13 @@ class TrainingReport:
         )
 
 
-def _require_parameters(distribution: DistributionDeclaration, names: Iterable[str]) -> None:
-    given = sorted(names)
-    if given != sorted(distribution.parameter_names()):
-        raise ValueError(f"{distribution} has parameters {list(distribution.parameter_names())}, got {given}")
+def _require_parameters(distribution: DistributionDeclaration, predicted: Iterable[str], given: Iterable[str]) -> None:
+    expected, actual = sorted(p.name for p in distribution.predicted()), sorted(predicted)
+    if actual != expected:
+        raise ValueError(f"{distribution} predicts {expected}, got {actual}")
+    expected, actual = sorted(distribution.given()), sorted(given)
+    if actual != expected:
+        raise ValueError(f"{distribution} is given {expected}, got {actual}")
 
 
 def _require_distinct(names: list[str]) -> None:

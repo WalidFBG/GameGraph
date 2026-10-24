@@ -17,37 +17,30 @@
         "third"
       ]
     },
-    "parameters": {
-      "second": {
-        "source": "predicted",
-        "link": "identity",
-        "terms": [
-          {
-            "basis": "linear",
-            "feature": "Gaussian"
-          },
-          {
-            "basis": "linearSpline",
-            "feature": "Uniform",
-            "knots": 5
-          }
-        ]
-      },
-      "third": {
-        "source": "predicted",
-        "link": "identity",
-        "terms": [
-          {
-            "basis": "linear",
-            "feature": "Gaussian"
-          },
-          {
-            "basis": "linearSpline",
-            "feature": "Uniform",
-            "knots": 5
-          }
-        ]
-      }
-    }
+    "terms": {
+      "second": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ],
+      "third": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ]
+    },
+    "given": {}
   }
 }

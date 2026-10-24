@@ -12,41 +12,24 @@
     "distribution": {
       "name": "discreteJohnsonSu"
     },
-    "parameters": {
-      "location": {
-        "source": "predicted",
-        "link": "identity",
-        "terms": [
-          {
-            "basis": "linear",
-            "feature": "Gaussian"
-          }
-        ]
-      },
-      "scale": {
-        "source": "predicted",
-        "link": "log",
-        "terms": [
-          {
-            "basis": "linear",
-            "feature": "Gaussian"
-          }
-        ]
-      },
-      "skew": {
-        "source": "predicted",
-        "link": "identity",
-        "terms": []
-      },
-      "tail": {
-        "source": "predicted",
-        "link": "log",
-        "terms": []
-      },
-      "maximum": {
-        "source": "given",
-        "feature": "Bound"
-      }
+    "terms": {
+      "location": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        }
+      ],
+      "scale": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        }
+      ],
+      "skew": [],
+      "tail": []
+    },
+    "given": {
+      "maximum": "Bound"
     }
   }
 }

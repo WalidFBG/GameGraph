@@ -4,10 +4,8 @@
   "distribution": {
     "name": "discreteJohnsonSu"
   },
-  "parameters": {
+  "predictors": {
     "location": {
-      "source": "predicted",
-      "link": "identity",
       "intercept": 7.0,
       "terms": [
         {
@@ -22,8 +20,6 @@
       ]
     },
     "scale": {
-      "source": "predicted",
-      "link": "log",
       "intercept": 1.4,
       "terms": [
         {
@@ -38,20 +34,15 @@
       ]
     },
     "skew": {
-      "source": "predicted",
-      "link": "identity",
       "intercept": 0.5,
       "terms": []
     },
     "tail": {
-      "source": "predicted",
-      "link": "log",
       "intercept": 0.3,
       "terms": []
-    },
-    "maximum": {
-      "source": "given",
-      "feature": "Bound"
     }
+  },
+  "given": {
+    "maximum": "Bound"
   }
 }

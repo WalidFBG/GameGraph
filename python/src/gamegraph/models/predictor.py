@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import torch
 
 from gamegraph.models import links
-from gamegraph.models.contract import FittedPredictedParameter, Link, PredictedParameter
+from gamegraph.models.contract import FittedPredictor, Link, Term
 from gamegraph.models.terms import TermColumns, columns_from_fitted, fit_columns
 
 
@@ -30,32 +30,31 @@ class Predictor:
     def trainable(self) -> list[torch.Tensor]:
         return [self.intercept, self.coefficients]
 
-    def to_fitted(self) -> FittedPredictedParameter:
+    def to_fitted(self) -> FittedPredictor:
         coefficients = self.coefficients.detach()
         starts = [sum(t.count for t in self.terms[:i]) for i in range(len(self.terms))]
-        return FittedPredictedParameter(
-            self.link,
+        return FittedPredictor(
             float(self.intercept.detach()),
             tuple(t.to_fitted(coefficients[s : s + t.count]) for t, s in zip(self.terms, starts, strict=True)),
         )
 
     @staticmethod
-    def from_fitted(parameter: FittedPredictedParameter, features: Sequence[str]) -> "Predictor":
+    def from_fitted(link: Link, predictor: FittedPredictor, features: Sequence[str]) -> "Predictor":
         return Predictor(
-            parameter.link,
-            tuple(columns_from_fitted(t, features) for t in parameter.terms),
-            torch.tensor(parameter.intercept, dtype=torch.float64),
-            torch.tensor([c for t in parameter.terms for c in t.coefficients], dtype=torch.float64),
+            link,
+            tuple(columns_from_fitted(t, features) for t in predictor.terms),
+            torch.tensor(predictor.intercept, dtype=torch.float64),
+            torch.tensor([c for t in predictor.terms for c in t.coefficients], dtype=torch.float64),
         )
 
     @staticmethod
     def initial(
-        parameter: PredictedParameter, features: Sequence[str], examples: torch.Tensor, start: float
+        link: Link, terms: tuple[Term, ...], features: Sequence[str], examples: torch.Tensor, start: float
     ) -> "Predictor":
-        terms = tuple(fit_columns(t, features, examples) for t in parameter.terms)
+        columns = tuple(fit_columns(t, features, examples) for t in terms)
         return Predictor(
-            parameter.link,
-            terms,
-            torch.tensor(links.apply(parameter.link, start), dtype=torch.float64, requires_grad=True),
-            torch.zeros(sum(t.count for t in terms), dtype=torch.float64, requires_grad=True),
+            link,
+            columns,
+            torch.tensor(links.apply(link, start), dtype=torch.float64, requires_grad=True),
+            torch.zeros(sum(t.count for t in columns), dtype=torch.float64, requires_grad=True),
         )

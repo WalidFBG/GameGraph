@@ -4,10 +4,8 @@
   "distribution": {
     "name": "bernoulli"
   },
-  "parameters": {
+  "predictors": {
     "probability": {
-      "source": "predicted",
-      "link": "logit",
       "intercept": -0.12,
       "terms": [
         {
@@ -56,5 +54,6 @@
         }
       ]
     }
-  }
+  },
+  "given": {}
 }

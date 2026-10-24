@@ -7,12 +7,9 @@ from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     DiscreteJohnsonSuDistribution,
-    GivenParameter,
     LinearSplineTerm,
     LinearTerm,
-    Link,
     ModelDeclaration,
-    PredictedParameter,
     TrainingDataManifest,
 )
 from gamegraph.models.distributions import DiscreteJohnsonSu
@@ -23,33 +20,23 @@ START = datetime(2024, 1, 1, tzinfo=UTC)
 BERNOULLI_FEATURES = ("Gaussian", "Indicator", "Uniform")
 BERNOULLI_DECLARATION = ModelDeclaration(
     BernoulliDistribution(),
-    {
-        "probability": PredictedParameter(
-            Link.LOGIT, (LinearTerm("Gaussian"), LinearTerm("Indicator"), LinearSplineTerm("Uniform", 5))
-        )
-    },
+    {"probability": (LinearTerm("Gaussian"), LinearTerm("Indicator"), LinearSplineTerm("Uniform", 5))},
+    {},
 )
 
 CATEGORIES = ("first", "second", "third")
 CATEGORICAL_FEATURES = ("Gaussian", "Uniform")
 CATEGORICAL_DECLARATION = ModelDeclaration(
     CategoricalDistribution(CATEGORIES),
-    {
-        category: PredictedParameter(Link.IDENTITY, (LinearTerm("Gaussian"), LinearSplineTerm("Uniform", 5)))
-        for category in CATEGORIES[1:]
-    },
+    {category: (LinearTerm("Gaussian"), LinearSplineTerm("Uniform", 5)) for category in CATEGORIES[1:]},
+    {},
 )
 
 JOHNSON_SU_FEATURES = ("Gaussian", "Bound")
 JOHNSON_SU_DECLARATION = ModelDeclaration(
     DiscreteJohnsonSuDistribution(),
-    {
-        "location": PredictedParameter(Link.IDENTITY, (LinearTerm("Gaussian"),)),
-        "scale": PredictedParameter(Link.LOG, (LinearTerm("Gaussian"),)),
-        "skew": PredictedParameter(Link.IDENTITY, ()),
-        "tail": PredictedParameter(Link.LOG, ()),
-        "maximum": GivenParameter("Bound"),
-    },
+    {"location": (LinearTerm("Gaussian"),), "scale": (LinearTerm("Gaussian"),), "skew": (), "tail": ()},
+    {"maximum": "Bound"},
 )
 
 

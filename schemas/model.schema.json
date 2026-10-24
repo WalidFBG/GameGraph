@@ -8,21 +8,28 @@
     "numbers": { "type": "array", "minItems": 1, "items": { "type": "number" } },
     "declaration": {
       "type": "object",
-      "required": ["distribution", "parameters"],
-      "oneOf": [
-        { "$ref": "#/$defs/bernoulliDeclaration" },
-        { "$ref": "#/$defs/categoricalDeclaration" },
-        { "$ref": "#/$defs/discreteJohnsonSuDeclaration" }
-      ]
+      "required": ["distribution", "terms", "given"],
+      "additionalProperties": false,
+      "properties": {
+        "distribution": { "$ref": "#/$defs/distribution" },
+        "terms": {
+          "type": "object",
+          "additionalProperties": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/declaredTerm" } }
+        },
+        "given": { "$ref": "#/$defs/given" }
+      }
     },
     "fitted": {
       "type": "object",
-      "required": ["distribution", "parameters"],
-      "oneOf": [
-        { "$ref": "#/$defs/bernoulliFitted" },
-        { "$ref": "#/$defs/categoricalFitted" },
-        { "$ref": "#/$defs/discreteJohnsonSuFitted" }
-      ]
+      "required": ["distribution", "predictors", "given"],
+      "properties": {
+        "distribution": { "$ref": "#/$defs/distribution" },
+        "predictors": { "type": "object", "additionalProperties": { "$ref": "#/$defs/fittedPredictor" } },
+        "given": { "$ref": "#/$defs/given" }
+      }
+    },
+    "distribution": {
+      "oneOf": [{ "$ref": "#/$defs/bernoulli" }, { "$ref": "#/$defs/categorical" }, { "$ref": "#/$defs/discreteJohnsonSu" }]
     },
     "bernoulli": {
       "type": "object",
@@ -49,113 +56,12 @@
         "name": { "const": "discreteJohnsonSu" }
       }
     },
-    "discreteJohnsonSuDeclaration": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/discreteJohnsonSu" },
-        "parameters": {
-          "type": "object",
-          "required": ["location", "scale", "skew", "tail", "maximum"],
-          "additionalProperties": false,
-          "properties": {
-            "location": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } },
-            "scale": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "log" } } },
-            "skew": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } },
-            "tail": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "log" } } },
-            "maximum": { "$ref": "#/$defs/given" }
-          }
-        }
-      }
-    },
-    "discreteJohnsonSuFitted": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/discreteJohnsonSu" },
-        "parameters": {
-          "type": "object",
-          "required": ["location", "scale", "skew", "tail", "maximum"],
-          "additionalProperties": false,
-          "properties": {
-            "location": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } },
-            "scale": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "log" } } },
-            "skew": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } },
-            "tail": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "log" } } },
-            "maximum": { "$ref": "#/$defs/given" }
-          }
-        }
-      }
-    },
-    "given": {
+    "given": { "type": "object", "additionalProperties": { "$ref": "#/$defs/name" } },
+    "fittedPredictor": {
       "type": "object",
-      "required": ["source", "feature"],
+      "required": ["intercept", "terms"],
       "additionalProperties": false,
       "properties": {
-        "source": { "const": "given" },
-        "feature": { "$ref": "#/$defs/name" }
-      }
-    },
-    "bernoulliDeclaration": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/bernoulli" },
-        "parameters": {
-          "type": "object",
-          "required": ["probability"],
-          "additionalProperties": false,
-          "properties": {
-            "probability": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "logit" } } }
-          }
-        }
-      }
-    },
-    "bernoulliFitted": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/bernoulli" },
-        "parameters": {
-          "type": "object",
-          "required": ["probability"],
-          "additionalProperties": false,
-          "properties": {
-            "probability": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "logit" } } }
-          }
-        }
-      }
-    },
-    "categoricalDeclaration": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/categorical" },
-        "parameters": {
-          "type": "object",
-          "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/declaredPredicted", "properties": { "link": { "const": "identity" } } }
-        }
-      }
-    },
-    "categoricalFitted": {
-      "properties": {
-        "distribution": { "$ref": "#/$defs/categorical" },
-        "parameters": {
-          "type": "object",
-          "minProperties": 1,
-          "additionalProperties": { "$ref": "#/$defs/fittedPredicted", "properties": { "link": { "const": "identity" } } }
-        }
-      }
-    },
-    "link": { "enum": ["identity", "log", "logit"] },
-    "declaredPredicted": {
-      "type": "object",
-      "required": ["source", "link", "terms"],
-      "additionalProperties": false,
-      "properties": {
-        "source": { "const": "predicted" },
-        "link": { "$ref": "#/$defs/link" },
-        "terms": { "type": "array", "uniqueItems": true, "items": { "$ref": "#/$defs/declaredTerm" } }
-      }
-    },
-    "fittedPredicted": {
-      "type": "object",
-      "required": ["source", "link", "intercept", "terms"],
-      "additionalProperties": false,
-      "properties": {
-        "source": { "const": "predicted" },
-        "link": { "$ref": "#/$defs/link" },
         "intercept": { "type": "number" },
         "terms": { "type": "array", "items": { "$ref": "#/$defs/fittedTerm" } }
       }

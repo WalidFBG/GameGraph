@@ -36,8 +36,11 @@ public sealed class Model
         return _distribution.Sample(parameters, uniform);
     }
 
-    public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features) =>
-        new(
-            Distributions.For(fitted.Distribution),
-            fitted.Distribution.ParameterNames().Select(n => Parameters.FromFitted(fitted.Parameters[n], features)).ToArray());
+    public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
+    {
+        var predictors = fitted.Distribution.Predicted().Select(p => Predictor.FromFitted(p.Link, fitted.Predictors[p.Name], features));
+        var given = fitted.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(fitted.Given[n], features)));
+
+        return new(Distributions.For(fitted.Distribution), [.. predictors, .. given]);
+    }
 }

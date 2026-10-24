@@ -10,17 +10,16 @@ import pytest
 from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
+    DiscreteJohnsonSuDistribution,
     FittedLinearSplineTerm,
     FittedLinearTerm,
     FittedModel,
-    FittedPredictedParameter,
+    FittedPredictor,
     LinearSplineTerm,
     LinearTerm,
-    Link,
     ModelDeclaration,
     Optimiser,
     OptimiserName,
-    PredictedParameter,
     TrainingAndValidation,
     TrainingDataManifest,
     TrainingReport,
@@ -36,8 +35,7 @@ from gamegraph.models.contract_files import (
 
 CREATED = datetime(2026, 10, 21, 12, 0, tzinfo=UTC)
 
-PROBABILITY = FittedPredictedParameter(
-    Link.LOGIT,
+PROBABILITY = FittedPredictor(
     -0.12,
     (
         FittedLinearTerm("Gaussian", 0.31, 8.4, (0.021,)),
@@ -46,7 +44,7 @@ PROBABILITY = FittedPredictedParameter(
     ),
 )
 
-FITTED = FittedModel("Example", BernoulliDistribution(), {"probability": PROBABILITY})
+FITTED = FittedModel("Example", BernoulliDistribution(), {"probability": PROBABILITY}, {})
 
 MANIFEST = TrainingDataManifest(
     "Example",
@@ -89,16 +87,14 @@ def test_a_written_document_carries_the_schema_version(tmp_path: Path) -> None:
 
 def test_a_fitted_model_gives_back_its_declaration() -> None:
     terms = (LinearTerm("Gaussian"), LinearTerm("Indicator"), LinearSplineTerm("Uniform", 5))
-    assert FITTED.declaration() == ModelDeclaration(
-        BernoulliDistribution(), {"probability": PredictedParameter(Link.LOGIT, terms)}
-    )
+    assert FITTED.declaration() == ModelDeclaration(BernoulliDistribution(), {"probability": terms}, {})
 
 
 type Document = dict[str, Any]
 
 
 def _probability(document: Document) -> Document:
-    return document["parameters"]["probability"]
+    return document["predictors"]["probability"]
 
 
 BROKEN: dict[str, Callable[[Document], object]] = {
@@ -107,8 +103,8 @@ BROKEN: dict[str, Callable[[Document], object]] = {
     "another schema version": lambda d: d.update(schemaVersion=2),
     "an unknown distribution": lambda d: d["distribution"].update(name="poisson"),
     "a categorical distribution without categories": lambda d: d.update(distribution={"name": "categorical"}),
-    "an unknown parameter": lambda d: d["parameters"].update(mean={}),
-    "a link Bernoulli does not allow": lambda d: _probability(d).update(link="identity"),
+    "a link in the file": lambda d: _probability(d).update(link="identity"),
+    "a given parameter that is not a feature name": lambda d: d.update(given={"maximum": 3}),
     "a zero scale": lambda d: _probability(d)["terms"][0].update(scale=0),
     "two coefficients on a linear term": lambda d: _probability(d)["terms"][0].update(coefficients=[1, 2]),
     "an unknown basis": lambda d: _probability(d)["terms"][0].update(basis="spline"),
@@ -141,7 +137,8 @@ def test_writing_a_number_that_is_not_finite_fails(tmp_path: Path) -> None:
     broken = FittedModel(
         FITTED.node,
         FITTED.distribution,
-        {"probability": FittedPredictedParameter(probability.link, float("nan"), probability.terms)},
+        {"probability": FittedPredictor(float("nan"), probability.terms)},
+        {},
     )
     with pytest.raises(ValueError):
         write_fitted_model(tmp_path / "model.json", broken)
@@ -180,17 +177,39 @@ def test_a_categorical_model_round_trips(tmp_path: Path) -> None:
         "Example",
         CategoricalDistribution(("first", "second", "third")),
         {
-            "second": FittedPredictedParameter(Link.IDENTITY, 0.4, probability.terms),
-            "third": FittedPredictedParameter(Link.IDENTITY, -1.1, probability.terms[:1]),
+            "second": FittedPredictor(0.4, probability.terms),
+            "third": FittedPredictor(-1.1, probability.terms[:1]),
         },
+        {},
     )
     write_fitted_model(tmp_path / "model.json", categorical)
     assert read_fitted_model(tmp_path / "model.json") == categorical
 
 
-def test_parameters_that_are_not_the_distribution_s_fail() -> None:
-    with pytest.raises(ValueError, match="has parameters"):
-        ModelDeclaration(CategoricalDistribution(("first", "second")), {"third": PredictedParameter(Link.IDENTITY, ())})
+def test_predicted_parameters_that_are_not_the_distribution_s_fail() -> None:
+    with pytest.raises(ValueError, match=re.escape("predicts ['second'], got ['third']")):
+        ModelDeclaration(CategoricalDistribution(("first", "second")), {"third": ()}, {})
+
+
+def test_a_predicted_parameter_given_instead_fails() -> None:
+    with pytest.raises(ValueError, match=re.escape("predicts ['probability'], got []")):
+        ModelDeclaration(BernoulliDistribution(), {}, {"probability": "Gaussian"})
+
+
+def test_a_missing_given_parameter_fails() -> None:
+    terms = {"location": (), "scale": (), "skew": (), "tail": ()}
+    with pytest.raises(ValueError, match=re.escape("is given ['maximum'], got []")):
+        ModelDeclaration(DiscreteJohnsonSuDistribution(), terms, {})
+
+
+def test_reading_a_fitted_model_with_an_unknown_parameter_fails(tmp_path: Path) -> None:
+    path = tmp_path / "model.json"
+    write_fitted_model(path, FITTED)
+    document = json.loads(path.read_text(encoding="utf-8"))
+    document["predictors"]["mean"] = document["predictors"]["probability"]
+    path.write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(ValueError, match=re.escape("predicts ['probability'], got ['mean', 'probability']")):
+        read_fitted_model(path)
 
 
 def test_a_categorical_distribution_with_one_category_fails() -> None:
@@ -200,7 +219,7 @@ def test_a_categorical_distribution_with_one_category_fails() -> None:
 
 def test_the_same_term_twice_fails() -> None:
     with pytest.raises(ValueError, match="appear more than once"):
-        PredictedParameter(Link.LOGIT, (LinearTerm("Gaussian"), LinearTerm("Gaussian")))
+        ModelDeclaration(BernoulliDistribution(), {"probability": (LinearTerm("Gaussian"), LinearTerm("Gaussian"))}, {})
 
 
 def test_a_time_that_is_not_utc_fails() -> None:
@@ -211,5 +230,5 @@ def test_a_time_that_is_not_utc_fails() -> None:
             datetime(2026, 10, 21),
             (),
             1,
-            ModelDeclaration(BernoulliDistribution(), {"probability": PredictedParameter(Link.LOGIT, ())}),
+            ModelDeclaration(BernoulliDistribution(), {"probability": ()}, {}),
         ).to_json()

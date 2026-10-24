@@ -13,26 +13,23 @@
     "distribution": {
       "name": "bernoulli"
     },
-    "parameters": {
-      "probability": {
-        "source": "predicted",
-        "link": "logit",
-        "terms": [
-          {
-            "basis": "linear",
-            "feature": "Gaussian"
-          },
-          {
-            "basis": "linear",
-            "feature": "Indicator"
-          },
-          {
-            "basis": "linearSpline",
-            "feature": "Uniform",
-            "knots": 5
-          }
-        ]
-      }
-    }
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "Gaussian"
+        },
+        {
+          "basis": "linear",
+          "feature": "Indicator"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "Uniform",
+          "knots": 5
+        }
+      ]
+    },
+    "given": {}
   }
 }

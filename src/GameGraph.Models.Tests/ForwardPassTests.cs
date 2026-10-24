@@ -8,13 +8,13 @@ public sealed class ForwardPassTests
     private static readonly FittedModel Fitted = new(
         "Golden",
         new BernoulliDistribution(),
-        new Dictionary<string, FittedParameter>
+        new Dictionary<string, FittedPredictor>
         {
-            ["probability"] = new FittedPredictedParameter(
-                Link.Logit,
+            ["probability"] = new FittedPredictor(
                 -0.12,
                 [new FittedLinearTerm("Gaussian", 0.31, 8.4, [0.021]), new FittedLinearTerm("Indicator", 0.38, 0.49, [-0.18])]),
-        });
+        },
+        new Dictionary<string, string>());
 
     private static readonly string[] Features = ["Gaussian", "Indicator"];
 
@@ -120,7 +120,8 @@ public sealed class ForwardPassTests
         Assert.Throws<ArgumentException>(() => new FittedModel(
             Fitted.Node,
             Fitted.Distribution,
-            new Dictionary<string, FittedParameter> { ["mean"] = Fitted.Parameters["probability"] }));
+            new Dictionary<string, FittedPredictor> { ["mean"] = Fitted.Predictors["probability"] },
+            new Dictionary<string, string>()));
     }
 
     [Fact]

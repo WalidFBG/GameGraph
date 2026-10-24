@@ -13,9 +13,7 @@ from gamegraph.models.contract import (
     FittedLinearSplineTerm,
     FittedLinearTerm,
     FittedModel,
-    FittedPredictedParameter,
-    GivenParameter,
-    Link,
+    FittedPredictor,
 )
 from gamegraph.models.contract_files import write_fitted_model
 from gamegraph.models.model import Model
@@ -30,8 +28,7 @@ BERNOULLI = FittedModel(
     "Golden",
     BernoulliDistribution(),
     {
-        "probability": FittedPredictedParameter(
-            Link.LOGIT,
+        "probability": FittedPredictor(
             -0.12,
             (
                 FittedLinearTerm("Gaussian", 0.31, 8.4, (0.021,)),
@@ -42,6 +39,7 @@ BERNOULLI = FittedModel(
             ),
         )
     },
+    {},
 )
 
 BERNOULLI_CASES: list[Case] = [
@@ -63,16 +61,16 @@ CATEGORICAL = FittedModel(
     "Golden",
     CategoricalDistribution(("first", "second", "third")),
     {
-        "second": FittedPredictedParameter(
-            Link.IDENTITY,
+        "second": FittedPredictor(
             0.2,
             (
                 FittedLinearTerm("Gaussian", 1.5, 4.0, (0.3,)),
                 FittedLinearSplineTerm("Uniform", 3, (0.0, 12.0, 24.0), (5.0, 4.0), (4.5, 4.2), (0.25, -0.4)),
             ),
         ),
-        "third": FittedPredictedParameter(Link.IDENTITY, -0.8, (FittedLinearTerm("Gaussian", 1.5, 4.0, (-0.2,)),)),
+        "third": FittedPredictor(-0.8, (FittedLinearTerm("Gaussian", 1.5, 4.0, (-0.2,)),)),
     },
+    {},
 )
 
 CATEGORICAL_CASES: list[Case] = [
@@ -91,12 +89,12 @@ JOHNSON_SU = FittedModel(
     "Golden",
     DiscreteJohnsonSuDistribution(),
     {
-        "location": FittedPredictedParameter(Link.IDENTITY, 7.0, (FittedLinearTerm("Gaussian", 0.1, 1.2, (2.5,)),)),
-        "scale": FittedPredictedParameter(Link.LOG, 1.4, (FittedLinearTerm("Gaussian", 0.1, 1.2, (0.15,)),)),
-        "skew": FittedPredictedParameter(Link.IDENTITY, 0.5, ()),
-        "tail": FittedPredictedParameter(Link.LOG, 0.3, ()),
-        "maximum": GivenParameter("Bound"),
+        "location": FittedPredictor(7.0, (FittedLinearTerm("Gaussian", 0.1, 1.2, (2.5,)),)),
+        "scale": FittedPredictor(1.4, (FittedLinearTerm("Gaussian", 0.1, 1.2, (0.15,)),)),
+        "skew": FittedPredictor(0.5, ()),
+        "tail": FittedPredictor(0.3, ()),
     },
+    {"maximum": "Bound"},
 )
 
 JOHNSON_SU_CASES: list[Case] = [

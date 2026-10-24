@@ -9,10 +9,8 @@
       "third"
     ]
   },
-  "parameters": {
+  "predictors": {
     "second": {
-      "source": "predicted",
-      "link": "identity",
       "intercept": 0.2,
       "terms": [
         {
@@ -49,8 +47,6 @@
       ]
     },
     "third": {
-      "source": "predicted",
-      "link": "identity",
       "intercept": -0.8,
       "terms": [
         {
@@ -64,5 +60,6 @@
         }
       ]
     }
-  }
+  },
+  "given": {}
 }

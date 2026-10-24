@@ -14,5 +14,7 @@ public sealed record CategoricalDistribution : DistributionDeclaration
 
     public string[] Categories { get; }
 
-    public override string[] ParameterNames() => Categories[1..];
+    public override PredictedParameter[] Predicted() => Categories[1..].Select(c => new PredictedParameter(c, Link.Identity)).ToArray();
+
+    public override string[] Given() => [];
 }
