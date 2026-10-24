@@ -4,7 +4,8 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedShot : ObservedAction
 {
-    public ObservedShot(int points, bool fouled, bool made, bool[] freeThrows, bool? offensiveRebound)
+    public ObservedShot(int clock, int points, bool fouled, bool made, bool[] freeThrows, bool? offensiveRebound)
+        : base(clock)
     {
         if (points is not (2 or 3))
             throw new ArgumentOutOfRangeException(nameof(points), points, "A shot is worth 2 or 3");

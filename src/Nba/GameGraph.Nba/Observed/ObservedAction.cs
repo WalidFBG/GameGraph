@@ -4,6 +4,16 @@ namespace GameGraph.Nba.Observed;
 
 public abstract record ObservedAction
 {
+    protected ObservedAction(int clock)
+    {
+        if (clock < 0)
+            throw new ArgumentOutOfRangeException(nameof(clock), clock, "An action's clock is the seconds left in its period");
+
+        Clock = clock;
+    }
+
+    public int Clock { get; }
+
     public abstract ActionType Type { get; }
 
     public abstract bool EndsPossession { get; }

@@ -1,3 +1,4 @@
+using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Sportradar;
 using Xunit;
@@ -44,6 +45,28 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
         output.WriteLine($"Free throws: {freeThrows.Length}, made {Rate(freeThrows.Count(m => m), freeThrows.Length)}");
         output.WriteLine($"Rebounds after a miss: {rebounds.Length}, offensive {Rate(rebounds.Count(o => o), rebounds.Length)}");
         output.WriteLine($"Possessions scoring a made shot: {Rate(possessions.Count(p => p.Scored), possessions.Length)}");
+
+        var periodStarts = new List<int>();
+        var betweenActions = new List<int>();
+
+        foreach (var period in accepted.SelectMany(g => g.Possessions.GroupBy(p => p.Period)))
+        {
+            var clocks = period.SelectMany(p => p.Actions).Select(a => a.Clock).ToArray();
+
+            periodStarts.Add(Periods.SecondsIn(period.Key) - clocks[0]);
+            betweenActions.AddRange(clocks.Zip(clocks[1..], (previous, next) => previous - next));
+        }
+
+        output.WriteLine($"Seconds from a period's start to its first action: {Spread(periodStarts)}");
+        output.WriteLine($"Seconds between consecutive actions in a period: {Spread(betweenActions)}");
+    }
+
+    private static string Spread(List<int> seconds)
+    {
+        var sorted = seconds.Order().ToArray();
+        var quantiles = new[] { 0.1, 0.25, 0.5, 0.75, 0.9, 0.99 }.Select(q => $"{q:P0} {sorted[(int)(q * (sorted.Length - 1))]}");
+
+        return $"{sorted.Length} times; {string.Join(", ", quantiles)}, most {sorted[^1]}; over 24: {Rate(sorted.Count(s => s > 24), sorted.Length)}";
     }
 
     private static string Rate(int count, int total) => total == 0 ? "none" : $"{(double)count / total:P1}";
