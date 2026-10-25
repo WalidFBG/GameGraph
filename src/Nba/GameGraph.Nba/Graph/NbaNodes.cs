@@ -5,12 +5,26 @@ namespace GameGraph.Nba.Graph;
 
 public static class NbaNodes
 {
+    private static readonly (int Lowest, int Highest)[] PlayClocks = [(1, 12), (13, 24), (25, 36), (37, 48), (49, 60), (61, 90), (91, NbaFeatures.LateSeconds)];
+
     public static readonly NodeSpec<NbaState> JumpBall = new(
         nameof(JumpBall),
         new BernoulliDistribution(),
         new Dictionary<string, FeatureTerm<NbaState>[]> { ["probability"] = [] },
         new Dictionary<string, Feature<NbaState>>(),
         NbaTransitions.JumpBall);
+
+    public static readonly NodeSpec<NbaState> OffenceTimeout = Node(
+        nameof(OffenceTimeout),
+        new BernoulliDistribution(),
+        TimeoutTerms(NbaFeatures.OffenceTimeoutsLeft),
+        NbaTransitions.OffenceTimeout);
+
+    public static readonly NodeSpec<NbaState> DefenceTimeout = Node(
+        nameof(DefenceTimeout),
+        new BernoulliDistribution(),
+        TimeoutTerms(NbaFeatures.DefenceTimeoutsLeft),
+        NbaTransitions.DefenceTimeout);
 
     public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
         nameof(AwardedFreeThrow),
@@ -42,11 +56,11 @@ public static class NbaNodes
         nameof(ActionType),
         new CategoricalDistribution(ActionTypes.Names),
         [
-            .. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock, NbaFeatures.AtHome }.Select(FeatureTerm.Linear),
+            .. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock, NbaFeatures.AtHome, NbaFeatures.AfterTimeout, NbaFeatures.LateAfterTimeout }.Select(FeatureTerm.Linear),
             .. LateSituation(),
             FeatureTerm.Spline(NbaFeatures.LatePeriodClock, 6),
             FeatureTerm.Linear(NbaFeatures.LateClockBinds),
-            .. NbaFeatures.LateMarginByClock((1, 12), (13, 24), (25, 36), (37, 48), (49, 60), (61, 90), (91, NbaFeatures.LateSeconds)).Select(FeatureTerm.Linear),
+            .. NbaFeatures.LateMarginByClock(PlayClocks).Select(FeatureTerm.Linear),
         ],
         NbaTransitions.ActionType);
 
@@ -72,7 +86,7 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> ShotMade = Node(
         nameof(ShotMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome, NbaFeatures.AfterTimeout, NbaFeatures.LateAfterTimeout],
         NbaTransitions.ShotMade);
 
     public static readonly NodeSpec<NbaState> InBonus = Node(
@@ -113,10 +127,22 @@ public static class NbaNodes
     ];
 
     private static IEnumerable<FeatureTerm<NbaState>> ActionTimeSituation() =>
-        new[] { NbaFeatures.ActionThree, NbaFeatures.ActionTurnover, NbaFeatures.ActionFoul, NbaFeatures.LateFoul }
+        new[] { NbaFeatures.ActionThree, NbaFeatures.ActionTurnover, NbaFeatures.ActionFoul, NbaFeatures.LateFoul, NbaFeatures.AfterTimeout, NbaFeatures.LateAfterTimeout }
             .Concat(NbaFeatures.AfterPlayStart)
             .Append(NbaFeatures.AtHome)
             .Select(FeatureTerm.Linear);
+
+    private static FeatureTerm<NbaState>[] TimeoutTerms(Feature<NbaState> timeoutsLeft) =>
+    [
+        .. new[] { NbaFeatures.BeforeFreeThrow, NbaFeatures.TimeoutJustCalled, NbaFeatures.Period, NbaFeatures.ScoreMargin }
+            .Concat(NbaFeatures.AfterPlayStart)
+            .Concat(NbaFeatures.PeriodTimeoutsByClock)
+            .Select(FeatureTerm.Linear),
+        FeatureTerm.Spline(timeoutsLeft, 4),
+        FeatureTerm.Spline(NbaFeatures.PeriodClock, 6),
+        .. LateSituation(),
+        .. NbaFeatures.LateMarginByClock(PlayClocks).Select(FeatureTerm.Linear),
+    ];
 
     private static FeatureTerm<NbaState>[] LateSituation() =>
     [

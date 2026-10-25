@@ -40,7 +40,7 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
         }
 
         output.WriteLine($"Non-shooting fouls: {fouls.Length}, in the bonus {Rate(fouls.Count(f => f.InBonus), fouls.Length)}");
-        output.WriteLine($"Free throws: {freeThrows.Length}, made {Rate(freeThrows.Count(m => m), freeThrows.Length)}");
+        output.WriteLine($"Free throws: {freeThrows.Length}, made {Rate(freeThrows.Count(f => f.Made), freeThrows.Length)}");
         output.WriteLine($"Rebounds after a miss: {rebounds.Length}, offensive {Rate(rebounds.Count(o => o), rebounds.Length)}");
         var atPeriodEnds = possessions.SelectMany(p => p.AwardedAfter).ToArray();
         var awarded = actions.SelectMany(a => a.AwardedBefore).Concat(atPeriodEnds).ToArray();

@@ -7,6 +7,8 @@ public static class NbaGameSpec
     public static GameSpec<NbaState> Instance { get; } = new(
         [
             NbaNodes.JumpBall,
+            NbaNodes.OffenceTimeout,
+            NbaNodes.DefenceTimeout,
             NbaNodes.AwardedFreeThrow,
             NbaNodes.AwardedFreeThrowMade,
             NbaNodes.PeriodRunsOut,

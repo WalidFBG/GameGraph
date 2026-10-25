@@ -1,13 +1,18 @@
+import hashlib
+import json
 import shutil
 import sys
 import time
 from pathlib import Path
 
 from gamegraph.models.training import train, write_training_result
-from gamegraph.models.training_data import MANIFEST, read_training_data
+from gamegraph.models.training_data import EXAMPLES, GAMES, MANIFEST, read_training_data
+
+DIGEST = ".digest"
+UNTRACKED_MANIFEST_FIELDS = ("createdUtc",)
 
 
-def train_nodes(training_data: Path, fitted_models: Path) -> None:
+def train_nodes(training_data: Path, fitted_models: Path, retrain_all: bool = False) -> None:
     directories = sorted(d for d in training_data.iterdir() if d.is_dir())
     if not directories:
         raise ValueError(f"No node's training data under {training_data}")
@@ -18,13 +23,22 @@ def train_nodes(training_data: Path, fitted_models: Path) -> None:
     if staging.exists():
         shutil.rmtree(staging)
     for directory in directories:
+        node = directory.name
+        digest = training_data_digest(directory)
+        if not retrain_all and _recorded_digest(fitted_models, node) == digest:
+            _keep(fitted_models, staging, node)
+            print(f"{node}: unchanged, kept", flush=True)
+            continue
         started = time.perf_counter()
         fitted, report = train(read_training_data(directory))
+        if fitted.node != node:
+            raise ValueError(f"The training data under {directory} is for {fitted.node}")
         write_training_result(staging, fitted, report)
+        (staging / f"{node}{DIGEST}").write_text(digest + "\n", encoding="utf-8", newline="\n")
         chosen = report.chosen_attempt()
         failed = f", {len(report.failures)} failed attempts" if report.failures else ""
         print(
-            f"{fitted.node}: {chosen.route.value} at ridge {chosen.ridge:g}, "
+            f"{node}: {chosen.route.value} at ridge {chosen.ridge:g}, "
             f"validation {chosen.negative_log_likelihood.validation:.6f}, "
             f"{time.perf_counter() - started:.1f} s{failed}",
             flush=True,
@@ -34,7 +48,31 @@ def train_nodes(training_data: Path, fitted_models: Path) -> None:
     staging.rename(fitted_models)
 
 
+def training_data_digest(directory: Path) -> str:
+    manifest = json.loads((directory / MANIFEST).read_text(encoding="utf-8"))
+    for field in UNTRACKED_MANIFEST_FIELDS:
+        del manifest[field]
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode("utf-8"))
+    for name in (EXAMPLES, GAMES):
+        digest.update((directory / name).read_bytes())
+    return digest.hexdigest()
+
+
+def _recorded_digest(fitted_models: Path, node: str) -> str | None:
+    path = fitted_models / f"{node}{DIGEST}"
+    return path.read_text(encoding="utf-8").strip() if path.is_file() else None
+
+
+def _keep(fitted_models: Path, staging: Path, node: str) -> None:
+    staging.mkdir(parents=True, exist_ok=True)
+    for suffix in (".json", ".training.json", DIGEST):
+        shutil.copy2(fitted_models / f"{node}{suffix}", staging / f"{node}{suffix}")
+
+
 def main() -> None:
-    if len(sys.argv) != 3:
-        raise SystemExit("Usage: gamegraph-train <training data> <fitted models>")
-    train_nodes(Path(sys.argv[1]), Path(sys.argv[2]))
+    arguments = sys.argv[1:]
+    retrain_all = "--all" in arguments
+    paths = [a for a in arguments if a != "--all"]
+    if len(paths) != 2 or len(arguments) - len(paths) > 1:
+        raise SystemExit("Usage: gamegraph-train <training data> <fitted models> [--all]")
+    train_nodes(Path(paths[0]), Path(paths[1]), retrain_all)

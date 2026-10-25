@@ -55,6 +55,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         if (node == NbaNodes.AwardedFreeThrow && !IsUpcoming(node, state))
             return AwardedFreeThrows.None;
 
+        if ((node == NbaNodes.OffenceTimeout || node == NbaNodes.DefenceTimeout) && !IsUpcoming(node, state))
+            return 0;
+
         if (node == NbaNodes.PeriodRunsOut)
             return Number(UpcomingIn(state.Period) is null);
 
@@ -102,6 +105,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         foreach (var action in possession.Actions)
         {
+            foreach (var decision in Timeouts(action.TimeoutsBefore, team))
+                yield return decision;
+
             foreach (var decision in Awarded(action.AwardedBefore, team))
                 yield return decision;
 
@@ -114,8 +120,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
                     yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
-                    foreach (var made in shot.FreeThrows)
-                        yield return Decision(NbaNodes.FreeThrowMade, Number(made));
+                    foreach (var decision in shot.FreeThrows.SelectMany(FreeThrow))
+                        yield return decision;
 
                     if (shot.OffensiveRebound is { } shotRebound)
                         yield return Decision(NbaNodes.OffensiveRebound, Number(shotRebound));
@@ -124,8 +130,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
                 case ObservedFoul foul:
                     yield return Decision(NbaNodes.InBonus, Number(foul.InBonus));
 
-                    foreach (var made in foul.FreeThrows)
-                        yield return Decision(NbaNodes.FreeThrowMade, Number(made));
+                    foreach (var decision in foul.FreeThrows.SelectMany(FreeThrow))
+                        yield return decision;
 
                     if (foul.OffensiveRebound is { } foulRebound)
                         yield return Decision(NbaNodes.OffensiveRebound, Number(foulRebound));
@@ -141,8 +147,17 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         var last = possession.Actions[^1];
         var after = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(team) : team;
 
+        foreach (var decision in Timeouts(possession.TimeoutsAfter, after))
+            yield return decision;
+
         foreach (var decision in Awarded(possession.AwardedAfter, after))
             yield return decision;
+
+        IEnumerable<ObservedDecision> FreeThrow(ObservedFreeThrow freeThrow) =>
+            [.. Timeouts(freeThrow.TimeoutsBefore, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];
+
+        IEnumerable<ObservedDecision> Timeouts(int[] callers, int inPossession) =>
+            callers.Select(caller => new ObservedDecision(caller == inPossession ? NbaNodes.OffenceTimeout : NbaNodes.DefenceTimeout, _ => 1, inPossession, possession.Period));
 
         IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
             awarded.SelectMany(f => new[]

@@ -134,6 +134,8 @@ tr:last-child td { border-bottom: none; }
   <a href="#later">Not in the tree yet</a>
   <h2>Decisions</h2>
   <a href="#JumpBall"><span class="swatch bernoulli"></span>JumpBall</a>
+  <a href="#OffenceTimeout"><span class="swatch bernoulli"></span>OffenceTimeout</a>
+  <a href="#DefenceTimeout"><span class="swatch bernoulli"></span>DefenceTimeout</a>
   <a href="#AwardedFreeThrow"><span class="swatch categorical"></span>AwardedFreeThrow</a>
   <a href="#AwardedFreeThrowMade"><span class="swatch bernoulli"></span>AwardedFreeThrowMade</a>
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
@@ -272,7 +274,7 @@ tr:last-child td { border-bottom: none; }
         <td><span class="tag bernoulli" style="margin:0">Bernoulli</span></td>
         <td><code>bool</code></td>
         <td>the probability (logit link)</td>
-        <td><a href="#JumpBall">JumpBall</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
+        <td><a href="#JumpBall">JumpBall</a>, <a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
       </tr>
       <tr>
         <td><span class="tag categorical" style="margin:0">Categorical</span></td>
@@ -317,6 +319,28 @@ tr:last-child td { border-bottom: none; }
         </dl>
       </article>
 
+      <article class="card bernoulli" id="OffenceTimeout">
+        <h3>OffenceTimeout <span class="tag">Bernoulli</span></h3>
+        <p class="question">Before a play or a free throw, does the team with the ball call a timeout?</p>
+        <dl>
+          <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
+          <dt>Features</dt><dd><ul><li>before a free throw rather than a play</li><li>whether a timeout was just called</li><li>the cross of the period's timeouts so far (none, one, two or more) and the minute of the period, one indicator per cell, in regulation: the mandatory timeouts, forced at the first dead ball once none is taken before 7:00 left or fewer than two before 3:00</li><li>the calling team's timeouts left (a spline)</li><li>how the play started</li><li>the period, the seconds left (a spline), the score margin</li><li>late in the game, the margin (a spline) and the late margin-by-clock cells</li></ul></dd>
+          <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → <a href="#DefenceTimeout">DefenceTimeout</a></dd>
+          <dt>Observed as</dt><dd>every <code>TeamTimeout</code> whose <code>teamInPossession</code>, the team charged with it, is the offence; attached to the next play, free throw or period end. 8.9 a game; the mandatory ones are ordinary team timeouts in the data</dd>
+        </dl>
+      </article>
+
+      <article class="card bernoulli" id="DefenceTimeout">
+        <h3>DefenceTimeout <span class="tag">Bernoulli</span></h3>
+        <p class="question">Then, does the team without the ball call one?</p>
+        <dl>
+          <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
+          <dt>Features</dt><dd>the same, with the defence's timeouts left</dd>
+          <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → back to the play (<a href="#AwardedFreeThrow">AwardedFreeThrow</a>) or the free throw (<a href="#FreeThrowMade">FreeThrowMade</a>)</dd>
+          <dt>Observed as</dt><dd>timeouts charged to the defence, 1.8 a game: icing a free-throw shooter, and some of the mandatory ones</dd>
+        </dl>
+      </article>
+
       <article class="card categorical" id="AwardedFreeThrow">
         <h3>AwardedFreeThrow <span class="tag">Categorical</span></h3>
         <p class="question">Before the play, is a free throw outside the play awarded, of which kind, and to whom?</p>
@@ -354,7 +378,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>at home</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline), the seconds left (a spline) and whether the period clock binds</li><li>the cross of the late margin (trailing by 10 or more, 7 to 9, 4 to 6, 3, 1 to 2; leading by 1 to 3, 4 to 6, 7 to 8, 9 to 10, 11 to 12) and the seconds left, one indicator per cell (1 to 12, 13 to 24, 25 to 36, 37 to 48, 49 to 60, 61 to 90, 91 to 120): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game</li><li>score margin</li><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>at home</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline), the seconds left (a spline) and whether the period clock binds</li><li>the cross of the late margin (trailing by 10 or more, 7 to 9, 4 to 6, 3, 1 to 2; leading by 1 to 3, 4 to 6, 7 to 8, 9 to 10, 11 to 12) and the seconds left, one indicator per cell (1 to 12, 13 to 24, 25 to 36, 37 to 48, 49 to 60, 61 to 90, 91 to 120): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
           <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
@@ -365,7 +389,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">How many seconds did the action take?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
-          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two), and a foul late in the game (these come fast: 57% within 3 seconds when the defence trails, against 28% at other times)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out, the ball after awarded free throws or the period start (against a defensive rebound); every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game (the ball is advanced: 8 seconds after a made shot against 13)</li><li>the chosen action: three, turnover, foul (against a two), and a foul late in the game (these come fast: 57% within 3 seconds when the defence trails, against 28% at other times)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out, the ball after awarded free throws or the period start (against a defensive rebound); every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
           <dt>Transition</dt><dd>both clocks run down by the outcome; then two or three → <a href="#FouledOnShot">FouledOnShot</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → adds one to the defence's team fouls (and to its fouls in the last two minutes when at most 120 seconds are left) → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
         </dl>
@@ -385,7 +409,7 @@ tr:last-child td { border-bottom: none; }
         <h3>ShotMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shot go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game</li><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>score +2 or +3 if made; fouled → <a href="#FreeThrowsDue">FreeThrowsDue</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>whether the field-goal attempt was made</dd>
         </dl>
@@ -434,7 +458,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">A team gets the ball.</p>
         <dl>
           <dt>State</dt><dd>team in possession set; shot clock to 24 seconds; how the play started (the previous possession's end, or the period start)</dd>
-          <dt>Next</dt><dd>→ <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
+          <dt>Next</dt><dd>→ the timeouts (<a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>), then <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
         </dl>
       </article>
 
@@ -489,6 +513,8 @@ tr:last-child td { border-bottom: none; }
       <tr><td>How the play started</td><td><a href="#PossessionStarts">PossessionStarts</a>, rebounds, side-outs</td><td><a href="#ActionTime">ActionTime</a></td></tr>
       <tr><td>The chosen action</td><td><a href="#ActionType">ActionType</a></td><td><a href="#ActionTime">ActionTime</a> and its transition</td></tr>
       <tr><td>The first period's starter</td><td><a href="#JumpBall">JumpBall</a></td><td><a href="#PeriodEnds">PeriodEnds</a></td></tr>
+      <tr><td>Each team's timeouts left, this period and in the fourth period's last 3 minutes</td><td><a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>; reset by <a href="#PeriodEnds">PeriodEnds</a> (2 each in overtime)</td><td>whether each may call one, their features</td></tr>
+      <tr><td>Whether the play follows a timeout, and whether timeouts are being asked before a play or a free throw</td><td>the timeout transitions; reset when the play starts</td><td><a href="#ActionTime">ActionTime</a>, <a href="#ActionType">ActionType</a>, <a href="#ShotMade">ShotMade</a></td></tr>
       <tr><td>Team fouls this period, and those in its last two minutes</td><td>fouls; reset by <a href="#PeriodEnds">PeriodEnds</a></td><td><a href="#InBonus">InBonus</a>, <a href="#ActionType">ActionType</a></td></tr>
       <tr><td>Free throws left, what was missed, who shoots an awarded free throw</td><td>the free-throw and shot transitions</td><td><a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
       <tr><td>The previous awarded free throw of the play, and whether one gave the defence the ball</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset when the play's awarded free throws end</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>

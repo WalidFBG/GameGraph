@@ -96,6 +96,34 @@ public static class NbaFeatures
     public static IReadOnlyList<Feature<NbaState>> LateMarginByClock(params (int Lowest, int Highest)[] clocks) =>
         [.. LateMargins.SelectMany(m => clocks.Select(c => LateCell(m.Name, m.Lowest, m.Highest, c.Lowest, c.Highest)))];
 
+    public static readonly Feature<NbaState> AfterTimeout =
+        new(nameof(AfterTimeout), s => s.AfterTimeout ? 1 : 0);
+
+    public static readonly Feature<NbaState> LateAfterTimeout =
+        new(nameof(LateAfterTimeout), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.AfterTimeout ? 1 : 0);
+
+    public static readonly Feature<NbaState> BeforeFreeThrow =
+        new(nameof(BeforeFreeThrow), s => s.TimeoutMoment == TimeoutMoment.FreeThrow ? 1 : 0);
+
+    public static readonly Feature<NbaState> TimeoutJustCalled =
+        new(nameof(TimeoutJustCalled), s => s.TimeoutJustCalled ? 1 : 0);
+
+    private static readonly (int Lowest, int Highest)[] Minutes =
+        [.. Enumerable.Range(0, Periods.RegulationSeconds / 60).Select(m => (m * 60, m * 60 + 59))];
+
+    public static readonly IReadOnlyList<Feature<NbaState>> PeriodTimeoutsByClock =
+    [
+        .. new[] { (0, 299) }.Concat(Minutes.Skip(5)).Select(c => PeriodTimeoutsCell("None", 0, 0, c.Item1, c.Item2)),
+        .. Minutes.Select(c => PeriodTimeoutsCell("One", 1, 1, c.Lowest, c.Highest)),
+        .. Minutes.Select(c => PeriodTimeoutsCell("TwoOrMore", 2, int.MaxValue, c.Lowest, c.Highest)),
+    ];
+
+    public static readonly Feature<NbaState> OffenceTimeoutsLeft =
+        new(nameof(OffenceTimeoutsLeft), s => s.TimeoutsLeft[s.TeamInPossession]);
+
+    public static readonly Feature<NbaState> DefenceTimeoutsLeft =
+        new(nameof(DefenceTimeoutsLeft), s => s.TimeoutsLeft[Sides.Opponent(s.TeamInPossession)]);
+
     public static readonly Feature<NbaState> PeriodClockExpired =
         new(nameof(PeriodClockExpired), s => s.PeriodClock == 0 ? 1 : 0);
 
@@ -147,6 +175,17 @@ public static class NbaFeatures
             s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds
                 && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] >= lowestMargin
                 && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] <= highestMargin
+                && s.PeriodClock >= lowestClock
+                && s.PeriodClock <= highestClock
+                    ? 1
+                    : 0);
+
+    private static Feature<NbaState> PeriodTimeoutsCell(string timeouts, int fewest, int most, int lowestClock, int highestClock) =>
+        new(
+            $"Period{timeouts}TimeoutsClock{lowestClock}To{highestClock}",
+            s => s.Period < Periods.Regulation
+                && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] >= fewest
+                && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] <= most
                 && s.PeriodClock >= lowestClock
                 && s.PeriodClock <= highestClock
                     ? 1

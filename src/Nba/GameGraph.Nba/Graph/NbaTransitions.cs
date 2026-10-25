@@ -36,6 +36,12 @@ public static class NbaTransitions
         return NbaNodes.AwardedFreeThrowMade;
     }
 
+    public static Next<NbaState> OffenceTimeout(NbaState state, int called) =>
+        Yes(called) ? CallTimeout(state, state.TeamInPossession) : DefenceTimeoutOrOn(state);
+
+    public static Next<NbaState> DefenceTimeout(NbaState state, int called) =>
+        Yes(called) ? CallTimeout(state, Sides.Opponent(state.TeamInPossession)) : AfterTimeouts(state);
+
     public static Next<NbaState> AwardedFreeThrowMade(NbaState state, int made)
     {
         if (Yes(made))
@@ -103,7 +109,7 @@ public static class NbaTransitions
         if (state.Fouled)
         {
             state.FreeThrowsLeft = Yes(made) ? 1 : state.ShotPoints;
-            return NbaNodes.FreeThrowMade;
+            return AskTimeouts(state, TimeoutMoment.FreeThrow);
         }
 
         if (Yes(made))
@@ -118,7 +124,7 @@ public static class NbaTransitions
         if (Yes(inBonus))
         {
             state.FreeThrowsLeft = FreeThrows.Bonus;
-            return NbaNodes.FreeThrowMade;
+            return AskTimeouts(state, TimeoutMoment.FreeThrow);
         }
 
         state.ShotClock = Math.Max(state.ShotClock, Graph.ShotClock.SideOutMinimum);
@@ -134,7 +140,7 @@ public static class NbaTransitions
         state.FreeThrowsLeft--;
 
         if (state.FreeThrowsLeft > 0)
-            return NbaNodes.FreeThrowMade;
+            return AskTimeouts(state, TimeoutMoment.FreeThrow);
 
         if (Yes(made))
             return EndOfPossession(state, PlayStart.MadeFreeThrow);
@@ -153,7 +159,48 @@ public static class NbaTransitions
         return NextPlay(state);
     }
 
-    private static Next<NbaState> NextPlay(NbaState state) => NbaNodes.AwardedFreeThrow;
+    private static Next<NbaState> NextPlay(NbaState state) => AskTimeouts(state, TimeoutMoment.Play);
+
+    private static Next<NbaState> AskTimeouts(NbaState state, TimeoutMoment moment)
+    {
+        state.TimeoutMoment = moment;
+        state.TimeoutJustCalled = false;
+        return OffenceTimeoutOrOn(state);
+    }
+
+    private static Next<NbaState> OffenceTimeoutOrOn(NbaState state) =>
+        Timeouts.Available(state, state.TeamInPossession) ? NbaNodes.OffenceTimeout : DefenceTimeoutOrOn(state);
+
+    private static Next<NbaState> DefenceTimeoutOrOn(NbaState state) =>
+        Timeouts.Available(state, Sides.Opponent(state.TeamInPossession)) ? NbaNodes.DefenceTimeout : AfterTimeouts(state);
+
+    private static Next<NbaState> CallTimeout(NbaState state, int team)
+    {
+        state.TimeoutsLeft[team]--;
+        state.TimeoutsThisPeriod[team]++;
+
+        if (state.PeriodClock <= Timeouts.LastThreeMinutes)
+            state.TimeoutsInLastThreeMinutes[team]++;
+
+        state.TimeoutJustCalled = true;
+        state.AfterTimeout |= state.TimeoutMoment == TimeoutMoment.Play;
+        return OffenceTimeoutOrOn(state);
+    }
+
+    private static Next<NbaState> AfterTimeouts(NbaState state)
+    {
+        var moment = state.TimeoutMoment;
+
+        state.TimeoutMoment = TimeoutMoment.NotSet;
+        state.TimeoutJustCalled = false;
+
+        return moment switch
+        {
+            TimeoutMoment.Play => NbaNodes.AwardedFreeThrow,
+            TimeoutMoment.FreeThrow => NbaNodes.FreeThrowMade,
+            _ => throw new InvalidOperationException($"No moment to return to after timeouts: {moment}"),
+        };
+    }
 
     private static Next<NbaState> ActionOrPeriodEnd(NbaState state) => state.PeriodClockBinds ? NbaNodes.PeriodRunsOut : NbaNodes.ActionType;
 
@@ -196,6 +243,12 @@ public static class NbaTransitions
         state.PeriodClock = Periods.SecondsIn(state.Period);
         Array.Clear(state.TeamFouls);
         Array.Clear(state.TeamFoulsInLastTwoMinutes);
+        Array.Clear(state.TimeoutsThisPeriod);
+        Array.Clear(state.TimeoutsInLastThreeMinutes);
+
+        if (state.Period >= Periods.Regulation)
+            Array.Fill(state.TimeoutsLeft, Timeouts.PerOvertime);
+
         StartPossession(state, PlayStart.PeriodStart);
     }
 
@@ -214,6 +267,7 @@ public static class NbaTransitions
         state.Fouled = false;
         state.FreeThrowsLeft = 0;
         state.LastMiss = Miss.NotSet;
+        state.AfterTimeout = false;
     }
 
     private static void DefenceFouls(NbaState state)
