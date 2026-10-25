@@ -173,12 +173,10 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             new(node, _ => outcome, team, possession.Period);
     }
 
-    private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int player)
-    {
-        var row = Array.IndexOf(node.CandidatesIn(state), player);
-
-        return row >= 0 ? 1 << row : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not among the candidates of {node.Name}");
-    }
+    private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int player) =>
+        node.TryRowsOf(state, [player], out var rows)
+            ? rows
+            : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not among the candidates of {node.Name}");
 
     private static int Number(bool value) => value ? 1 : 0;
 }

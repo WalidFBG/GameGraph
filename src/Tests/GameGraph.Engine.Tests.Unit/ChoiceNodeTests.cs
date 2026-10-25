@@ -31,12 +31,12 @@ public sealed class ChoiceNodeTests
     }
 
     [Fact]
-    public void TheWalkPassesTheChosenRowsToTheTransition()
+    public void TheWalkPassesTheChosenRowsCandidatesToTheTransition()
     {
-        var chosen = -1;
-        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, rows) =>
+        int[] chosen = [];
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, candidates) =>
         {
-            chosen = rows;
+            chosen = candidates.ToArray();
             return Next<ToyState>.GameOver;
         });
         var recorder = new Recorder();
@@ -44,7 +44,25 @@ public sealed class ChoiceNodeTests
         GameWalker.Walk(new GameSpec<ToyState>([pick], pick), new ToyState { Value = 1 }, recorder, recorder);
 
         Assert.Equal([[2, 2, 3, 2, 6, 2]], recorder.Collected.Select(c => c.Features));
-        Assert.Equal(1, chosen);
+        Assert.Equal([3], chosen);
+    }
+
+    [Fact]
+    public void ACandidatesRowsAreTheirBits()
+    {
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+
+        Assert.True(pick.TryRowsOf(new ToyState(), [7, 3], out var rows));
+        Assert.Equal(0b101, rows);
+    }
+
+    [Fact]
+    public void RowsOfAPlayerWhoIsNotACandidateOrIsChosenTwiceAreNotFound()
+    {
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+
+        Assert.False(pick.TryRowsOf(new ToyState(), [5], out _));
+        Assert.False(pick.TryRowsOf(new ToyState(), [4, 4], out _));
     }
 
     [Fact]

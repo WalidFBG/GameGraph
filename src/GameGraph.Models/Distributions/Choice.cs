@@ -22,7 +22,10 @@ internal sealed class Choice : IDistribution
                 chosen += Utility(parameters, c);
         }
 
-        return chosen - SuffixSets(parameters, candidates, size)[0][size];
+        Span<double> suffixes = stackalloc double[(candidates + 1) * (size + 1)];
+        FillSuffixSets(parameters, candidates, size, suffixes);
+
+        return chosen - suffixes[size];
     }
 
     public int Sample(ReadOnlySpan<double> parameters, double uniform)
@@ -30,13 +33,16 @@ internal sealed class Choice : IDistribution
         Uniforms.Require(uniform);
 
         var (candidates, size) = Decision(parameters);
-        var suffixes = SuffixSets(parameters, candidates, size);
+        var width = size + 1;
+        Span<double> suffixes = stackalloc double[(candidates + 1) * width];
+        FillSuffixSets(parameters, candidates, size, suffixes);
+
         var remaining = size;
         var outcome = 0;
 
         for (var c = 0; c < candidates; c++)
         {
-            var include = remaining > 0 ? Math.Exp(Utility(parameters, c) + suffixes[c + 1][remaining - 1] - suffixes[c][remaining]) : 0;
+            var include = remaining > 0 ? Math.Exp(Utility(parameters, c) + suffixes[(c + 1) * width + remaining - 1] - suffixes[c * width + remaining]) : 0;
 
             if (uniform < include)
             {
@@ -50,17 +56,24 @@ internal sealed class Choice : IDistribution
             }
         }
 
+        if (remaining != 0)
+            throw new InvalidOperationException($"A choice of {size} sampled {size - remaining} of its {candidates} candidates");
+
         return outcome;
     }
 
     public double[] Probabilities(ReadOnlySpan<double> parameters)
     {
         var (candidates, size) = Decision(parameters);
-        var whole = SuffixSets(parameters, candidates, size)[0][size];
+        Span<double> suffixes = stackalloc double[(candidates + 1) * (size + 1)];
+        FillSuffixSets(parameters, candidates, size, suffixes);
+
+        Span<double> sets = stackalloc double[size];
+        Span<double> grown = stackalloc double[size];
         var probabilities = new double[candidates];
 
         for (var c = 0; c < candidates; c++)
-            probabilities[c] = Math.Exp(Utility(parameters, c) + SetsWithout(parameters, candidates, size - 1, c) - whole);
+            probabilities[c] = Math.Exp(Utility(parameters, c) + SetsWithout(parameters, candidates, size - 1, c, sets, grown) - suffixes[size]);
 
         return probabilities;
     }
@@ -91,50 +104,46 @@ internal sealed class Choice : IDistribution
 
     private static double Utility(ReadOnlySpan<double> parameters, int candidate) => parameters[candidate * ParametersPerCandidate];
 
-    private static double[][] SuffixSets(ReadOnlySpan<double> parameters, int candidates, int size)
+    private static void FillSuffixSets(ReadOnlySpan<double> parameters, int candidates, int size, Span<double> suffixes)
     {
-        var suffixes = new double[candidates + 1][];
+        var width = size + 1;
 
-        suffixes[candidates] = Empty(size);
+        Empty(suffixes.Slice(candidates * width, width));
 
         for (var c = candidates - 1; c >= 0; c--)
-            suffixes[c] = Grown(suffixes[c + 1], Utility(parameters, c));
-
-        return suffixes;
+            Grow(suffixes.Slice((c + 1) * width, width), Utility(parameters, c), suffixes.Slice(c * width, width));
     }
 
-    private static double SetsWithout(ReadOnlySpan<double> parameters, int candidates, int size, int left)
+    private static double SetsWithout(ReadOnlySpan<double> parameters, int candidates, int size, int left, Span<double> sets, Span<double> grown)
     {
-        var sets = Empty(size);
+        sets = sets[..(size + 1)];
+        grown = grown[..(size + 1)];
+        Empty(sets);
 
         for (var c = candidates - 1; c >= 0; c--)
         {
-            if (c != left)
-                sets = Grown(sets, Utility(parameters, c));
+            if (c == left)
+                continue;
+
+            Grow(sets, Utility(parameters, c), grown);
+            grown.CopyTo(sets);
         }
 
         return sets[size];
     }
 
-    private static double[] Empty(int size)
+    private static void Empty(Span<double> sets)
     {
-        var sets = new double[size + 1];
-
-        Array.Fill(sets, NoSets, 1, size);
-
-        return sets;
+        sets[0] = 0;
+        sets[1..].Fill(NoSets);
     }
 
-    private static double[] Grown(double[] after, double utility)
+    private static void Grow(ReadOnlySpan<double> after, double utility, Span<double> grown)
     {
-        var grown = new double[after.Length];
-
         grown[0] = after[0];
 
         for (var j = 1; j < after.Length; j++)
             grown[j] = LogAddExp(after[j], utility + after[j - 1]);
-
-        return grown;
     }
 
     private static double LogAddExp(double a, double b)

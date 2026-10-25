@@ -146,6 +146,8 @@ class Choice:
             uniform = torch.where(taken, uniform / include, (uniform - include) / (1 - include))
             outcome = outcome | (taken.to(torch.int64) << c)
             remaining = remaining - taken.to(torch.int64)
+        if (remaining != 0).any():
+            raise RuntimeError("A choice sampled fewer candidates than its size")
         return outcome
 
     def initial_parameters(self, outcomes: torch.Tensor) -> dict[str, float]:
