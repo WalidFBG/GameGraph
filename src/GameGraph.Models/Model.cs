@@ -36,6 +36,13 @@ public sealed class Model
         return _distribution.Sample(parameters, uniform);
     }
 
+    public double[] Probabilities(ReadOnlySpan<double> features)
+    {
+        Span<double> parameters = stackalloc double[_parameters.Length];
+        ParameterValues(features, parameters);
+        return _distribution.Probabilities(parameters);
+    }
+
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
     {
         var model = fitted.Model;

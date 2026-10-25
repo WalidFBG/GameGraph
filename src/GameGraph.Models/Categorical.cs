@@ -39,6 +39,24 @@ internal sealed class Categorical(int categories) : IDistribution
         return categories - 1;
     }
 
+    public double[] Probabilities(ReadOnlySpan<double> parameters)
+    {
+        var max = Max(parameters);
+        var probabilities = new double[categories];
+        var total = 0.0;
+
+        for (var category = 0; category < categories; category++)
+        {
+            probabilities[category] = Math.Exp(Score(parameters, category) - max);
+            total += probabilities[category];
+        }
+
+        for (var category = 0; category < categories; category++)
+            probabilities[category] /= total;
+
+        return probabilities;
+    }
+
     private static double Score(ReadOnlySpan<double> parameters, int category) => category == 0 ? 0 : parameters[category - 1];
 
     private double Max(ReadOnlySpan<double> parameters)

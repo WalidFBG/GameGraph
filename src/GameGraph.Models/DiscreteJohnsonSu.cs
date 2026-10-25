@@ -30,6 +30,21 @@ internal sealed class DiscreteJohnsonSu : IDistribution
         return (int)Math.Min(Math.Max(Math.Floor(time), 0), maximum);
     }
 
+    public double[] Probabilities(ReadOnlySpan<double> parameters)
+    {
+        var (location, scale, skew, tail, maximum) = Unpack(parameters);
+
+        double Z(double x) => skew + tail * Math.Asinh((x - location) / scale);
+
+        var logTotal = LogMassBetween(Z(0), Z(maximum + 1));
+        var probabilities = new double[maximum + 1];
+
+        for (var outcome = 0; outcome <= maximum; outcome++)
+            probabilities[outcome] = Math.Exp(LogMassBetween(Z(outcome), Z(outcome + 1)) - logTotal);
+
+        return probabilities;
+    }
+
     private static (double Location, double Scale, double Skew, double Tail, int Maximum) Unpack(ReadOnlySpan<double> parameters)
     {
         if (parameters.Length != 5)

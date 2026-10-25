@@ -1,4 +1,3 @@
-using GameGraph.Engine;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
@@ -11,33 +10,27 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 {
     private readonly EmptyIncidentCollector _incidentCollector = new();
 
-    public void Walk(IEnumerable<ObservedGame> games, TeamHistory history)
+    public void Walk(IReadOnlyCollection<ObservedGame> games)
     {
-        foreach (var game in games.OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
+        foreach (var game in games.Where(g => !g.IsAccepted))
+            tally.Rejected(game.Rejection);
+
+        var generated = 0;
+
+        foreach (var (game, context) in GeneratedGames.InOrder(games))
         {
-            if (!game.IsAccepted)
-            {
-                tally.Rejected(game.Rejection);
-                continue;
-            }
-
-            if (history.IsComplete(game))
-                Generate(game, history.ContextFor(game));
-            else
-                tally.ShortHistory();
-
-            history.Advance(game);
+            Generate(game, context);
+            generated++;
         }
+
+        tally.ShortHistories(games.Count(g => g.IsAccepted) - generated);
     }
 
     private void Generate(ObservedGame game, GameContext context)
     {
-        var state = new NbaState(_incidentCollector, context.HomeScoringRate, context.AwayScoringRate);
-        var decider = new ObservedOutcomeDecider(game.Possessions);
-
         collector.BeginGame(game.Id, game.StartUtc);
-        GameWalker.Walk(NbaGameSpec.Instance, state, decider, collector);
-        decider.EnsureAllUsed();
+
+        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context.HomeScoringRate, context.AwayScoringRate), collector);
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

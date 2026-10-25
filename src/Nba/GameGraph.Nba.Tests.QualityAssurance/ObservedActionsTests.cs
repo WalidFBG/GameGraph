@@ -1,6 +1,6 @@
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
-using GameGraph.Nba.Sportradar;
+using GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 using Xunit;
 
 namespace GameGraph.Nba.Tests.QualityAssurance;
@@ -10,7 +10,7 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
     [Fact]
     public void SummarisesTheObservedActions()
     {
-        var games = new ValidatedGameReader(QualityAssuranceData.ValidatedData).ReadAll().ToArray();
+        var games = ValidatedDataReader.ReadAll().ToArray();
         var accepted = games.Where(g => g.IsAccepted).ToArray();
         var possessions = accepted.SelectMany(g => g.Possessions).ToArray();
         var actions = possessions.SelectMany(p => p.Actions).ToArray();

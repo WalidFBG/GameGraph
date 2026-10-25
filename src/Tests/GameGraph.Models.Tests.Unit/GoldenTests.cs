@@ -14,12 +14,7 @@ public sealed class GoldenTests
     [MemberData(nameof(Distributions))]
     public void CSharpAgreesWithPython(string distribution)
     {
-        var directory = Path.Combine(Repository.Root, "testdata", distribution);
-        var golden = JsonSerializer.Deserialize<GoldenCases>(File.ReadAllText(Path.Combine(directory, "cases.json")), JsonSerializerOptions.Web)
-            ?? throw new InvalidDataException("No golden cases");
-        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(directory, "fitted-model.json")), golden.Features);
-
-        Assert.NotEmpty(golden.Cases);
+        var (golden, model) = Read(distribution);
 
         foreach (var c in golden.Cases)
         {
@@ -32,6 +27,33 @@ public sealed class GoldenTests
             AssertClose(c.LogProbability, model.LogProbability(c.Features, c.Outcome));
             Assert.Equal(c.Sample, model.Sample(c.Features, c.Uniform));
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(Distributions))]
+    public void ProbabilitiesAreEveryOutcomesAndSumToOne(string distribution)
+    {
+        var (golden, model) = Read(distribution);
+
+        foreach (var c in golden.Cases)
+        {
+            var probabilities = model.Probabilities(c.Features);
+
+            Assert.InRange(c.Outcome, 0, probabilities.Length - 1);
+            AssertClose(Math.Exp(c.LogProbability), probabilities[c.Outcome]);
+            Assert.Equal(1, probabilities.Sum(), 1e-12);
+        }
+    }
+
+    private static (GoldenCases Golden, Model Model) Read(string distribution)
+    {
+        var directory = Path.Combine(Repository.Root, "testdata", distribution);
+        var golden = JsonSerializer.Deserialize<GoldenCases>(File.ReadAllText(Path.Combine(directory, "cases.json")), JsonSerializerOptions.Web)
+            ?? throw new InvalidDataException("No golden cases");
+
+        Assert.NotEmpty(golden.Cases);
+
+        return (golden, Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(directory, "fitted-model.json")), golden.Features));
     }
 
     private static void AssertClose(double expected, double actual) =>

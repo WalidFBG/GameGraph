@@ -28,16 +28,29 @@ A simple, readable prototype that runs the full flow on real NBA data: augment, 
 3. Generate training data: walk each game, emit one row per possession.
 4. Train the model on the rows.
 5. Simulate held-out games; price the total and the winner.
-6. Validate against what actually happened: deferred; it will be an audit of the simulator and its nodes, designed when it is needed.
+6. Validate against what actually happened: the audit (see "The audit").
 7. Round trip: dropped, the audit covers it.
 
 The model is useless for pricing, but every part of the architecture exists and is tested.
 
 ## Validation
 
-- **Audit of the simulator and its nodes**: deferred, designed when it is needed; it covers what a round trip would (simulation, training-data generation and training agreeing with each other).
+- **The audit of the simulator and its nodes** (below): it covers what a round trip would (simulation, training-data generation and training agreeing with each other).
 - **Against reality**: holdout log-loss and calibration per model; simulated against actual totals, margins and, later, player stats on held-out games.
 - **Against the current production model**: a sanity check on averages only. It contains trading adjustments, so it is not the target.
+
+## The audit
+
+Two audits, split between C# and Python. The C# writes data and nothing else: each audit is an explicit xUnit fact in `src/Nba/GameGraph.Nba.Tests.QualityAssurance` (run only when asked for by name, never by a plain `dotnet test`), writing Parquet to `C:\Data\GameGraph\nba\audit\<audit>\<yyMMdd-HHmm>` (written as `<yyMMdd-HHmm>.partial` and renamed when complete, so an analysis never reads a run that failed or is still being written); the project keeps its entry points (tests and audits) at its root, readers and writers in `Infrastructure`, the data written in `Definitions` and the logic in `Domain`. Python (`python/src/gamegraph/audit`) reads it, groups it and writes CSVs named `<node>_<feature>_<run>.csv` (so that two runs open side by side in Excel), with a summary per node; nothing passes or fails. Nothing names a node or a feature: those come from the training data's manifests and the fitted models, so a new node is audited as soon as it exists. `RecentGamesSimulationTests` stays the one test that asserts.
+
+1. **Examples**: both audits work on each node's examples (features, outcome), every game at once, with no split. Real ones are read from the training-data files, so the audit sees exactly the rows the trainer saw; simulated ones come from the simulator through the same `TrainingDataCollector` that writes the training data.
+2. **Buckets** (Python): a feature with at most 30 distinct values gets one bucket per value, any other up to 20 quantile buckets, never splitting equal values. A z-score per bucket and outcome uses the variance of a sum of independent Bernoullis, and is left out when fewer than 5 outcomes are expected; the summary sets the number of z-scores above 3 against the number chance alone gives, lists the worst, and `failures_<run>.csv` holds them all.
+3. **The calibration audit**: does each fitted model follow its features? The C# writes every example with the C# model's probability of each outcome (`p0` to `pK−1`; for `ActionTime`, outcomes past a row's bound have probability 0), so that the translation from Python is audited too. Per node, feature and bucket, Python compares the observed shares with the predicted ones; `ActionTime` compares its mean and quartiles.
+4. **The simulation audit**: does the simulator behave like the data? Every generated game is simulated once, with its own seed drawn from the root seed in game order, so runs repeat exactly: more simulations per game would only narrow the simulated side's noise, which is no larger than the real side's. Only the teams and each game's context (from the history of earlier games) come from the real game; every decision is sampled.
+   - Node analysis: per node, and per feature bucket cut on the real data, how often the node is reached per game (a z-score on the per-game differences, since both sides are the same games) and its outcome shares, simulated against real. A node reached too often or too rarely points at the transitions or the state, not at the model.
+   - Sampling: the calibration analysis run on the simulated examples, per node, feature and bucket, the simulated outcomes against the model's predictions, which match by construction unless sampling is wrong.
+   - Real games are counted the way simulations are, by walking them through the graph, so points, possessions and periods mean the same on both sides (the data's possessions miss the empty possession a period's end cuts off).
+   - Game statistics: questions we choose, a short list at the top of the module: points, totals, the home margin, possessions and overtime from each game's incidents, and attempts, makes, free throws, fouls, rebounds and turnovers counted from the decisions; with the distributions of totals and margins.
 
 ## Augmentation
 
@@ -57,7 +70,7 @@ Built in two pieces: first the engine change (decision collector and incident co
 3. **Count**: 10,000 simulations per game.
 4. **The simulation index**: each incident carries the index of its simulation (`SimulationIndex`), read from the game state, so one incident collector receives all simulations. Superseded: each simulation's state now holds its own incident collector, so incidents carry no index.
 5. **The real schedule**: each simulation plays the real game's periods and possessions per period, overtime included; every possession's outcome is sampled. This leaks the real game into the price (overtime is known in advance, so is the pace) and is accepted until step 4 brings the clock; ties are possible and counted separately.
-6. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.QualityAssurance` (xUnit v3), each with its own season loop. The first simulates the latest generated game, writes one row per simulation (simulation index, home points, away points) to `quality-assurance`, and prints home win, away win, tie and mean total next to the actual result.
+6. **Quality assurance**: analyses are tests in `src/Nba/GameGraph.Nba.Tests.QualityAssurance` (xUnit v3), sharing the season loop (`GeneratedGames`) with training-data generation. The first simulates the latest generated game, writes one row per simulation (simulation index, home points, away points) to `quality-assurance`, and prints home win, away win, tie and mean total next to the actual result.
 
 ## Growing the NBA
 
@@ -66,10 +79,25 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 1. Step 1 above (team level, one Bernoulli node): done.
 2. The tree without the clock, on the real schedule: action types, shots, fouls, free throws and rebounds (the Categorical family; rules with their own state). Whether a non-shooting foul gives free throws is a Bernoulli node (`InBonus`) rather than the bonus rule, because the tree does not generate every team foul. Fouls come now because about one possession in eight has free throws: most are a fouled missed shot, which the data records as a shooting foul and free throws, with no shot.
 3. The tree's clock (step 13 in `models.md`): done. `PeriodRunsOut` ends periods, `JumpBall` starts the game and every overtime, `ActionTime` is a discrete Johnson SU, and free throws outside the play keep the score right; the schedule leak is gone, and possessions the period cuts short are kept (`PossessionsCutByPeriodEnd` only counts them now).
-4. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
-5. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
+4. The audit (see "The audit"): first, so that every later step is judged by it.
+5. The team graph's gaps, one at a time:
+   - the ball after a flagrant, take or clear-path foul: the fouled team keeps it in reality, not in a simulation (a correctness bug);
+   - late-game fouling: the trailing team fouls to stop the clock, which shapes close finishes and the totals and margins near the line;
+   - timeouts: they stop the clock and advance the ball late in games.
+6. Players and substitutions, so that the game is player-driven: who shoots, rebounds, turns it over and is fouled (the Choice family), and the five on court come from the simulation, not the real game. One slice at a time:
+   1. the Choice family (one feature row per candidate) and the lineup state, read from the data (starting lineups, lineup changes and player availability are in it);
+   2. one player node, who shoots, end to end;
+   3. the other player nodes, with the finer action types that need players (live-ball steals, assists, blocks);
+   4. starters and substitutions last, as repeated single choices from a shrinking pool; until then simulations take the real lineups, a leak accepted as the real schedule was before the clock.
+
+   Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
+7. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
+
+Each step adds its nodes, reshapes the simulator where they need it, adds a family if they need one, and then goes through training data, training, simulation and the audit.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
+
+Once the graph is complete, and not before, comes the tuning: richer context (the opponent's defence, pace, a rate per node rather than points per possession for all, rest and travel; with players, much of it becomes the strength of the five on court), the drift (idea 7 in `models.md`), and whether games outside the regular season feed the history or the training data.
 
 ### Building step 2, piece by piece
 
@@ -111,5 +139,5 @@ What the C# models are today; items 1 to 4 are built. `models.md` replaces this:
 
 ## Open questions
 
-- Whether games outside the regular season should feed the history (they do not yet): a team's last 20 games currently skip its playoff games.
+- Whether games outside the regular season should feed the history or the training data: only regular-season games are read, for both (settled once the graph is complete).
 - Licence for the public repository.
