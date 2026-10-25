@@ -6,8 +6,8 @@ import polars as pl
 from gamegraph.audit import findings, predicted
 from gamegraph.audit.findings import Failure
 from gamegraph.audit.runs import BUCKETS, csv_name, latest
-from gamegraph.models.contract_files import read_training_data_manifest
-from gamegraph.models.training_data import MANIFEST
+from gamegraph.files.contract_files import read_training_data_manifest
+from gamegraph.files.training_data_files import MANIFEST
 
 CHECK = "calibration"
 

@@ -1,5 +1,5 @@
+using GameGraph.Contract.Distributions;
 using GameGraph.Engine;
-using GameGraph.Models.Contract;
 
 namespace GameGraph.Nba.Graph;
 

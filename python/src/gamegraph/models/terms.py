@@ -4,7 +4,7 @@ from typing import cast
 
 import torch
 
-from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, LinearTerm, Term, TermFit
+from gamegraph.contract import LinearFit, LinearSplineFit, LinearSplineTerm, LinearTerm, Term, TermFit
 
 
 @dataclass(frozen=True)

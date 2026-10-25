@@ -2,8 +2,8 @@ from collections.abc import Sequence
 
 import torch
 
+from gamegraph.contract import PredictedParameter, PredictorFit, Term
 from gamegraph.models import links
-from gamegraph.models.contract import PredictedParameter, PredictorFit, Term
 from gamegraph.models.terms import TermColumns, columns_from_fit, fit_columns
 
 

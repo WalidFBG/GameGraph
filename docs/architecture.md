@@ -28,24 +28,32 @@ The walk has two outputs, for two audiences:
 | | Simulate | Generate training data |
 |---|---|---|
 | Outcome decider | samples from the node's model | reads the observed outcome from a real game, as the sport says how |
-| Decision collector | does nothing | the training-data collector: stores node, features and outcome as training data |
+| Decision collector | does nothing | the training-data collector: records node, features and outcome as training examples |
 | Incident collector | the outside world's, one per simulation | ignores incidents |
 
 Who provides what:
 
 - **The sport**: the game state (which holds the incident collector, so the engine never sees incidents), the transitions (update the state with an outcome, report incidents, return the next node), the feature definitions, its incident types and collector interface, and how to read observed outcomes from its data.
 - **The engine**: the walk itself. The only thing that differs between modes is where each node's outcome comes from and who receives the two outputs.
-- **The training-data collector**: nothing but a decision collector. It never tracks the score, applies a rule or computes a feature.
+- **The training-data collector**: nothing but a decision collector. It never tracks the score, applies a rule, computes a feature or writes a file.
 
 So features, rules and state updates are the same code in both modes. Training data is built by exactly the code that later simulates.
 
 ## Projects and dependencies
 
+The core is pure: values in, values out, no file system, serialisation or console. Only the edge does I/O, and references point from the edge to the core, never the other way.
+
+- **Core**: Contract, Engine, Models, Simulation, Nba, Nba.Augmentation, Nba.TrainingDataGeneration.
+- **Edge**: Contract.Files, Nba.Sportradar (it adapts an external format), Host, the QA and test projects; in Python, `gamegraph.files`, `gamegraph.train_nodes` and the audit.
+
 Sport-agnostic:
 
 ```
-GameGraph.Host ──► GameGraph.TrainingDataGeneration ──► GameGraph.Engine ──► GameGraph.Models
+GameGraph.Engine ──────► GameGraph.Contract
+GameGraph.Models ──────► GameGraph.Contract
 GameGraph.Simulation ──► GameGraph.Engine, GameGraph.Models
+GameGraph.Contract.Files ──► GameGraph.Contract
+GameGraph.Host ──► GameGraph.Contract.Files, GameGraph.Nba.Sportradar, GameGraph.Nba.TrainingDataGeneration
 ```
 
 Training is Python (`python/`); it shares only files with the C#, written and read against the schemas in `schemas/`.
@@ -54,34 +62,34 @@ The NBA, in `src/Nba/`:
 
 ```
 GameGraph.Host
-  ├── GameGraph.Nba.Sportradar ──────────────► GameGraph.Nba ──► GameGraph.Engine
+  ├── GameGraph.Nba.Sportradar ──────────────► GameGraph.Nba ──► GameGraph.Engine, GameGraph.Contract
   └── GameGraph.Nba.TrainingDataGeneration
         ├── GameGraph.Nba.Augmentation ──────► GameGraph.Nba
-        ├── GameGraph.TrainingDataGeneration
         ├── GameGraph.Nba
         └── GameGraph.Engine
 
 GameGraph.Nba.Tests.QualityAssurance
   ├── GameGraph.Nba.Sportradar
   ├── GameGraph.Nba.Augmentation
-  ├── GameGraph.TrainingDataGeneration
+  ├── GameGraph.Contract.Files
   ├── GameGraph.Simulation
   ├── GameGraph.Models
   ├── GameGraph.Nba
   └── GameGraph.Engine
 ```
 
-- **Models** knows nothing about sports, games or the engine (see `models.md`). It holds the contract with Python (a model's declaration, the training-data manifest, the fitted model and the training report, read and written against the schemas) and the forward pass: a fitted model's parameter values, log-probability and samples, from the node's features.
-- **Engine** owns the walk and the outcome-decider and decision-collector interfaces. Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport and nothing about training.
+- **Contract** is the contract with Python as records with their invariants: a model's declaration, the fitted model, the training-data manifest, and a node's training data (its games, each with its examples; a choice's example holds one row of features per candidate, and its outcome is the chosen row). It references nothing and knows no file format.
+- **Contract.Files** reads and writes the contract's files: the manifest and fitted model as JSON validated against the schemas (the polymorphic records get their discriminators here, not from attributes), the training data as CSV, and the training report, which only the parity tests read. It is the only C# that knows the formats.
+- **Models** knows nothing about sports, games, the engine or files (see `models.md`): the forward pass, a fitted model's parameter values, log-probability and samples, from the node's features.
+- **Engine** owns the walk and the outcome-decider and decision-collector interfaces, and the training-data collector (a decision collector that records each node's examples, game by game, as it is handed them). Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport, nothing about files and nothing about how training works.
 - **Simulation** binds the fitted models to a game once (`FittedGame`) and simulates it many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
 - **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
-- **TrainingDataGeneration** holds the training-data collector (a decision collector for the engine's walk that stores what it is handed) and writes the training data to file, with the node's declared model in the manifest.
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period, each action with its clock, and the free throws outside the play). Its incidents are the possession and the awarded free throw; the tree is `possession-tree.html`. It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
 - **Nba.TrainingDataGeneration** walks the observed games: context, then the engine's walk with the observed outcome decider, then the history advances.
 - **Nba.Tests.QualityAssurance** holds analyses as tests (simulate real games, check the simulations, write CSVs to `quality-assurance`) and the audits (explicit facts that write Parquet to `audit`, see `plan.md`): entry points at its root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain`.
-- **Host** wires them together.
+- **Host** wires them together: it walks the season, then gives each node's examples their manifest (the node's features and declared model) and writes them.
 
 The engine and training never meet: they share only files. What guarantees that what is trained is what runs is the parity tests: C# recomputes the training report's likelihoods from the same files and fitted models, and draws the same samples, to 1e-12.
 

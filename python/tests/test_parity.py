@@ -4,9 +4,9 @@ import golden
 import pytest
 import torch
 
-from gamegraph.models.contract_files import read_fitted_model, read_training_report
+from gamegraph.files.contract_files import read_fitted_model, read_training_report
+from gamegraph.files.training_data_files import read_training_data, write_training_data
 from gamegraph.models.model import Model
-from gamegraph.models.training_data import read_training_data, write_training_data
 
 SETS = golden.parity_sets()
 

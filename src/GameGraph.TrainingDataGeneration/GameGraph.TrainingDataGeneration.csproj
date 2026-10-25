@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\GameGraph.Engine\GameGraph.Engine.csproj" />
-    <ProjectReference Include="..\GameGraph.Models\GameGraph.Models.csproj" />
-  </ItemGroup>
-</Project>

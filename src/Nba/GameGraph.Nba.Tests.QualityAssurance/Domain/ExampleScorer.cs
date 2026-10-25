@@ -1,5 +1,5 @@
+using GameGraph.Contract.Distributions;
 using GameGraph.Models;
-using GameGraph.Models.Contract;
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Domain;

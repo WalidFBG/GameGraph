@@ -1,4 +1,7 @@
-using GameGraph.Models.Contract;
+using GameGraph.Contract;
+using GameGraph.Contract.Distributions;
+using GameGraph.Models.Distributions;
+using GameGraph.Models.Predictors;
 
 namespace GameGraph.Models;
 
@@ -63,8 +66,17 @@ public sealed class Model
         var predictors = model.Distribution.Predicted().Select(p => Predictor.FromFit(p.Link, model.Terms[p.Name], fitted.Fit[p.Name], features));
         var given = model.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(model.Given[n], features)));
 
-        return new(Distributions.For(model.Distribution), [.. predictors, .. given], features.Count, model.Distribution.ChoosesAmongCandidates());
+        return new(DistributionFor(model.Distribution), [.. predictors, .. given], features.Count, model.Distribution.ChoosesAmongCandidates());
     }
+
+    private static IDistribution DistributionFor(DistributionDeclaration declaration) => declaration switch
+    {
+        BernoulliDistribution => new Bernoulli(),
+        CategoricalDistribution categorical => new Categorical(categorical.Categories.Length),
+        DiscreteJohnsonSuDistribution => new DiscreteJohnsonSu(),
+        ChoiceDistribution => new Choice(),
+        _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration.GetType().Name, "Not a distribution"),
+    };
 
     private int ParameterValueCount(ReadOnlySpan<double> features) => Rows(features) * _parameters.Length;
 

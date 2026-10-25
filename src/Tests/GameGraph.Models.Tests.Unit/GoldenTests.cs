@@ -1,5 +1,5 @@
 using System.Text.Json;
-using GameGraph.Models.Contract;
+using GameGraph.Contract.Files;
 using Xunit;
 
 namespace GameGraph.Models.Tests.Unit;

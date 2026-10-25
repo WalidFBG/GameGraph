@@ -2,7 +2,7 @@ import math
 
 import torch
 
-from gamegraph.models.contract import Link
+from gamegraph.contract import Link
 
 
 def inverse(link: Link, eta: torch.Tensor) -> torch.Tensor:

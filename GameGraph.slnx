@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/GameGraph.Contract/GameGraph.Contract.csproj" />
+    <Project Path="src/GameGraph.Contract.Files/GameGraph.Contract.Files.csproj" />
     <Project Path="src/GameGraph.Engine/GameGraph.Engine.csproj" />
     <Project Path="src/GameGraph.Host/GameGraph.Host.csproj" />
     <Project Path="src/GameGraph.Models/GameGraph.Models.csproj" />
     <Project Path="src/GameGraph.Simulation/GameGraph.Simulation.csproj" />
-    <Project Path="src/GameGraph.TrainingDataGeneration/GameGraph.TrainingDataGeneration.csproj" />
   </Folder>
   <Folder Name="/src/Tests/">
+    <Project Path="src/Tests/GameGraph.Contract.Files.Tests.Unit/GameGraph.Contract.Files.Tests.Unit.csproj" />
     <Project Path="src/Tests/GameGraph.Engine.Tests.Unit/GameGraph.Engine.Tests.Unit.csproj" />
     <Project Path="src/Tests/GameGraph.Models.Tests.Unit/GameGraph.Models.Tests.Unit.csproj" />
   </Folder>

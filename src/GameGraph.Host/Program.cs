@@ -1,14 +1,16 @@
+using GameGraph.Contract;
+using GameGraph.Contract.Files;
+using GameGraph.Engine;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Sportradar;
 using GameGraph.Nba.TrainingDataGeneration;
-using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Host;
 
 public static class Program
 {
     private const string ValidatedData = @"C:\Data\Basketball\ValidatedData\PlayByPlay";
-    private const string TrainingData = @"C:\Data\GameGraph\nba\training-data";
+    private const string TrainingDataRoot = @"C:\Data\GameGraph\nba\training-data";
 
     public static void Main()
     {
@@ -20,14 +22,15 @@ public static class Program
 
         Console.WriteLine(tally.Describe());
 
-        var writer = new TrainingDataWriter(TrainingData);
-
         foreach (var node in NbaGameSpec.Instance.Nodes)
         {
             var nodeGames = collector.GamesFor(node);
-            var directory = writer.Write(node, ValidatedData, nodeGames);
+            var manifest = new TrainingDataManifest(node.Name, ValidatedData, DateTime.UtcNow, node.FeatureNames, nodeGames.Sum(g => g.Examples.Length), node.Model);
+            var directory = Path.Combine(TrainingDataRoot, node.Name);
 
-            Console.WriteLine($"{node.Name}: {nodeGames.Sum(g => g.Examples.Count)} examples in {nodeGames.Count} games, written to {directory}");
+            TrainingDataFiles.Write(directory, new TrainingData(manifest, nodeGames));
+
+            Console.WriteLine($"{node.Name}: {manifest.Examples} examples in {nodeGames.Length} games, written to {directory}");
         }
     }
 }

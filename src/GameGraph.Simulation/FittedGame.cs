@@ -1,6 +1,6 @@
+using GameGraph.Contract;
 using GameGraph.Engine;
 using GameGraph.Models;
-using GameGraph.Models.Contract;
 
 namespace GameGraph.Simulation;
 

@@ -1,8 +1,8 @@
+using GameGraph.Engine;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using GameGraph.Simulation;
-using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 

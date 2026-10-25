@@ -2,14 +2,14 @@ import math
 
 import torch
 
-from gamegraph.models import normal
-from gamegraph.models.contract import (
+from gamegraph.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     DistributionDeclaration,
 )
+from gamegraph.models import normal
 
 NARROW_OUTCOME = 1e-3
 NARROW_RANGE = 1e-8

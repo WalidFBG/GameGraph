@@ -1,4 +1,5 @@
-using GameGraph.Models.Contract;
+using GameGraph.Contract;
+using GameGraph.Contract.Files;
 using GameGraph.Nba.Graph;
 using GameGraph.Simulation;
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-from gamegraph.models.contract import (
+from gamegraph.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     ChoiceDistribution,

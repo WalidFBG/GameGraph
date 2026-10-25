@@ -19,20 +19,20 @@ from synthetic import (
     johnson_su_parameters,
 )
 
-from gamegraph.models import training
-from gamegraph.models.contract import Attempt, Route, TrainingAndValidation
-from gamegraph.models.contract_files import read_fitted_model, read_training_report
+from gamegraph.contract import Attempt, Route, TrainingAndValidation
+from gamegraph.files.contract_files import read_fitted_model, read_training_report, write_training_result
+from gamegraph.files.training_data_files import read_training_data, write_training_data
 from gamegraph.models.distributions import DiscreteJohnsonSu
 from gamegraph.models.model import Model
-from gamegraph.models.training import (
+from gamegraph.training import training
+from gamegraph.training.training import (
     RIDGE_PATH,
     NotConverged,
     choose,
     require_converged,
     train,
-    write_training_result,
 )
-from gamegraph.models.training_data import Examples, TrainingData, read_training_data, write_training_data
+from gamegraph.training.training_data import Examples, TrainingData
 
 
 def synthetic(games: int = 1000) -> TrainingData:

@@ -1,11 +1,11 @@
+using GameGraph.Contract;
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
-using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class CollectedExamples
 {
-    public static ExampleTable Table(string[] featureNames, IReadOnlyList<GameExamples> games)
+    public static ExampleTable Table(string[] featureNames, GameExamples[] games)
     {
         var examples = games.SelectMany((g, index) => g.Examples.Select(e => (Game: index, Example: e))).ToArray();
 
