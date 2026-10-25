@@ -10,7 +10,7 @@ internal static class SeasonSimulation
 {
     public static (TrainingDataCollector<NbaState> Decisions, GameComparison[] Games) SimulateEachOnce(
         FittedGame<NbaState> fitted,
-        IReadOnlyList<(ObservedGame Game, GameContext Context)> games)
+        IReadOnlyList<(AcceptedGame Game, GameContext Context)> games)
     {
         var seeds = Seeds.Draw(games.Count);
         var decisions = new TrainingDataCollector<NbaState>(NbaGameSpec.Instance);

@@ -33,7 +33,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     public int ClampedActionTimes { get; private set; }
 
-    public static bool Follows(ObservedGame game)
+    public static bool Follows(AcceptedGame game)
     {
         var decider = new ObservedOutcomeDecider(game.Possessions);
         var unread = new double[game.Players.Length];

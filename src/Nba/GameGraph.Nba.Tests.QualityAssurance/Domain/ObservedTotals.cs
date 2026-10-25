@@ -8,7 +8,7 @@ namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class ObservedTotals
 {
-    public static GameTotals Of(ObservedGame game, GameContext context)
+    public static GameTotals Of(AcceptedGame game, GameContext context)
     {
         var score = new GameScore();
 

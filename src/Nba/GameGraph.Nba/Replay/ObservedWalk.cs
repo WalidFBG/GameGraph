@@ -6,7 +6,7 @@ namespace GameGraph.Nba.Replay;
 
 public static class ObservedWalk
 {
-    public static ObservedOutcomeDecider Walk(ObservedGame game, NbaState state, IDecisionCollector<NbaState> decisions)
+    public static ObservedOutcomeDecider Walk(AcceptedGame game, NbaState state, IDecisionCollector<NbaState> decisions)
     {
         var decider = new ObservedOutcomeDecider(game.Possessions);
 

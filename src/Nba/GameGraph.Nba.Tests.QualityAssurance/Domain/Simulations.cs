@@ -8,7 +8,7 @@ namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class Simulations
 {
-    public static GameTotals[] Of(FittedGame<NbaState> fitted, ObservedGame game, GameContext context, int simulations)
+    public static GameTotals[] Of(FittedGame<NbaState> fitted, AcceptedGame game, GameContext context, int simulations)
     {
         var scores = Enumerable.Range(0, simulations).Select(_ => new GameScore()).ToArray();
 

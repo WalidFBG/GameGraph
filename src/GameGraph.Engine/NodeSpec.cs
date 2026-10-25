@@ -21,7 +21,7 @@ public abstract class NodeSpec<TState>
 
     public string[] FeatureNames { get; }
 
-    public Transition<TState> Transition { get; }
+    internal Transition<TState> Transition { get; }
 
     internal NextNode<TState> AsNext { get; }
 

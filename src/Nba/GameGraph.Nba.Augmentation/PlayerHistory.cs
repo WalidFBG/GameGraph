@@ -13,13 +13,10 @@ public sealed class PlayerHistory
 
     private readonly Dictionary<long, Queue<PlayerGame>> _games = [];
 
-    public double[] LogShares(ObservedGame game, int points) => [.. game.Players.Select(id => Math.Log(Share(id, points)))];
+    public double[] LogShares(AcceptedGame game, int points) => [.. game.Players.Select(id => Math.Log(Share(id, points)))];
 
-    public void Advance(ObservedGame game)
+    public void Advance(AcceptedGame game)
     {
-        if (!game.IsAccepted)
-            throw new InvalidOperationException($"Game {game.Id} was rejected ({game.Rejection}) and cannot advance the history");
-
         var games = new PlayerGame[game.Players.Length];
 
         foreach (var possession in game.Possessions)

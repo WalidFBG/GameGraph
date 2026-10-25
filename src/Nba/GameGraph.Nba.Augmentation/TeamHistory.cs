@@ -20,11 +20,8 @@ public sealed class TeamHistory
         return (double)history.Sum(g => g.Points) / history.Sum(g => g.Possessions);
     }
 
-    public void Advance(ObservedGame game)
+    public void Advance(AcceptedGame game)
     {
-        if (!game.IsAccepted)
-            throw new InvalidOperationException($"Game {game.Id} was rejected ({game.Rejection}) and cannot advance the history");
-
         Add(game.HomeTeamId, Summarise(game, Sides.Home));
         Add(game.AwayTeamId, Summarise(game, Sides.Away));
     }
@@ -42,7 +39,7 @@ public sealed class TeamHistory
             history.Dequeue();
     }
 
-    private static TeamGame Summarise(ObservedGame game, int side)
+    private static TeamGame Summarise(AcceptedGame game, int side)
     {
         var possessions = game.Possessions.Where(p => p.TeamInPossession == side).ToArray();
         return new TeamGame(possessions.Length, game.Points(side));

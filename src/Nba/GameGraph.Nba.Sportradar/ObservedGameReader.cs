@@ -51,9 +51,9 @@ public static class ObservedGameReader
         if (BreaksAlternation(possessions))
             return Rejected(game, RejectionReason.PeriodStartBreaksAlternation);
 
-        var observed = Observed(game, RejectionReason.NotSet, players, rotation, possessions, cut);
+        var accepted = new AcceptedGame(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, players, rotation, possessions, cut);
 
-        return ObservedOutcomeDecider.Follows(observed) ? observed : Rejected(game, RejectionReason.RulesDisagreeWithData);
+        return ObservedOutcomeDecider.Follows(accepted) ? accepted : Rejected(game, RejectionReason.RulesDisagreeWithData);
     }
 
     private static bool BreaksAlternation(Possession[] possessions)
@@ -64,10 +64,8 @@ public static class ObservedGameReader
         return starters[1] != Sides.Opponent(first) || starters[2] != Sides.Opponent(first) || starters[3] != first;
     }
 
-    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], null, [], 0);
-
-    private static ObservedGame Observed(Game game, RejectionReason rejection, long[] players, Rotation? rotation, Possession[] possessions, int cut) =>
-        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, players, rotation, possessions, cut);
+    private static RejectedGame Rejected(Game game, RejectionReason reason) =>
+        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, reason);
 
     private static Dictionary<long, TeamType> TeamsByPlayer(Game game) =>
         game.TeamA.Players.Select(p => (p.Player.Id, TeamType.HomeOrA))

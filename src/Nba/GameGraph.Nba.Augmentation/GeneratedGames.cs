@@ -5,12 +5,12 @@ namespace GameGraph.Nba.Augmentation;
 
 public static class GeneratedGames
 {
-    public static IEnumerable<(ObservedGame Game, GameContext Context)> InOrder(IEnumerable<ObservedGame> games)
+    public static IEnumerable<(AcceptedGame Game, GameContext Context)> InOrder(IEnumerable<ObservedGame> games)
     {
         var teams = new TeamHistory();
         var players = new PlayerHistory();
 
-        foreach (var game in games.Where(g => g.IsAccepted).OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
+        foreach (var game in games.OfType<AcceptedGame>().OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
         {
             if (teams.IsComplete(game))
                 yield return (game, ContextFor(game, teams, players));
@@ -20,6 +20,6 @@ public static class GeneratedGames
         }
     }
 
-    private static GameContext ContextFor(ObservedGame game, TeamHistory teams, PlayerHistory players) =>
+    private static GameContext ContextFor(AcceptedGame game, TeamHistory teams, PlayerHistory players) =>
         new(teams.PointsPerPossession(game, Sides.Home), teams.PointsPerPossession(game, Sides.Away), players.LogShares(game, 2), players.LogShares(game, 3));
 }
