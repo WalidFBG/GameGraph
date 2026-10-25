@@ -16,7 +16,7 @@ public sealed class TeamHistory
         if (!IsComplete(game))
             throw new InvalidOperationException($"Game {game.Id}: a team has fewer than {GamesKept} games of history");
 
-        return new GameContext(ScoringRate(game.HomeTeamId), ScoringRate(game.AwayTeamId));
+        return new GameContext(PointsPerPossession(game.HomeTeamId), PointsPerPossession(game.AwayTeamId));
     }
 
     public void Advance(ObservedGame game)
@@ -30,10 +30,10 @@ public sealed class TeamHistory
 
     private int Count(long teamId) => _games.TryGetValue(teamId, out var history) ? history.Count : 0;
 
-    private double ScoringRate(long teamId)
+    private double PointsPerPossession(long teamId)
     {
         var history = _games[teamId];
-        return (double)history.Sum(g => g.Scored) / history.Sum(g => g.Possessions);
+        return (double)history.Sum(g => g.Points) / history.Sum(g => g.Possessions);
     }
 
     private void Add(long teamId, TeamGame game)
@@ -50,6 +50,6 @@ public sealed class TeamHistory
     private static TeamGame Summarise(ObservedGame game, int side)
     {
         var possessions = game.Possessions.Where(p => p.TeamInPossession == side).ToArray();
-        return new TeamGame(possessions.Length, possessions.Count(p => p.Scored));
+        return new TeamGame(possessions.Length, game.Points(side));
     }
 }

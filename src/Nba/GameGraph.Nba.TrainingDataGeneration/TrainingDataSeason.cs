@@ -2,6 +2,7 @@ using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
+using GameGraph.Nba.Replay;
 using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
@@ -30,7 +31,7 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
     {
         collector.BeginGame(game.Id, game.StartUtc);
 
-        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context.HomeScoringRate, context.AwayScoringRate), collector);
+        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context.HomePointsPerPossession, context.AwayPointsPerPossession), collector);
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

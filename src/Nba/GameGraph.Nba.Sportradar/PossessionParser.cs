@@ -174,9 +174,9 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
             case 0:
                 _actions.Add(new ObservedFoul(ActionClock(foul), [], null) { AwardedBefore = TakeAwarded() });
                 break;
-            case NbaTransitions.BonusFreeThrows:
+            case FreeThrows.Bonus:
                 _open = new OpenAction(ActionClock(foul), 0, Phase.FreeThrows, TakeAwarded());
-                _open.Expect(NbaTransitions.BonusFreeThrows);
+                _open.Expect(FreeThrows.Bonus);
                 break;
             default:
                 throw new RejectedGameException(RejectionReason.UnexpectedFoul);

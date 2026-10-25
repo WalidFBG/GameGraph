@@ -16,8 +16,8 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShooterAtHome =
         new(nameof(ShooterAtHome), s => s.AwardedTeam == Sides.Home ? 1 : 0);
 
-    public static readonly Feature<NbaState> TeamScoringRate =
-        new(nameof(TeamScoringRate), s => s.ScoringRate[s.TeamInPossession]);
+    public static readonly Feature<NbaState> TeamPointsPerPossession =
+        new(nameof(TeamPointsPerPossession), s => s.PointsPerPossession[s.TeamInPossession]);
 
     public static readonly Feature<NbaState> DefenceTeamFouls =
         new(nameof(DefenceTeamFouls), s => s.TeamFouls[Sides.Opponent(s.TeamInPossession)]);
@@ -43,8 +43,8 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShooterMargin =
         new(nameof(ShooterMargin), s => s.Score[s.AwardedTeam] - s.Score[Sides.Opponent(s.AwardedTeam)]);
 
-    public static readonly Feature<NbaState> ShooterScoringRate =
-        new(nameof(ShooterScoringRate), s => s.ScoringRate[s.AwardedTeam]);
+    public static readonly Feature<NbaState> ShooterPointsPerPossession =
+        new(nameof(ShooterPointsPerPossession), s => s.PointsPerPossession[s.AwardedTeam]);
 
     public static readonly Feature<NbaState> AfterMiss =
         new(nameof(AfterMiss), s => s.LastMiss != Miss.NotSet ? 1 : 0);

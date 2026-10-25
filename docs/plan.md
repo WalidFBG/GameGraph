@@ -81,6 +81,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 3. The tree's clock (step 13 in `models.md`): done. `PeriodRunsOut` ends periods, `JumpBall` starts the game and every overtime, `ActionTime` is a discrete Johnson SU, and free throws outside the play keep the score right; the schedule leak is gone, and possessions the period cuts short are kept (`PossessionsCutByPeriodEnd` only counts them now).
 4. The audit (see "The audit"): first, so that every later step is judged by it.
 5. The team graph's gaps, one at a time:
+   - the context is points per possession: done. It used to be the share of possessions with a made field goal, so a three counted as a two and free throws not at all; points per possession validates better on five of the six nodes that read it (`AwardedFreeThrowMade` by 0.00007) and worse on `ActionType` by 0.00002;
    - the ball after free throws outside the play: done. `AwardedFreeThrow` learns each free throw's kind (technical, flagrant, clear path, take foul) and remembers the play's previous one, and the ball moves by rule (`AwardedBall`) after a flagrant or clear-path free throw to the defence: about 0.011 times a game, and the 52 games this used to reject are kept;
    - late-game fouling: the trailing team fouls to stop the clock, which shapes close finishes and the totals and margins near the line;
    - timeouts: they stop the clock and advance the ball late in games.
@@ -91,13 +92,17 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
    4. starters and substitutions last, as repeated single choices from a shrinking pool; until then simulations take the real lineups, a leak accepted as the real schedule was before the clock.
 
    Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
+
+   Two reshapes come with players, because they bring the uses that shape them:
+   - **Perspective**: whose decision it is. `ShooterMargin`, `ShooterPointsPerPossession` and `ShooterAtHome` copy the team features for the shooting team; players add the shooter, the candidate rebounder and the fouled player. One feature set is built for a side given as an expression, and the side's body is substituted into each feature, so the result is still an expression a compiler can read, never a delegate.
+   - **The observed cursor**: `ObservedOutcomeDecider` flattens each possession into the graph's decision order, so the order is written twice and the two can disagree only at runtime (`RulesDisagreeWithData`). Instead, each node reads its own fact from a cursor over the observed game (`ActionType` moves to the next action, `ShotMade` reads that action and fails if it is not a shot), and the walk still ends with everything consumed.
 7. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
 
 Each step adds its nodes, reshapes the simulator where they need it, adds a family if they need one, and then goes through training data, training, simulation and the audit.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
-Once the graph is complete, and not before, comes the tuning: richer context (the opponent's defence, pace, a rate per node rather than points per possession for all, rest and travel; with players, much of it becomes the strength of the five on court), the drift (idea 7 in `models.md`), and whether games outside the regular season feed the history or the training data.
+Once the graph is complete, and not before, comes the tuning: richer context (the opponent's defence, pace, a rate per node rather than points per possession for all, rest and travel; with players, much of it becomes the strength of the five on court; then `GameContext` moves from Augmentation into `GameGraph.Nba` as the state's constructor input, copied into plain arrays), the drift (idea 7 in `models.md`), and whether games outside the regular season feed the history or the training data.
 
 ### Building step 2, piece by piece
 
@@ -107,7 +112,7 @@ Each piece builds and runs on its own and is reviewed before the next.
 2. Each node declares its model (family and terms); the manifest records it; the trainer and the simulator build the model from it: done.
 3. Features as expressions (`Expression<Func<TState, double>>`, compiled once for the plain walk), while there are only two features: done.
 4. Reading the data: an observed possession becomes a sequence of actions (two, three, turnover, non-shooting foul), with fouled or not, made or missed, the free throws and the offensive rebound.
-5. The NBA graph: the new nodes, state, features, transitions and incidents: done (the six decisions of the tree without the clock; first features are the score margin and team scoring rate plus each node's own state; the possession incident is the only incident yet).
+5. The NBA graph: the new nodes, state, features, transitions and incidents: done (the six decisions of the tree without the clock; first features are the score margin and the team's points per possession plus each node's own state; the possession incident is the only incident yet).
 6. End to end: training data, training and the quality-assurance simulation on the new graph: done. `InBonus` stops at the 200-step cap and `FouledOnShot` close to it, so plain gradient descent is already too slow for some nodes (see the optimiser question).
 
 ## Model families and data shapes
