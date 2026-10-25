@@ -9,6 +9,12 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ScoreMargin =
         new(nameof(ScoreMargin), s => s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)]);
 
+    public static readonly Feature<NbaState> AtHome =
+        new(nameof(AtHome), s => s.TeamInPossession == Sides.Home ? 1 : 0);
+
+    public static readonly Feature<NbaState> ShooterAtHome =
+        new(nameof(ShooterAtHome), s => s.AwardedTeam == Sides.Home ? 1 : 0);
+
     public static readonly Feature<NbaState> TeamScoringRate =
         new(nameof(TeamScoringRate), s => s.ScoringRate[s.TeamInPossession]);
 

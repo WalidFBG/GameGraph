@@ -15,13 +15,13 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
         nameof(AwardedFreeThrow),
         new CategoricalDistribution(AwardedFreeThrows.Names),
-        [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame],
+        [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame, NbaFeatures.AtHome],
         NbaTransitions.AwardedFreeThrow);
 
     public static readonly NodeSpec<NbaState> AwardedFreeThrowMade = Node(
         nameof(AwardedFreeThrowMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ShooterMargin, NbaFeatures.ShooterScoringRate],
+        [NbaFeatures.ShooterMargin, NbaFeatures.ShooterScoringRate, NbaFeatures.ShooterAtHome],
         NbaTransitions.AwardedFreeThrowMade);
 
     public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
@@ -33,7 +33,7 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> ActionType = Node(
         nameof(ActionType),
         new CategoricalDistribution(ActionTypes.Names),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock, NbaFeatures.AtHome],
         NbaTransitions.ActionType);
 
     public static readonly NodeSpec<NbaState> ActionTime = new(
@@ -52,13 +52,13 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> FouledOnShot = Node(
         nameof(FouledOnShot),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.ShotIsThree],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.ShotIsThree, NbaFeatures.AtHome],
         NbaTransitions.FouledOnShot);
 
     public static readonly NodeSpec<NbaState> ShotMade = Node(
         nameof(ShotMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome],
         NbaTransitions.ShotMade);
 
     public static readonly NodeSpec<NbaState> InBonus = Node(
@@ -70,13 +70,13 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> FreeThrowMade = Node(
         nameof(FreeThrowMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.LastFreeThrow],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.LastFreeThrow, NbaFeatures.AtHome],
         NbaTransitions.FreeThrowMade);
 
     public static readonly NodeSpec<NbaState> OffensiveRebound = Node(
         nameof(OffensiveRebound),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow],
+        [NbaFeatures.ScoreMargin, NbaFeatures.TeamScoringRate, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow, NbaFeatures.AtHome],
         NbaTransitions.OffensiveRebound);
 
     private static FeatureTerm<NbaState>[] ActionTimeShape() =>
@@ -110,6 +110,7 @@ public static class NbaNodes
             NbaFeatures.AfterTurnover,
             NbaFeatures.AfterSideOut,
             NbaFeatures.AfterPeriodStart,
+            NbaFeatures.AtHome,
         }.Select(FeatureTerm.Linear);
 
     private static NodeSpec<NbaState> Node(
