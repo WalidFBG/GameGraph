@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from synthetic import bernoulli, categorical
 
+from gamegraph.models import train_nodes as train_nodes_module
 from gamegraph.models.contract_files import read_fitted_model, read_training_report
 from gamegraph.models.train_nodes import train_nodes
 from gamegraph.models.training_data import MANIFEST, write_training_data
@@ -64,6 +65,17 @@ def test_regenerating_the_same_training_data_later_keeps_the_fitted_model(
     capsys.readouterr()
     train_nodes(tmp_path / "data", tmp_path / "fitted")
     assert capsys.readouterr().out.splitlines() == ["First: unchanged, kept", "Second: unchanged, kept"]
+
+
+def test_a_changed_trainer_retrains_every_node(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    two_nodes(tmp_path / "data")
+    train_nodes(tmp_path / "data", tmp_path / "fitted")
+    monkeypatch.setattr(train_nodes_module, "trainer_digest", lambda: "another trainer")
+    capsys.readouterr()
+    train_nodes(tmp_path / "data", tmp_path / "fitted")
+    assert not any("unchanged" in line for line in capsys.readouterr().out.splitlines())
 
 
 def test_retraining_all_ignores_the_recorded_digests(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

@@ -58,7 +58,7 @@ To train the nodes, from the training data the Host writes to the fitted models 
 uv run gamegraph-train <training data> <fitted models> [--all]
 ```
 
-A node whose training data (its examples, games and manifest, apart from when it was written) matches the digest recorded with its fitted model (`<node>.digest`) keeps that model; the rest are trained. After a change to the trainer itself, `--all` retrains every node.
+A node keeps its fitted model when the digest recorded with it (`<node>.digest`) still matches: its training data (examples, games and manifest, apart from when it was written), the trainer's source and the torch version. The rest are trained; `--all` retrains every node regardless.
 
 The audits run only when asked for by name; each analysis reads its audit's latest run:
 

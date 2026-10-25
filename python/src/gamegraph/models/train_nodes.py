@@ -3,7 +3,10 @@ import json
 import shutil
 import sys
 import time
+from functools import cache
 from pathlib import Path
+
+import torch
 
 from gamegraph.models.training import train, write_training_result
 from gamegraph.models.training_data import EXAMPLES, GAMES, MANIFEST, read_training_data
@@ -24,7 +27,7 @@ def train_nodes(training_data: Path, fitted_models: Path, retrain_all: bool = Fa
         shutil.rmtree(staging)
     for directory in directories:
         node = directory.name
-        digest = training_data_digest(directory)
+        digest = training_digest(directory)
         if not retrain_all and _recorded_digest(fitted_models, node) == digest:
             _keep(fitted_models, staging, node)
             print(f"{node}: unchanged, kept", flush=True)
@@ -48,13 +51,23 @@ def train_nodes(training_data: Path, fitted_models: Path, retrain_all: bool = Fa
     staging.rename(fitted_models)
 
 
-def training_data_digest(directory: Path) -> str:
+def training_digest(directory: Path) -> str:
     manifest = json.loads((directory / MANIFEST).read_text(encoding="utf-8"))
     for field in UNTRACKED_MANIFEST_FIELDS:
         del manifest[field]
-    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode("utf-8"))
+    digest = hashlib.sha256(trainer_digest().encode("utf-8"))
+    digest.update(json.dumps(manifest, sort_keys=True).encode("utf-8"))
     for name in (EXAMPLES, GAMES):
         digest.update((directory / name).read_bytes())
+    return digest.hexdigest()
+
+
+@cache
+def trainer_digest() -> str:
+    digest = hashlib.sha256(torch.__version__.encode("utf-8"))
+    for source in sorted(Path(__file__).parent.glob("*.py")):
+        digest.update(source.name.encode("utf-8"))
+        digest.update(source.read_bytes())
     return digest.hexdigest()
 
 
