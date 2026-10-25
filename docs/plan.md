@@ -92,13 +92,17 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
    4. starters and substitutions last, as repeated single choices from a shrinking pool; until then simulations take the real lineups, a leak accepted as the real schedule was before the clock.
 
    Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
+
+   Two reshapes come with players, because they bring the uses that shape them:
+   - **Perspective**: whose decision it is. `ShooterMargin`, `ShooterPointsPerPossession` and `ShooterAtHome` copy the team features for the shooting team; players add the shooter, the candidate rebounder and the fouled player. One feature set is built for a side given as an expression, and the side's body is substituted into each feature, so the result is still an expression a compiler can read, never a delegate.
+   - **The observed cursor**: `ObservedOutcomeDecider` flattens each possession into the graph's decision order, so the order is written twice and the two can disagree only at runtime (`RulesDisagreeWithData`). Instead, each node reads its own fact from a cursor over the observed game (`ActionType` moves to the next action, `ShotMade` reads that action and fails if it is not a shot), and the walk still ends with everything consumed.
 7. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
 
 Each step adds its nodes, reshapes the simulator where they need it, adds a family if they need one, and then goes through training data, training, simulation and the audit.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
-Once the graph is complete, and not before, comes the tuning: richer context (the opponent's defence, pace, a rate per node rather than points per possession for all, rest and travel; with players, much of it becomes the strength of the five on court), the drift (idea 7 in `models.md`), and whether games outside the regular season feed the history or the training data.
+Once the graph is complete, and not before, comes the tuning: richer context (the opponent's defence, pace, a rate per node rather than points per possession for all, rest and travel; with players, much of it becomes the strength of the five on court; then `GameContext` moves from Augmentation into `GameGraph.Nba` as the state's constructor input, copied into plain arrays), the drift (idea 7 in `models.md`), and whether games outside the regular season feed the history or the training data.
 
 ### Building step 2, piece by piece
 
