@@ -52,11 +52,13 @@ uv run ruff format --check
 uv run pyright
 ```
 
-To train every node, from the training data the Host writes to the fitted models simulation reads:
+To train the nodes, from the training data the Host writes to the fitted models simulation reads:
 
 ```
-uv run gamegraph-train <training data> <fitted models>
+uv run gamegraph-train <training data> <fitted models> [--all]
 ```
+
+A node keeps its fitted model when the digest recorded with it (`<node>.digest`) still matches: its training data (examples, games and manifest, apart from when it was written), the trainer's source and the torch version. The rest are trained; `--all` retrains every node regardless.
 
 The audits run only when asked for by name; each analysis reads its audit's latest run:
 

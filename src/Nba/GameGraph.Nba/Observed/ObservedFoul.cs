@@ -4,19 +4,19 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedFoul : ObservedAction
 {
-    public ObservedFoul(int clock, bool[] freeThrows, bool? offensiveRebound)
+    public ObservedFoul(int clock, ObservedFreeThrow[] freeThrows, bool? offensiveRebound)
         : base(clock)
     {
         if (freeThrows.Length is not (0 or Graph.FreeThrows.Bonus))
             throw new ArgumentException($"A non-shooting foul gives 0 or {Graph.FreeThrows.Bonus} free throws, got {freeThrows.Length}", nameof(freeThrows));
 
-        CheckRebound(freeThrows.Length > 0 && !freeThrows[^1], offensiveRebound);
+        CheckRebound(freeThrows.Length > 0 && !freeThrows[^1].Made, offensiveRebound);
 
         FreeThrows = freeThrows;
         OffensiveRebound = offensiveRebound;
     }
 
-    public bool[] FreeThrows { get; }
+    public ObservedFreeThrow[] FreeThrows { get; }
 
     public bool? OffensiveRebound { get; }
 

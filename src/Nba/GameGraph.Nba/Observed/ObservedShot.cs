@@ -4,7 +4,7 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedShot : ObservedAction
 {
-    public ObservedShot(int clock, int points, bool fouled, bool made, bool[] freeThrows, bool? offensiveRebound)
+    public ObservedShot(int clock, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, bool? offensiveRebound)
         : base(clock)
     {
         if (points is not (2 or 3))
@@ -15,7 +15,7 @@ public sealed record ObservedShot : ObservedAction
         if (freeThrows.Length != expected)
             throw new ArgumentException($"A {(fouled ? "fouled" : "clean")} {(made ? "made" : "missed")} {points} has {expected} free throws, got {freeThrows.Length}", nameof(freeThrows));
 
-        CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1] : !made, offensiveRebound);
+        CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1].Made : !made, offensiveRebound);
 
         Points = points;
         Fouled = fouled;
@@ -30,7 +30,7 @@ public sealed record ObservedShot : ObservedAction
 
     public bool Made { get; }
 
-    public bool[] FreeThrows { get; }
+    public ObservedFreeThrow[] FreeThrows { get; }
 
     public bool? OffensiveRebound { get; }
 

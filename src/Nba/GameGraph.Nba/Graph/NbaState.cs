@@ -10,6 +10,8 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
 
     public int[] Score { get; } = new int[2];
 
+    public int[] TimeoutsLeft { get; } = [Timeouts.PerGame, Timeouts.PerGame];
+
     public int Period { get; set; }
 
     public int FirstPeriodStarter { get; set; }
@@ -19,6 +21,10 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
     public int[] TeamFouls { get; } = new int[2];
 
     public int[] TeamFoulsInLastTwoMinutes { get; } = new int[2];
+
+    public int[] TimeoutsThisPeriod { get; } = new int[2];
+
+    public int[] TimeoutsInLastThreeMinutes { get; } = new int[2];
 
     public int TeamInPossession { get; set; }
 
@@ -37,6 +43,12 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
     public int FreeThrowsLeft { get; set; }
 
     public Miss LastMiss { get; set; }
+
+    public bool AfterTimeout { get; set; }
+
+    public TimeoutMoment TimeoutMoment { get; set; }
+
+    public bool TimeoutJustCalled { get; set; }
 
     public int AwardedTeam { get; set; }
 

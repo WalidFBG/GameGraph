@@ -28,11 +28,13 @@ public sealed record Possession
 
     public bool BallAwardedAfter { get; init; }
 
+    public int[] TimeoutsAfter { get; init; } = [];
+
     public bool CutByPeriodEnd => !Actions[^1].EndsPossession && !BallAwardedAfter;
 
     public bool Scored => Actions.OfType<ObservedShot>().Any(s => s.Made);
 
     public int Points =>
-        Actions.OfType<ObservedShot>().Sum(s => (s.Made ? s.Points : 0) + s.FreeThrows.Count(m => m))
-        + Actions.OfType<ObservedFoul>().Sum(f => f.FreeThrows.Count(m => m));
+        Actions.OfType<ObservedShot>().Sum(s => (s.Made ? s.Points : 0) + s.FreeThrows.Count(f => f.Made))
+        + Actions.OfType<ObservedFoul>().Sum(f => f.FreeThrows.Count(t => t.Made));
 }
