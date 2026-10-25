@@ -14,7 +14,7 @@ from gamegraph.training.training import train
 
 DIGEST = ".digest"
 PACKAGE = Path(__file__).parent
-TRAINER_SOURCES = ("*.py", "files/*.py", "models/*.py", "training/*.py")
+UNTRACKED_PACKAGES = ("audit",)
 UNTRACKED_MANIFEST_FIELDS = ("createdUtc",)
 
 
@@ -75,7 +75,11 @@ def trainer_digest() -> str:
 
 
 def trainer_sources() -> list[str]:
-    return sorted(s.relative_to(PACKAGE).as_posix() for pattern in TRAINER_SOURCES for s in PACKAGE.glob(pattern))
+    return sorted(
+        s.relative_to(PACKAGE).as_posix()
+        for s in PACKAGE.rglob("*.py")
+        if s.relative_to(PACKAGE).parts[0] not in UNTRACKED_PACKAGES
+    )
 
 
 def _recorded_digest(fitted_models: Path, node: str) -> str | None:

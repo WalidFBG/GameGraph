@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from synthetic import bernoulli, categorical
 
+import gamegraph
 from gamegraph import train_nodes as train_nodes_module
 from gamegraph.files.contract_files import read_fitted_model, read_training_report
 from gamegraph.files.training_data_files import MANIFEST, write_training_data
@@ -78,18 +79,11 @@ def test_a_changed_trainer_retrains_every_node(
     assert not any("unchanged" in line for line in capsys.readouterr().out.splitlines())
 
 
-def test_the_trainer_digest_covers_everything_that_reads_or_fits_training_data() -> None:
-    sources = trainer_sources()
-    assert {
-        "contract.py",
-        "train_nodes.py",
-        "files/contract_files.py",
-        "files/training_data_files.py",
-        "models/model.py",
-        "training/training.py",
-        "training/training_data.py",
-    } <= set(sources)
-    assert not any(s.startswith("audit/") for s in sources)
+def test_the_trainer_digest_covers_every_module_outside_the_audit() -> None:
+    package = Path(gamegraph.__file__).parent
+    modules = {p.relative_to(package).as_posix() for p in package.rglob("*.py")}
+    assert set(trainer_sources()) == {m for m in modules if not m.startswith("audit/")}
+    assert {"contract.py", "files/training_data_files.py", "models/model.py", "training/training.py"} <= modules
 
 
 def test_retraining_all_ignores_the_recorded_digests(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

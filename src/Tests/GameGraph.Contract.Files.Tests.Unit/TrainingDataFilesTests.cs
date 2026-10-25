@@ -88,6 +88,22 @@ public sealed class TrainingDataFilesTests : IDisposable
     }
 
     [Fact]
+    public void AChoiceOfANegativeCandidateFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 2, 0], -1)]]));
+
+        Assert.Contains("chooses candidate -1 of 2", error.Message);
+    }
+
+    [Fact]
+    public void AGameWhoseStartIsNotUtcFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new GameExamples("g0", DateTime.Now, []));
+
+        Assert.Contains("not in UTC", error.Message);
+    }
+
+    [Fact]
     public void GamesThatDoNotHoldTheManifestsExamplesFail()
     {
         var manifest = new TrainingDataManifest("Example", "source", Created, ["Gaussian", "Indicator"], 2, Bernoulli);

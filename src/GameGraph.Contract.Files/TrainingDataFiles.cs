@@ -113,12 +113,7 @@ public static class TrainingDataFiles
 
     private static int Whole(string value) => int.Parse(value, CultureInfo.InvariantCulture);
 
-    private static DateTime StartUtc(string value)
-    {
-        var moment = DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-
-        return moment.Kind == DateTimeKind.Utc ? moment : throw new InvalidDataException($"{value} is not in UTC");
-    }
+    private static DateTime StartUtc(string value) => DateTime.Parse(value, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
 
     private static string[][] Rows(string path, string[] header)
     {

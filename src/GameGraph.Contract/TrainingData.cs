@@ -19,7 +19,7 @@ public sealed record TrainingData
             if (rows == 0 || example.Features.Length != rows * features)
                 throw new ArgumentException($"An example of {manifest.Node} has {example.Features.Length} feature values, not {(choice ? "one or more candidates" : "one row")} of {features} features", nameof(games));
 
-            if (choice && example.Outcome >= rows)
+            if (choice && (example.Outcome < 0 || example.Outcome >= rows))
                 throw new ArgumentException($"An example of {manifest.Node} chooses candidate {example.Outcome} of {rows}", nameof(games));
         }
 
