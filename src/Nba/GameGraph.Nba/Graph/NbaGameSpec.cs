@@ -14,12 +14,14 @@ public static class NbaGameSpec
             NbaNodes.PeriodRunsOut,
             NbaNodes.ActionType,
             NbaNodes.ActionTime,
+            NbaNodes.Stolen,
             NbaNodes.Shooter,
             NbaNodes.FouledOnShot,
             NbaNodes.ShotMade,
             NbaNodes.InBonus,
             NbaNodes.FreeThrowMade,
             NbaNodes.OffensiveRebound,
+            NbaNodes.TeamRebound,
         ],
         NbaNodes.JumpBall);
 }

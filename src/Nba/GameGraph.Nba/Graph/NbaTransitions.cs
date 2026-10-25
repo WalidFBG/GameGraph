@@ -83,7 +83,7 @@ public static class NbaTransitions
                 state.ShotPoints = 3;
                 return NbaNodes.Shooter;
             case Graph.ActionType.Turnover:
-                return EndOfPossession(state, PlayStart.Turnover);
+                return NbaNodes.Stolen;
             case Graph.ActionType.NonShootingFoul:
                 DefenceFouls(state);
                 return NbaNodes.InBonus;
@@ -91,6 +91,9 @@ public static class NbaTransitions
                 throw new InvalidOperationException($"No action to time: {state.Action}");
         }
     }
+
+    public static Next<NbaState> Stolen(NbaState state, int stolen) =>
+        EndOfPossession(state, Yes(stolen) ? PlayStart.Steal : PlayStart.DeadBallTurnover);
 
     public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter) => NbaNodes.FouledOnShot;
 
@@ -154,11 +157,17 @@ public static class NbaTransitions
 
     public static Next<NbaState> OffensiveRebound(NbaState state, int offensive)
     {
-        if (!Yes(offensive))
-            return EndOfPossession(state, PlayStart.DefensiveRebound);
+        state.ReboundToOffence = Yes(offensive);
+        return NbaNodes.TeamRebound;
+    }
+
+    public static Next<NbaState> TeamRebound(NbaState state, int byTeam)
+    {
+        if (!state.ReboundToOffence)
+            return EndOfPossession(state, Yes(byTeam) ? PlayStart.TeamDefensiveRebound : PlayStart.DefensiveRebound);
 
         state.ShotClock = Graph.ShotClock.OffensiveRebound;
-        StartPlay(state, PlayStart.OffensiveRebound);
+        StartPlay(state, Yes(byTeam) ? PlayStart.TeamOffensiveRebound : PlayStart.OffensiveRebound);
         return NextPlay(state);
     }
 
@@ -270,6 +279,7 @@ public static class NbaTransitions
         state.Fouled = false;
         state.FreeThrowsLeft = 0;
         state.LastMiss = Miss.NotSet;
+        state.ReboundToOffence = false;
         state.AfterTimeout = false;
     }
 

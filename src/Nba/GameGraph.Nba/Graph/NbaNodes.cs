@@ -62,6 +62,7 @@ public static class NbaNodes
             .. LateSituation(),
             FeatureTerm.Spline(NbaFeatures.LatePeriodClock, 6),
             .. ClockByBand(FoulingBands, 4),
+            .. new[] { PlayStart.OffensiveRebound, PlayStart.TeamDefensiveRebound, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
         ],
         NbaTransitions.ActionType);
 
@@ -77,6 +78,18 @@ public static class NbaNodes
         },
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
+
+    public static readonly NodeSpec<NbaState> Stolen = Node(
+        nameof(Stolen),
+        new BernoulliDistribution(),
+        [
+            FeatureTerm.Spline(NbaFeatures.ShotClock, 8),
+            FeatureTerm.Linear(NbaFeatures.ShotClockExpired),
+            FeatureTerm.Linear(NbaFeatures.ScoreMargin),
+            FeatureTerm.Linear(NbaFeatures.LateInGame),
+            .. new[] { PlayStart.PeriodStart, PlayStart.OffensiveRebound, PlayStart.MadeShot, PlayStart.SideOut, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
+        ],
+        NbaTransitions.Stolen);
 
     public static readonly ChoiceNode<NbaState> Shooter = new(
         nameof(Shooter),
@@ -114,6 +127,12 @@ public static class NbaNodes
         new BernoulliDistribution(),
         [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow, NbaFeatures.AtHome],
         NbaTransitions.OffensiveRebound);
+
+    public static readonly NodeSpec<NbaState> TeamRebound = Node(
+        nameof(TeamRebound),
+        new BernoulliDistribution(),
+        [NbaFeatures.ReboundToOffence, NbaFeatures.MissedFreeThrow],
+        NbaTransitions.TeamRebound);
 
     private static FeatureTerm<NbaState>[] ActionTimeShape() =>
     [

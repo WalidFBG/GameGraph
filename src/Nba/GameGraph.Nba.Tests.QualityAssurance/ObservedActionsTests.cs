@@ -16,8 +16,9 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
         var actions = possessions.SelectMany(p => p.Actions).ToArray();
         var shots = actions.OfType<ObservedShot>().ToArray();
         var fouls = actions.OfType<ObservedFoul>().ToArray();
+        var turnovers = actions.OfType<ObservedTurnover>().ToArray();
         var freeThrows = shots.SelectMany(s => s.FreeThrows).Concat(fouls.SelectMany(f => f.FreeThrows)).ToArray();
-        var rebounds = shots.Select(s => s.OffensiveRebound).Concat(fouls.Select(f => f.OffensiveRebound)).OfType<bool>().ToArray();
+        var rebounds = shots.Select(s => s.Rebound).Concat(fouls.Select(f => f.Rebound)).OfType<ObservedRebound>().ToArray();
 
         Assert.NotEmpty(accepted);
 
@@ -41,7 +42,8 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
 
         output.WriteLine($"Non-shooting fouls: {fouls.Length}, in the bonus {Rate(fouls.Count(f => f.InBonus), fouls.Length)}");
         output.WriteLine($"Free throws: {freeThrows.Length}, made {Rate(freeThrows.Count(f => f.Made), freeThrows.Length)}");
-        output.WriteLine($"Rebounds after a miss: {rebounds.Length}, offensive {Rate(rebounds.Count(o => o), rebounds.Length)}");
+        output.WriteLine($"Rebounds after a miss: {rebounds.Length}, offensive {Rate(rebounds.Count(r => r.Offensive), rebounds.Length)}, by a team {Rate(rebounds.Count(r => r.ByTeam), rebounds.Length)}");
+        output.WriteLine($"Turnovers: {turnovers.Length}, stolen {Rate(turnovers.Count(t => t.Stolen), turnovers.Length)}");
         var atPeriodEnds = possessions.SelectMany(p => p.AwardedAfter).ToArray();
         var awarded = actions.SelectMany(a => a.AwardedBefore).Concat(atPeriodEnds).ToArray();
 

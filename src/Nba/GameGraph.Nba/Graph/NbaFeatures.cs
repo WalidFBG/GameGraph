@@ -46,6 +46,9 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> MissedFreeThrow =
         new(nameof(MissedFreeThrow), s => s.LastMiss == Miss.FreeThrow ? 1 : 0);
 
+    public static readonly Feature<NbaState> ReboundToOffence =
+        new(nameof(ReboundToOffence), s => s.ReboundToOffence ? 1 : 0);
+
     public static readonly Feature<NbaState> ShooterMargin =
         new(nameof(ShooterMargin), s => s.Score[s.AwardedTeam] - s.Score[Sides.Opponent(s.AwardedTeam)]);
 
@@ -57,6 +60,9 @@ public static class NbaFeatures
 
     public static readonly Feature<NbaState> ShotClock =
         new(nameof(ShotClock), s => s.ShotClock);
+
+    public static readonly Feature<NbaState> ShotClockExpired =
+        new(nameof(ShotClockExpired), s => s.ShotClock <= 0 ? 1 : 0);
 
     public static readonly Feature<NbaState> PeriodClock =
         new(nameof(PeriodClock), s => s.PeriodClock);
@@ -133,6 +139,11 @@ public static class NbaFeatures
     public static readonly IReadOnlyList<Feature<NbaState>> KindAwarded =
         [.. AwardedFreeThrows.Kinds.Where(k => k != ReferenceAwardedKind).Select(k => LastAwardedIn($"Awarded{k}", [.. AwardedFreeThrows.Categories.Where(c => AwardedFreeThrows.KindOf(c) == k)]))];
 
+    public static Feature<NbaState> After(PlayStart indicator) =>
+        IndicatorOf(indicator) == indicator
+            ? Indicator($"After{indicator}", nameof(NbaState.Start), Enum.GetValues<PlayStart>().Where(p => IndicatorOf(p) == indicator).Cast<object>())
+            : throw new ArgumentOutOfRangeException(nameof(indicator), indicator, "Only a play start with its own indicator has an After feature");
+
     private const AwardedKind ReferenceAwardedKind = AwardedKind.Technical;
 
     private static PlayStart? IndicatorOf(PlayStart start) => start switch
@@ -142,14 +153,14 @@ public static class NbaFeatures
         PlayStart.OffensiveRebound => PlayStart.OffensiveRebound,
         PlayStart.MadeShot => PlayStart.MadeShot,
         PlayStart.MadeFreeThrow => PlayStart.MadeFreeThrow,
-        PlayStart.Turnover => PlayStart.Turnover,
+        PlayStart.DeadBallTurnover => PlayStart.DeadBallTurnover,
+        PlayStart.TeamDefensiveRebound => PlayStart.TeamDefensiveRebound,
+        PlayStart.TeamOffensiveRebound => PlayStart.TeamOffensiveRebound,
+        PlayStart.Steal => PlayStart.Steal,
         PlayStart.SideOut => PlayStart.SideOut,
         PlayStart.AwardedBall => PlayStart.AwardedBall,
         _ => throw new ArgumentOutOfRangeException(nameof(start), start, "A play start needs an indicator, or the reference level"),
     };
-
-    private static Feature<NbaState> After(PlayStart indicator) =>
-        Indicator($"After{indicator}", nameof(NbaState.Start), Enum.GetValues<PlayStart>().Where(p => IndicatorOf(p) == indicator).Cast<object>());
 
     private static (Feature<NbaState> Inside, Feature<NbaState> Clock) PeriodTimeoutsSoFar(string name, int fewest, int most) =>
     (

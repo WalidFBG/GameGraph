@@ -8,7 +8,10 @@ public enum PlayStart
     OffensiveRebound = 3,
     MadeShot = 4,
     MadeFreeThrow = 5,
-    Turnover = 6,
+    DeadBallTurnover = 6,
     SideOut = 7,
     AwardedBall = 8,
+    TeamDefensiveRebound = 9,
+    TeamOffensiveRebound = 10,
+    Steal = 11,
 }

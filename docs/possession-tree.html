@@ -148,12 +148,14 @@ tr:last-child td { border-bottom: none; }
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
   <a href="#ActionType"><span class="swatch categorical"></span>ActionType</a>
   <a href="#ActionTime"><span class="swatch jsu"></span>ActionTime</a>
+  <a href="#Stolen"><span class="swatch bernoulli"></span>Stolen</a>
   <a href="#Shooter"><span class="swatch choice"></span>Shooter</a>
   <a href="#FouledOnShot"><span class="swatch bernoulli"></span>FouledOnShot</a>
   <a href="#ShotMade"><span class="swatch bernoulli"></span>ShotMade</a>
   <a href="#InBonus"><span class="swatch bernoulli"></span>InBonus</a>
   <a href="#FreeThrowMade"><span class="swatch bernoulli"></span>FreeThrowMade</a>
   <a href="#OffensiveRebound"><span class="swatch bernoulli"></span>OffensiveRebound</a>
+  <a href="#TeamRebound"><span class="swatch bernoulli"></span>TeamRebound</a>
   <h2>Rules</h2>
   <a href="#PossessionStarts"><span class="swatch rule"></span>PossessionStarts</a>
   <a href="#FreeThrowsDue"><span class="swatch rule"></span>FreeThrowsDue</a>
@@ -214,8 +216,10 @@ tr:last-child td { border-bottom: none; }
   <text class="label" x="430" y="418">the chosen action</text>
   <path class="edge" d="M420,498 V558" marker-end="url(#arrow)"/>
   <text class="label" x="430" y="532">two or three</text>
-  <path class="edge" d="M520,458 H1060 V979 H882" marker-end="url(#arrow)"/>
-  <text class="label" x="700" y="450">turnover (including shot-clock violations)</text>
+  <path class="edge" d="M520,458 H878" marker-end="url(#arrow)"/>
+  <text class="label" x="540" y="450">turnover (including shot-clock violations)</text>
+  <path class="edge" d="M1040,458 H1060 V979 H882" marker-end="url(#arrow)"/>
+  <text class="label" x="0" y="0" transform="translate(1070,700) rotate(90)">a steal or a dead ball</text>
   <path class="edge" d="M520,482 H780 V558" marker-end="url(#arrow)"/>
   <text class="label" x="560" y="498">non-shooting foul</text>
   <path class="edge" d="M780,618 V668" marker-end="url(#arrow)"/>
@@ -243,11 +247,14 @@ tr:last-child td { border-bottom: none; }
   <text class="label" x="540" y="811">last one missed</text>
   <path class="edge" d="M780,848 V948" marker-end="url(#arrow)"/>
   <text class="label" x="790" y="905">last one made</text>
-  <path class="edge" d="M320,819 H180 V249 H318" marker-end="url(#arrow)"/>
+  <path class="edge" d="M420,848 V878" marker-end="url(#arrow)"/>
+  <text class="label" x="430" y="868">either</text>
+  <text class="label" x="530" y="862">with 0 on the clock, a miss</text>
+  <text class="label" x="530" y="877">starts a new play first</text>
+  <path class="edge" d="M320,908 H180 V249 H318" marker-end="url(#arrow)"/>
   <text class="label" x="0" y="0" transform="translate(170,690) rotate(-90)">offensive rebound: shot clock 14 s, possession continues</text>
-  <text class="label" x="430" y="866">with 0 on the clock, a miss starts a new play first</text>
-  <path class="edge" d="M420,848 V979"/>
-  <text class="label" x="430" y="940">defensive rebound</text>
+  <path class="edge" d="M420,936 V979"/>
+  <text class="label" x="430" y="962">defensive rebound</text>
   <path class="edge" d="M780,1008 V1050 H100 V149 H318" marker-end="url(#arrow)"/>
   <path class="edge" d="M320,250 H292" marker-end="url(#arrow)"/>
   <text class="label" x="112" y="212">none, after a flagrant or clear path to the defence</text>
@@ -264,11 +271,13 @@ tr:last-child td { border-bottom: none; }
   <a href="#ActionType"><rect class="box categorical" x="320" y="330" width="200" height="58" rx="10"/><text class="name" x="420" y="355">ActionType</text><text class="kind" x="420" y="374">Categorical · int</text></a>
   <a href="#PeriodRunsOut"><rect class="box bernoulli" x="680" y="330" width="200" height="58" rx="10"/><text class="name" x="780" y="355">PeriodRunsOut</text><text class="kind" x="780" y="374">Bernoulli · bool · gated</text></a>
   <a href="#ActionTime"><rect class="box jsu" x="320" y="440" width="200" height="58" rx="10"/><text class="name" x="420" y="465">ActionTime</text><text class="kind" x="420" y="484">Johnson SU · int seconds</text></a>
+  <a href="#Stolen"><rect class="box bernoulli" x="880" y="430" width="160" height="56" rx="10"/><text class="name" x="960" y="454">Stolen</text><text class="kind" x="960" y="472">Bernoulli · bool</text></a>
   <a href="#FouledOnShot"><rect class="box bernoulli" x="320" y="560" width="200" height="58" rx="10"/><text class="name" x="420" y="585">FouledOnShot</text><text class="kind" x="420" y="604">Bernoulli · bool</text></a>
   <a href="#InBonus"><rect class="box bernoulli" x="680" y="560" width="200" height="58" rx="10"/><text class="name" x="780" y="585">InBonus</text><text class="kind" x="780" y="604">Bernoulli · bool</text></a>
   <a href="#ShotMade"><rect class="box bernoulli" x="320" y="670" width="200" height="58" rx="10"/><text class="name" x="420" y="695">ShotMade</text><text class="kind" x="420" y="714">Bernoulli · bool</text></a>
   <a href="#FreeThrowsDue"><rect class="box rule" x="680" y="670" width="200" height="58" rx="10"/><text class="name" x="780" y="695">FreeThrowsDue</text><text class="kind" x="780" y="714">rule · how many free throws</text></a>
   <a href="#OffensiveRebound"><rect class="box bernoulli" x="320" y="790" width="200" height="58" rx="10"/><text class="name" x="420" y="815">OffensiveRebound</text><text class="kind" x="420" y="834">Bernoulli · bool</text></a>
+  <a href="#TeamRebound"><rect class="box bernoulli" x="320" y="880" width="200" height="56" rx="10"/><text class="name" x="420" y="904">TeamRebound</text><text class="kind" x="420" y="922">Bernoulli · bool</text></a>
   <a href="#FreeThrowMade"><rect class="box bernoulli" x="680" y="790" width="200" height="58" rx="10"/><text class="name" x="780" y="815">FreeThrowMade</text><text class="kind" x="780" y="834">Bernoulli · bool</text></a>
   <a href="#EndOfPossession"><rect class="box rule" x="680" y="950" width="200" height="58" rx="10"/><text class="name" x="780" y="975">EndOfPossession</text><text class="kind" x="780" y="994">rule · reports the possession</text></a>
 </svg>
@@ -283,7 +292,7 @@ tr:last-child td { border-bottom: none; }
         <td><span class="tag bernoulli" style="margin:0">Bernoulli</span></td>
         <td><code>bool</code></td>
         <td>the probability (logit link)</td>
-        <td><a href="#JumpBall">JumpBall</a>, <a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
+        <td><a href="#JumpBall">JumpBall</a>, <a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#Stolen">Stolen</a>, <a href="#TeamRebound">TeamRebound</a></td>
       </tr>
       <tr>
         <td><span class="tag categorical" style="margin:0">Categorical</span></td>
@@ -339,7 +348,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Before a play or a free throw, does the team with the ball call a timeout?</p>
         <dl>
           <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
-          <dt>Features</dt><dd><ul><li>before a free throw rather than a play</li><li>whether a timeout was just called</li><li>for each count of the period's timeouts so far (none, one, two or more), in regulation, whether it is the count and the seconds left (a spline): the mandatory timeouts, forced at the first dead ball once none is taken before 7:00 left or fewer than two before 3:00</li><li>the calling team's timeouts left (a spline)</li><li>how the play started</li><li>the period</li><li>the score margin, and late in the game the margin (a spline)</li></ul> 20 features</dd>
+          <dt>Features</dt><dd><ul><li>before a free throw rather than a play</li><li>whether a timeout was just called</li><li>for each count of the period's timeouts so far (none, one, two or more), in regulation, whether it is the count and the seconds left (a spline): the mandatory timeouts, forced at the first dead ball once none is taken before 7:00 left or fewer than two before 3:00</li><li>the calling team's timeouts left (a spline)</li><li>how the play started (see <a href="#ActionTime">ActionTime</a>)</li><li>the period</li><li>the score margin, and late in the game the margin (a spline)</li></ul> 23 features</dd>
           <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → <a href="#DefenceTimeout">DefenceTimeout</a></dd>
           <dt>Observed as</dt><dd>every <code>TeamTimeout</code> whose <code>teamInPossession</code>, the team charged with it, is the offence; attached to the next play, free throw or period end. 8.9 a game; the mandatory ones are ordinary team timeouts in the data</dd>
         </dl>
@@ -350,7 +359,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Then, does the team without the ball call one?</p>
         <dl>
           <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
-          <dt>Features</dt><dd>the same, with the defence's timeouts left and without the margins (they gained less than 0.0001): 17 features</dd>
+          <dt>Features</dt><dd>the same, with the defence's timeouts left and without the margins (they gained less than 0.0001): 20 features; a team defensive rebound gains it 0.000095, kept because every node that reads how the play started shares one mapping</dd>
           <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → back to the play (<a href="#AwardedFreeThrow">AwardedFreeThrow</a>) or the free throw (<a href="#FreeThrowMade">FreeThrowMade</a>)</dd>
           <dt>Observed as</dt><dd>timeouts charged to the defence, 1.8 a game: icing a free-throw shooter, and some of the mandatory ones</dd>
         </dl>
@@ -393,7 +402,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Features</dt><dd><ul><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline) and the seconds left (a spline)</li><li>for each late margin band (trailing by 3; leading by 1 to 3, 4 to 8, 9 to 12), whether the play is in it and its seconds left (a spline): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li></ul> 15 features; the score margin, at home, after a timeout and whether the clock binds each gained less than 0.0001 in validation and were dropped</dd>
+          <dt>Features</dt><dd><ul><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline) and the seconds left (a spline)</li><li>for each late margin band (trailing by 3; leading by 1 to 3, 4 to 8, 9 to 12), whether the play is in it and its seconds left (a spline): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li><li>after an offensive rebound, a team rebound at either end, or a steal (against every other start): after a team rebound only 51% (offensive) and 61% (defensive) of actions are shots, against about 75%</li></ul> 19 features; the other play starts, the score margin, at home, after a timeout and whether the clock binds each gained less than 0.0001 in validation and were dropped</dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
           <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
@@ -404,9 +413,19 @@ tr:last-child td { border-bottom: none; }
         <p class="question">How many seconds did the action take?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
-          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game (the ball is advanced: 8 seconds after a made shot against 13)</li><li>the chosen action: three, turnover, foul (against a two), and a foul late in the game (these come fast: 57% within 3 seconds when the defence trails, against 28% at other times)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out, the ball after awarded free throws or the period start (against a defensive rebound); every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
-          <dt>Transition</dt><dd>both clocks run down by the outcome, and the five on court are read at the new clock; then two or three → <a href="#Shooter">Shooter</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → adds one to the defence's team fouls (and to its fouls in the last two minutes when at most 120 seconds are left) → <a href="#InBonus">InBonus</a></dd>
+          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game (the ball is advanced: 8 seconds after a made shot against 13)</li><li>the chosen action: three, turnover, foul (against a two), and a foul late in the game (these come fast: 57% within 3 seconds when the defence trails, against 28% at other times)</li><li>how the play started: after an offensive rebound, a team offensive rebound, a team defensive rebound, a made shot, a made free throw, a steal, a dead-ball turnover, a side-out, the ball after awarded free throws or the period start (against a player's defensive rebound): the next action comes 6.5 seconds after a steal against 13.4 after a dead-ball turnover; every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
+          <dt>Transition</dt><dd>both clocks run down by the outcome, and the five on court are read at the new clock; then two or three → <a href="#Shooter">Shooter</a>; turnover → <a href="#Stolen">Stolen</a>; non-shooting foul → adds one to the defence's team fouls (and to its fouls in the last two minutes when at most 120 seconds are left) → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
+        </dl>
+      </article>
+
+      <article class="card bernoulli" id="Stolen">
+        <h3>Stolen <span class="tag">Bernoulli</span></h3>
+        <p class="question">Was the turnover a steal (the ball stays live) rather than a dead ball?</p>
+        <dl>
+          <dt>Features</dt><dd><ul><li>seconds left on the shot clock after the action (a spline), and whether it has run out: a violation is never a steal</li><li>score margin, late in the game</li><li>how the play started: after the period start, an offensive rebound, a made shot, a side-out, a team offensive rebound or a steal (against every other start)</li></ul> 10 features; team points per possession, at home and the other play starts each gained less than 0.0001 in validation and were dropped</dd>
+          <dt>Transition</dt><dd>→ <a href="#EndOfPossession">EndOfPossession</a>; the next play starts after a steal or a dead-ball turnover</dd>
+          <dt>Observed as</dt><dd>whether the turnover names a player who stole it (<code>StolenBy</code>): 56% of turnovers</dd>
         </dl>
       </article>
 
@@ -467,8 +486,18 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Does the shooting team get the rebound?</p>
         <dl>
           <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>whether a three or a free throw was missed (against a two)</li><li>at home</li></ul></dd>
-          <dt>Transition</dt><dd>yes → a new play with 14 seconds on the shot clock; no → <a href="#EndOfPossession">EndOfPossession</a></dd>
+          <dt>Transition</dt><dd>→ <a href="#TeamRebound">TeamRebound</a>, which then follows the side</dd>
           <dt>Observed as</dt><dd>the rebound after the miss; after a miss at 0:00, only if play follows</dd>
+        </dl>
+      </article>
+
+      <article class="card bernoulli" id="TeamRebound">
+        <h3>TeamRebound <span class="tag">Bernoulli</span></h3>
+        <p class="question">Is the rebound a team's (the ball out of bounds, a dead ball) rather than a player's?</p>
+        <dl>
+          <dt>Features</dt><dd><ul><li>whether the shooting team got the rebound: 20% of its rebounds are a team's, against 6.5% of the defence's</li><li>whether a free throw was missed</li></ul> 2 features; a missed three, score margin, late in the game and at home each gained less than 0.0001 in validation and were dropped</dd>
+          <dt>Transition</dt><dd>offensive → a new play with 14 seconds on the shot clock, after a team or a player's offensive rebound; defensive → <a href="#EndOfPossession">EndOfPossession</a>, the next play after a team or a player's defensive rebound</dd>
+          <dt>Observed as</dt><dd>a rebound with no catcher; a loose-ball foul that settles the rebound is a team rebound too, since the foul stops play</dd>
         </dl>
       </article>
 
@@ -536,7 +565,8 @@ tr:last-child td { border-bottom: none; }
       <tr><th>Value</th><th>Changed by</th><th>Read by</th></tr>
       <tr><td>Score, period, team in possession (and whether it is at home)</td><td>the transitions</td><td>features, incidents</td></tr>
       <tr><td>Period clock and shot clock</td><td><a href="#ActionTime">ActionTime</a>, rebounds, side-outs, <a href="#PossessionStarts">PossessionStarts</a>, <a href="#PeriodEnds">PeriodEnds</a></td><td>the gate before <a href="#PeriodRunsOut">PeriodRunsOut</a>, features, the bound of ActionTime</td></tr>
-      <tr><td>How the play started</td><td><a href="#PossessionStarts">PossessionStarts</a>, rebounds, side-outs</td><td><a href="#ActionTime">ActionTime</a></td></tr>
+      <tr><td>How the play started</td><td><a href="#PossessionStarts">PossessionStarts</a>, <a href="#Stolen">Stolen</a>, <a href="#TeamRebound">TeamRebound</a>, side-outs</td><td><a href="#ActionTime">ActionTime</a>, <a href="#ActionType">ActionType</a>, <a href="#Stolen">Stolen</a>, the timeouts</td></tr>
+      <tr><td>Whether the rebound went to the shooting team</td><td><a href="#OffensiveRebound">OffensiveRebound</a>; reset when the play starts</td><td><a href="#TeamRebound">TeamRebound</a></td></tr>
       <tr><td>The chosen action</td><td><a href="#ActionType">ActionType</a></td><td><a href="#ActionTime">ActionTime</a> and its transition</td></tr>
       <tr><td>The first period's starter</td><td><a href="#JumpBall">JumpBall</a></td><td><a href="#PeriodEnds">PeriodEnds</a></td></tr>
       <tr><td>Each team's timeouts left, this period and in the fourth period's last 3 minutes</td><td><a href="#OffenceTimeout">OffenceTimeout</a>, <a href="#DefenceTimeout">DefenceTimeout</a>; reset by <a href="#PeriodEnds">PeriodEnds</a> (2 each in overtime)</td><td>whether each may call one, their features</td></tr>
@@ -566,7 +596,7 @@ tr:last-child td { border-bottom: none; }
       <li>Players: who rebounds, turns it over, fouls and is fouled, and substitutions (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a> is not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
-      <li>Foul types, turnover types (live-ball steals and their fast breaks), shot zones, assists, blocks</li>
+      <li>Foul types, the finer turnover types, shot zones, assists, blocks</li>
     </ul>
   </section>
 </main>

@@ -16,7 +16,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
     private int _period;
     private int? _lastClock;
     private OpenAction? _open;
-    private bool? _reboundAtZero;
+    private ObservedRebound? _reboundAtZero;
     private readonly List<AwardedFreeThrow> _awarded = [];
     private readonly List<int> _timeouts = [];
 
@@ -24,10 +24,10 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
 
     public void Read(Event e)
     {
-        if (_reboundAtZero is { } offensive && e is FieldGoalAttempt or Turnover or Foul { FoulType: FoulType.Shooting or FoulType.Personal })
+        if (_reboundAtZero is { } atZero && e is FieldGoalAttempt or Turnover or Foul { FoulType: FoulType.Shooting or FoulType.Personal })
         {
             _reboundAtZero = null;
-            Finish(offensive);
+            Finish(atZero);
         }
 
         switch (e)
@@ -47,7 +47,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
                 CloseAndOneWindow();
                 RequireNoOpenAction();
                 StartAction(TurnoverTeam(turnover));
-                _actions.Add(new ObservedTurnover(ActionClock(turnover)) { AwardedBefore = TakeAwarded(), TimeoutsBefore = TakeTimeouts() });
+                _actions.Add(new ObservedTurnover(ActionClock(turnover), Stolen(turnover)) { AwardedBefore = TakeAwarded(), TimeoutsBefore = TakeTimeouts() });
                 break;
             case Foul foul:
                 Foul(foul);
@@ -171,7 +171,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
             throw new RejectedGameException(RejectionReason.UnexpectedFoul);
 
         if (_open is { Phase: Phase.Rebound })
-            Finish(drawn == _team);
+            Finish(new ObservedRebound(drawn == _team, ByTeam: true));
 
         if (committed == Offense(drawn))
             return;
@@ -239,10 +239,12 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
             _ => throw new RejectedGameException(RejectionReason.UnknownReboundType),
         };
 
+        var observed = new ObservedRebound(offensive, ByTeam: rebound.Catcher is null);
+
         if (_open.Clock == 0)
-            _reboundAtZero ??= offensive;
+            _reboundAtZero ??= observed;
         else
-            Finish(offensive);
+            Finish(observed);
     }
 
     private void CloseAndOneWindow()
@@ -257,13 +259,13 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
             throw new RejectedGameException(RejectionReason.InterruptedAction);
     }
 
-    private void Finish(bool? offensiveRebound)
+    private void Finish(ObservedRebound? rebound)
     {
         var open = _open ?? throw new InvalidOperationException("No action to finish");
 
         _actions.Add(open.Points == 0
-            ? new ObservedFoul(open.Clock, open.FreeThrows.ToArray(), offensiveRebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore }
-            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), offensiveRebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore });
+            ? new ObservedFoul(open.Clock, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore }
+            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore });
         _open = null;
     }
 
@@ -345,6 +347,9 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         turnover.Participants is { Length: > 0 }
             ? TeamOf(turnover.Participants, ParticipationType.TurnoverCommittedBy)
             : Side(turnover.TeamInPossession);
+
+    private static bool Stolen(Turnover turnover) =>
+        turnover.Participants?.Any(p => p.Type == ParticipationType.StolenBy) == true;
 
     private int TeamOf(Participant[]? participants, ParticipationType role)
     {
