@@ -36,6 +36,13 @@ public sealed class Model
         return _distribution.Sample(parameters, uniform);
     }
 
+    public int Outcomes(ReadOnlySpan<double> features)
+    {
+        Span<double> parameters = stackalloc double[_parameters.Length];
+        ParameterValues(features, parameters);
+        return _distribution.Outcomes(parameters);
+    }
+
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
     {
         var model = fitted.Model;

@@ -30,6 +30,8 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
 | `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests: simulate real games, compare, write CSVs |
+| `src/Nba/GameGraph.Nba.Audit` | The audits (`docs/plan.md`), as explicit xUnit facts that only write data: the calibration audit writes every example with the C# model's probabilities |
+| `python/src/gamegraph/audit` | Analyses of the audits' data: the calibration buckets |
 | `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game) and `GameGraph.Models.Tests.Unit` (the forward pass and the contract) |
 | `src/GameGraph.Host` | Command line: generates the training data |
 | `docs/` | Architecture, plan, data, lessons, and the possession tree as built (`possession-tree.html`) |
@@ -55,6 +57,13 @@ To train every node, from the training data the Host writes to the fitted models
 
 ```
 uv run gamegraph-train <training data> <fitted models>
+```
+
+The calibration audit runs only when asked for by name; its analysis reads the latest run:
+
+```
+src/Nba/GameGraph.Nba.Audit/bin/Debug/net10.0/GameGraph.Nba.Audit.exe -class GameGraph.Nba.Audit.CalibrationAudit -explicit only
+uv run gamegraph-calibration <calibration audits> <training data>
 ```
 
 The C# requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.

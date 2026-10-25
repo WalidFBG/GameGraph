@@ -30,6 +30,8 @@ internal sealed class DiscreteJohnsonSu : IDistribution
         return (int)Math.Min(Math.Max(Math.Floor(time), 0), maximum);
     }
 
+    public int Outcomes(ReadOnlySpan<double> parameters) => Unpack(parameters).Maximum + 1;
+
     private static (double Location, double Scale, double Skew, double Tail, int Maximum) Unpack(ReadOnlySpan<double> parameters)
     {
         if (parameters.Length != 5)

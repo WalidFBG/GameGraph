@@ -15,4 +15,6 @@ internal sealed class Bernoulli : IDistribution
 
         return uniform < parameters[0] ? 1 : 0;
     }
+
+    public int Outcomes(ReadOnlySpan<double> parameters) => 2;
 }

@@ -39,6 +39,8 @@ internal sealed class Categorical(int categories) : IDistribution
         return categories - 1;
     }
 
+    public int Outcomes(ReadOnlySpan<double> parameters) => categories;
+
     private static double Score(ReadOnlySpan<double> parameters, int category) => category == 0 ? 0 : parameters[category - 1];
 
     private double Max(ReadOnlySpan<double> parameters)
