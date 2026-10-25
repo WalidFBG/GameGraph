@@ -92,13 +92,7 @@ public static class NbaTransitions
         }
     }
 
-    public static Next<NbaState> Shooter(NbaState state, int candidate)
-    {
-        if (candidate < 0 || candidate >= Lineup.Size)
-            throw new ArgumentOutOfRangeException(nameof(candidate), candidate, $"The shooter is one of the {Lineup.Size} on court");
-
-        return NbaNodes.FouledOnShot;
-    }
+    public static Next<NbaState> Shooter(NbaState state, int player) => NbaNodes.FouledOnShot;
 
     public static Next<NbaState> FouledOnShot(NbaState state, int fouled)
     {

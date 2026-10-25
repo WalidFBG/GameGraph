@@ -18,23 +18,21 @@ public sealed class ChoiceNodeTests
     {
         var node = new ChoiceNode<ToyState>("Pick", _ => Candidates, [CandidateTerm.Linear(Distance), CandidateTerm.Spline(Odd, 2)], (_, _) => Next<ToyState>.GameOver);
         var state = new ToyState { Value = 2 };
-        var features = new double[node.FeatureValueCount(state)];
+        var buffer = Array.Empty<double>();
 
-        node.WriteFeatures(state, features);
-
-        Assert.Equal([1, 1, 2, 0, 5, 1], features);
+        Assert.Equal([1, 1, 2, 0, 5, 1], node.WriteFeatures(state, ref buffer).ToArray());
         Assert.Equal(["Distance", "Odd"], node.FeatureNames);
         Assert.IsType<ChoiceDistribution>(node.Model.Distribution);
         Assert.Equal([new LinearTerm("Distance"), new LinearSplineTerm("Odd", 2)], node.Model.Terms["utility"]);
     }
 
     [Fact]
-    public void TheWalkPassesTheChosenRowToTheTransition()
+    public void TheWalkPassesTheChosenRowsCandidateToTheTransition()
     {
         var chosen = -1;
-        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, [CandidateTerm.Linear(Distance)], (_, row) =>
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, [CandidateTerm.Linear(Distance)], (_, candidate) =>
         {
-            chosen = row;
+            chosen = candidate;
             return Next<ToyState>.GameOver;
         });
         var recorder = new Recorder();
@@ -42,7 +40,7 @@ public sealed class ChoiceNodeTests
         GameWalker.Walk(new GameSpec<ToyState>([pick], pick), new ToyState { Value = 1 }, recorder, recorder);
 
         Assert.Equal([[2, 3, 6]], recorder.Collected.Select(c => c.Features));
-        Assert.Equal(1, chosen);
+        Assert.Equal(4, chosen);
     }
 
     [Fact]

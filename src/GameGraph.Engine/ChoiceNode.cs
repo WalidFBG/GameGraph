@@ -36,18 +36,21 @@ public sealed class ChoiceNode<TState> : NodeSpec<TState>
 
     public int[] CandidatesIn(TState state) => _candidates(state);
 
-    public override int FeatureValueCount(TState state) => CandidatesIn(state).Length * Features.Length;
-
-    public override void WriteFeatures(TState state, Span<double> features)
+    public override ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer)
     {
         var candidates = CandidatesIn(state);
+        var features = Sized(ref buffer, candidates.Length * Features.Length);
 
         for (var c = 0; c < candidates.Length; c++)
         {
             for (var f = 0; f < Features.Length; f++)
                 features[c * Features.Length + f] = Features[f].Compute(state, candidates[c]);
         }
+
+        return features;
     }
+
+    internal override Next<TState> Apply(TState state, int row) => Transition(state, CandidatesIn(state)[row]);
 
     private static ModelDeclaration Declaration(CandidateTerm<TState>[] terms) =>
         new(

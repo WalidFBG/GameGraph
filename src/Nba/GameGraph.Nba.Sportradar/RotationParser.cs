@@ -24,15 +24,16 @@ internal sealed class RotationParser(Dictionary<long, TeamType> teams, Dictionar
         }
     }
 
-    public Lineup[][] Build()
+    public Rotation Build(int periods)
     {
-        foreach (var lineups in _lineups)
+        try
         {
-            if (lineups.Count == 0 || lineups[0].Period != 0 || lineups[0].Clock != Periods.SecondsIn(0) || lineups[^1].Period >= _period)
-                throw new RejectedGameException(RejectionReason.InconsistentLineup);
+            return new Rotation(periods, [.. _lineups[Sides.Home]], [.. _lineups[Sides.Away]]);
         }
-
-        return [[.. _lineups[0]], [.. _lineups[1]]];
+        catch (ArgumentException)
+        {
+            throw new RejectedGameException(RejectionReason.InconsistentLineup);
+        }
     }
 
     private void Change(LineupChange change)

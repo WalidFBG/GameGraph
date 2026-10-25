@@ -13,20 +13,12 @@ public static class GameWalker
 
         while (next is NextNode<TState>(var node))
         {
-            var count = node.FeatureValueCount(state);
-
-            if (count > buffer.Length)
-                buffer = new double[count];
-
-            var features = buffer.AsSpan(0, count);
-
-            node.WriteFeatures(state, features);
-
+            var features = node.WriteFeatures(state, ref buffer);
             var outcome = decider.Decide(node, state, features);
 
             decisionCollector.Collect(node, state, features, outcome);
 
-            next = node.Transition(state, outcome);
+            next = node.Apply(state, outcome);
 
             if (next is NextNode<TState>(var target) && !spec.Contains(target))
                 throw new InvalidOperationException($"The transition from {node.Name} returned {target.Name}, which is not one of the game's nodes");

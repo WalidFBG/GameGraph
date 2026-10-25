@@ -119,7 +119,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             switch (action)
             {
                 case ObservedShot shot:
-                    yield return new ObservedDecision(NbaNodes.Shooter, s => OnCourtPosition(s, shot.Shooter), team, possession.Period);
+                    yield return new ObservedDecision(NbaNodes.Shooter, s => CandidateRow(NbaNodes.Shooter, s, shot.Shooter), team, possession.Period);
                     yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
@@ -173,11 +173,11 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             new(node, _ => outcome, team, possession.Period);
     }
 
-    private static int OnCourtPosition(NbaState state, int player)
+    private static int CandidateRow(ChoiceNode<NbaState> node, NbaState state, int player)
     {
-        var position = Array.IndexOf(state.OnCourt[state.TeamInPossession], player);
+        var row = Array.IndexOf(node.CandidatesIn(state), player);
 
-        return position >= 0 ? position : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not on court");
+        return row >= 0 ? row : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not among the candidates of {node.Name}");
     }
 
     private static int Number(bool value) => value ? 1 : 0;

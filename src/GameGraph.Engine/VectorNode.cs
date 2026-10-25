@@ -20,12 +20,14 @@ public sealed class VectorNode<TState> : NodeSpec<TState>
 
     public Feature<TState>[] Features { get; }
 
-    public override int FeatureValueCount(TState state) => Features.Length;
-
-    public override void WriteFeatures(TState state, Span<double> features)
+    public override ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer)
     {
+        var features = Sized(ref buffer, Features.Length);
+
         for (var i = 0; i < Features.Length; i++)
             features[i] = Features[i].Compute(state);
+
+        return features;
     }
 
     private static ModelDeclaration Declaration(

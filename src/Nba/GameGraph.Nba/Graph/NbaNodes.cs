@@ -78,7 +78,7 @@ public static class NbaNodes
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
 
-    public static readonly NodeSpec<NbaState> Shooter = new ChoiceNode<NbaState>(
+    public static readonly ChoiceNode<NbaState> Shooter = new(
         nameof(Shooter),
         s => s.OnCourt[s.TeamInPossession],
         [CandidateTerm.Spline(NbaFeatures.ShotShare, 4)],

@@ -29,11 +29,19 @@ public abstract class NodeSpec<TState>
 
     internal int Index => _index ?? throw new InvalidOperationException($"{Name} is not one of a game's nodes");
 
-    public abstract int FeatureValueCount(TState state);
+    public abstract ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer);
 
-    public abstract void WriteFeatures(TState state, Span<double> features);
+    internal virtual Next<TState> Apply(TState state, int outcome) => Transition(state, outcome);
 
     internal void JoinGame(int index) => _index = index;
+
+    private protected static Span<double> Sized(ref double[] buffer, int count)
+    {
+        if (count > buffer.Length)
+            buffer = new double[count];
+
+        return buffer.AsSpan(0, count);
+    }
 
     private protected static T[] Distinct<T>(string name, IEnumerable<T> features, Func<T, string> nameOf)
     {

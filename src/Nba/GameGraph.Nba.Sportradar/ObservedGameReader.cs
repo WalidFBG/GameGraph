@@ -20,22 +20,22 @@ public static class ObservedGameReader
         long[] players = [.. game.TeamA.Players.Concat(game.TeamB.Players).Select(p => p.Player.Id)];
         var slots = players.Select((id, slot) => (id, slot)).ToDictionary();
         Possession[] possessions;
-        Lineup[][] lineups;
+        Rotation rotation;
         int cut;
 
         try
         {
             var parser = new PossessionParser(TeamsByPlayer(game), slots);
-            var rotation = new RotationParser(TeamsByPlayer(game), slots);
+            var lineups = new RotationParser(TeamsByPlayer(game), slots);
 
             foreach (var e in game.Events)
             {
                 parser.Read(e);
-                rotation.Read(e);
+                lineups.Read(e);
             }
 
             possessions = parser.Build();
-            lineups = rotation.Build();
+            rotation = lineups.Build(possessions.Max(p => p.Period) + 1);
             cut = parser.PossessionsCutByPeriodEnd;
         }
         catch (RejectedGameException rejected)
@@ -51,7 +51,7 @@ public static class ObservedGameReader
         if (BreaksAlternation(possessions))
             return Rejected(game, RejectionReason.PeriodStartBreaksAlternation);
 
-        var observed = Observed(game, RejectionReason.NotSet, players, lineups, possessions, cut);
+        var observed = Observed(game, RejectionReason.NotSet, players, rotation, possessions, cut);
 
         return ObservedOutcomeDecider.Follows(observed) ? observed : Rejected(game, RejectionReason.RulesDisagreeWithData);
     }
@@ -64,10 +64,10 @@ public static class ObservedGameReader
         return starters[1] != Sides.Opponent(first) || starters[2] != Sides.Opponent(first) || starters[3] != first;
     }
 
-    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], [], [], 0);
+    private static ObservedGame Rejected(Game game, RejectionReason reason) => Observed(game, reason, [], null, [], 0);
 
-    private static ObservedGame Observed(Game game, RejectionReason rejection, long[] players, Lineup[][] lineups, Possession[] possessions, int cut) =>
-        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, players, lineups, possessions, cut);
+    private static ObservedGame Observed(Game game, RejectionReason rejection, long[] players, Rotation? rotation, Possession[] possessions, int cut) =>
+        new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, rejection, players, rotation, possessions, cut);
 
     private static Dictionary<long, TeamType> TeamsByPlayer(Game game) =>
         game.TeamA.Players.Select(p => (p.Player.Id, TeamType.HomeOrA))

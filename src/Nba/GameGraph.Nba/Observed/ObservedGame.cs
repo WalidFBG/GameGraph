@@ -2,24 +2,38 @@ using GameGraph.Nba.Graph;
 
 namespace GameGraph.Nba.Observed;
 
-public sealed record ObservedGame(
-    string Id,
-    DateTime StartUtc,
-    long HomeTeamId,
-    long AwayTeamId,
-    RejectionReason Rejection,
-    long[] Players,
-    Lineup[][] Lineups,
-    Possession[] Possessions,
-    int PossessionsCutByPeriodEnd)
+public sealed class ObservedGame(
+    string id,
+    DateTime startUtc,
+    long homeTeamId,
+    long awayTeamId,
+    RejectionReason rejection,
+    long[] players,
+    Rotation? rotation,
+    Possession[] possessions,
+    int possessionsCutByPeriodEnd)
 {
-    private Rotation? _rotation;
+    public string Id { get; } = id;
+
+    public DateTime StartUtc { get; } = startUtc;
+
+    public long HomeTeamId { get; } = homeTeamId;
+
+    public long AwayTeamId { get; } = awayTeamId;
+
+    public RejectionReason Rejection { get; } = rejection;
+
+    public long[] Players { get; } = players;
+
+    public Rotation Rotation => rotation ?? throw new InvalidOperationException($"Game {Id} was rejected ({Rejection}) and has no rotation");
+
+    public Possession[] Possessions { get; } = possessions;
+
+    public int PossessionsCutByPeriodEnd { get; } = possessionsCutByPeriodEnd;
 
     public bool IsAccepted => Rejection == RejectionReason.NotSet;
 
     public int Periods => Possessions.Max(p => p.Period) + 1;
-
-    public Rotation Rotation => _rotation ??= new Rotation(Periods, Lineups[Sides.Home], Lineups[Sides.Away]);
 
     public int Points(int side) =>
         Possessions.Where(p => p.TeamInPossession == side).Sum(p => p.Points)
