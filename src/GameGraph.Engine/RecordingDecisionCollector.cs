@@ -2,7 +2,7 @@ using GameGraph.Contract;
 
 namespace GameGraph.Engine;
 
-public sealed class TrainingDataCollector<TState>(GameSpec<TState> spec) : IDecisionCollector<TState>
+public sealed class RecordingDecisionCollector<TState>(GameSpec<TState> spec) : IDecisionCollector<TState>
 {
     private readonly Dictionary<NodeSpec<TState>, List<(string GameId, DateTime StartUtc, List<TrainingExample> Examples)>> _games =
         spec.Nodes.ToDictionary(n => n, _ => new List<(string, DateTime, List<TrainingExample>)>());

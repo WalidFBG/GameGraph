@@ -16,15 +16,15 @@ public static class Program
     {
         var games = new ValidatedGameReader(ValidatedData).ReadAll().ToArray();
         var tally = new GameTally();
-        var collector = new TrainingDataCollector<NbaState>(NbaGameSpec.Instance);
+        var decisions = new RecordingDecisionCollector<NbaState>(NbaGameSpec.Instance);
 
-        new TrainingDataSeason(collector, tally).Walk(games);
+        new TrainingDataSeason(decisions, tally).Walk(games);
 
         Console.WriteLine(tally.Describe());
 
         foreach (var node in NbaGameSpec.Instance.Nodes)
         {
-            var nodeGames = collector.GamesFor(node);
+            var nodeGames = decisions.GamesFor(node);
             var manifest = new TrainingDataManifest(node.Name, ValidatedData, DateTime.UtcNow, node.FeatureNames, nodeGames.Sum(g => g.Examples.Length), node.Model);
             var directory = Path.Combine(TrainingDataRoot, node.Name);
 

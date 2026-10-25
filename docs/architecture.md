@@ -28,14 +28,14 @@ The walk has two outputs, for two audiences:
 | | Simulate | Generate training data |
 |---|---|---|
 | Outcome decider | samples from the node's model | reads the observed outcome from a real game, as the sport says how |
-| Decision collector | does nothing | the training-data collector: records node, features and outcome as training examples |
+| Decision collector | does nothing | the recording decision collector: records node, features and outcome as training examples |
 | Incident collector | the outside world's, one per simulation | ignores incidents |
 
 Who provides what:
 
 - **The sport**: the game state (which holds the incident collector, so the engine never sees incidents), the transitions (update the state with an outcome, report incidents, return the next node), the feature definitions, its incident types and collector interface, and how to read observed outcomes from its data.
 - **The engine**: the walk itself. The only thing that differs between modes is where each node's outcome comes from and who receives the two outputs.
-- **The training-data collector**: nothing but a decision collector. It never tracks the score, applies a rule, computes a feature or writes a file.
+- **The recording decision collector**: it only stores what the walk hands it. It never tracks the score, applies a rule, computes a feature or writes a file. Simulating normally passes the empty collector; the simulation audit passes the recording one to see the simulated decisions.
 
 So features, rules and state updates are the same code in both modes. Training data is built by exactly the code that later simulates.
 
@@ -81,7 +81,7 @@ GameGraph.Nba.Tests.QualityAssurance
 - **Contract** is the contract with Python as records with their invariants: a model's declaration, the fitted model, the training-data manifest, and a node's training data (its games, each with its examples; a choice's example holds one row of features per candidate, and its outcome is the chosen row). It references nothing and knows no file format.
 - **Contract.Files** reads and writes the contract's files: the manifest and fitted model as JSON validated against the schemas (the polymorphic records get their discriminators here, not from attributes), the training data as CSV, and the training report, which only the parity tests read. It is the only C# that knows the formats.
 - **Models** knows nothing about sports, games, the engine or files (see `models.md`): the forward pass, a fitted model's parameter values, log-probability and samples, from the node's features.
-- **Engine** owns the walk and the outcome-decider and decision-collector interfaces, and the training-data collector (a decision collector that records each node's examples, game by game, as it is handed them). Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport, nothing about files and nothing about how training works.
+- **Engine** owns the walk and the outcome-decider and decision-collector interfaces, and the recording decision collector (a decision collector that records each node's examples, game by game, as it is handed them, in either mode). Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport, nothing about files and nothing about how training works.
 - **Simulation** binds the fitted models to a game once (`FittedGame`) and simulates it many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
 - **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period, each action with its clock, and the free throws outside the play). Its incidents are the possession and the awarded free throw; the tree is `possession-tree.html`. It knows no data source and no training data.
