@@ -8,5 +8,7 @@ public static class Periods
 
     public const int OvertimeSeconds = 300;
 
+    public const int LastTwoMinutes = 120;
+
     public static int SecondsIn(int period) => period < Regulation ? RegulationSeconds : OvertimeSeconds;
 }

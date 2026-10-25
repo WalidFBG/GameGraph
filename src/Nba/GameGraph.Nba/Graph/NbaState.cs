@@ -18,6 +18,8 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
 
     public int[] TeamFouls { get; } = new int[2];
 
+    public int[] TeamFoulsInLastTwoMinutes { get; } = new int[2];
+
     public int TeamInPossession { get; set; }
 
     public int PossessionPoints { get; set; }
@@ -43,6 +45,8 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
     public bool BallAwardedToDefence { get; set; }
 
     public bool PeriodClockBinds => PeriodClock < ShotClock + Graph.ShotClock.Slack;
+
+    public bool LateInGame => Period >= Periods.Regulation - 1 && PeriodClock <= Periods.LastTwoMinutes;
 
     public int Bound => Math.Min(ShotClock + Graph.ShotClock.Slack, PeriodClock);
 }

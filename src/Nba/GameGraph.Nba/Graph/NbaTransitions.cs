@@ -78,7 +78,7 @@ public static class NbaTransitions
             case Graph.ActionType.Turnover:
                 return EndOfPossession(state, PlayStart.Turnover);
             case Graph.ActionType.NonShootingFoul:
-                state.TeamFouls[Sides.Opponent(state.TeamInPossession)]++;
+                DefenceFouls(state);
                 return NbaNodes.InBonus;
             default:
                 throw new InvalidOperationException($"No action to time: {state.Action}");
@@ -90,7 +90,7 @@ public static class NbaTransitions
         state.Fouled = Yes(fouled);
 
         if (state.Fouled)
-            state.TeamFouls[Sides.Opponent(state.TeamInPossession)]++;
+            DefenceFouls(state);
 
         return NbaNodes.ShotMade;
     }
@@ -194,8 +194,8 @@ public static class NbaTransitions
     private static void StartPeriod(NbaState state)
     {
         state.PeriodClock = Periods.SecondsIn(state.Period);
-        state.TeamFouls[Sides.Home] = 0;
-        state.TeamFouls[Sides.Away] = 0;
+        Array.Clear(state.TeamFouls);
+        Array.Clear(state.TeamFoulsInLastTwoMinutes);
         StartPossession(state, PlayStart.PeriodStart);
     }
 
@@ -214,6 +214,16 @@ public static class NbaTransitions
         state.Fouled = false;
         state.FreeThrowsLeft = 0;
         state.LastMiss = Miss.NotSet;
+    }
+
+    private static void DefenceFouls(NbaState state)
+    {
+        var defence = Sides.Opponent(state.TeamInPossession);
+
+        state.TeamFouls[defence]++;
+
+        if (state.PeriodClock <= Periods.LastTwoMinutes)
+            state.TeamFoulsInLastTwoMinutes[defence]++;
     }
 
     private static void Score(NbaState state, int points)
