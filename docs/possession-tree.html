@@ -316,7 +316,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Before the play, is a free throw outside the play awarded, and to whom?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence</dd>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li><li>whether the team with the ball is at home</li></ul></dd>
           <dt>Transition</dt><dd>offence or defence → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
           <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period, or asked before the period ends after its last play</dd>
         </dl>
@@ -326,7 +326,7 @@ tr:last-child td { border-bottom: none; }
         <h3>AwardedFreeThrowMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the free throw outside the play go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's scoring rate (context)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's scoring rate (context)</li><li>whether the shooting team is at home</li></ul></dd>
           <dt>Transition</dt><dd>score +1 for the shooting team if made; the ball does not move → <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
           <dt>Incidents</dt><dd>an awarded free throw: team, period, made</dd>
         </dl>
@@ -348,7 +348,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
           <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
@@ -359,7 +359,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">How many seconds did the action take?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
-          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out or the period start (against a defensive rebound)</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out or the period start (against a defensive rebound)</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
           <dt>Transition</dt><dd>both clocks run down by the outcome; then two or three → <a href="#FouledOnShot">FouledOnShot</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
         </dl>
@@ -369,7 +369,7 @@ tr:last-child td { border-bottom: none; }
         <h3>FouledOnShot <span class="tag">Bernoulli</span></h3>
         <p class="question">Is the shooter fouled on the shot?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type (2 or 3)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type (2 or 3)</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#ShotMade">ShotMade</a>; a foul adds one to the defence's team fouls</dd>
           <dt>Observed as</dt><dd>a shooting foul on the attempt</dd>
         </dl>
@@ -379,7 +379,7 @@ tr:last-child td { border-bottom: none; }
         <h3>ShotMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shot go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type</li><li>fouled on the shot</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>score +2 or +3 if made; fouled → <a href="#FreeThrowsDue">FreeThrowsDue</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>whether the field-goal attempt was made</dd>
         </dl>
@@ -400,7 +400,7 @@ tr:last-child td { border-bottom: none; }
         <h3>FreeThrowMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the free throw go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether it is the last of the set</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether it is the last of the set</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>score +1 if made; more to take → FreeThrowMade again; last made → <a href="#EndOfPossession">EndOfPossession</a>; last missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>the regular free throws the action was waiting for, in order</dd>
         </dl>
@@ -410,7 +410,7 @@ tr:last-child td { border-bottom: none; }
         <h3>OffensiveRebound <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shooting team get the rebound?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether a three or a free throw was missed (against a two)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team scoring rate (context)</li><li>whether a three or a free throw was missed (against a two)</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>yes → a new play with 14 seconds on the shot clock; no → <a href="#EndOfPossession">EndOfPossession</a></dd>
           <dt>Observed as</dt><dd>the rebound after the miss; after a miss at 0:00, only if play follows</dd>
         </dl>
@@ -468,7 +468,7 @@ tr:last-child td { border-bottom: none; }
     <h2>Game state</h2>
     <table>
       <tr><th>Value</th><th>Changed by</th><th>Read by</th></tr>
-      <tr><td>Score, period, team in possession</td><td>the transitions</td><td>features, incidents</td></tr>
+      <tr><td>Score, period, team in possession (and whether it is at home)</td><td>the transitions</td><td>features, incidents</td></tr>
       <tr><td>Period clock and shot clock</td><td><a href="#ActionTime">ActionTime</a>, rebounds, side-outs, <a href="#PossessionStarts">PossessionStarts</a>, <a href="#PeriodEnds">PeriodEnds</a></td><td>the gate before <a href="#PeriodRunsOut">PeriodRunsOut</a>, features, the bound of ActionTime</td></tr>
       <tr><td>How the play started</td><td><a href="#PossessionStarts">PossessionStarts</a>, rebounds, side-outs</td><td><a href="#ActionTime">ActionTime</a></td></tr>
       <tr><td>The chosen action</td><td><a href="#ActionType">ActionType</a></td><td><a href="#ActionTime">ActionTime</a> and its transition</td></tr>
@@ -492,7 +492,6 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Home advantage: no feature says which team is at home, so simulated margins lean 2.4 points less to the home team than real ones</li>
       <li>The ball after a flagrant or a take foul: the fouled team keeps it in reality, not in a simulation</li>
       <li>Players: who shoots, rebounds, turns it over and is fouled, together with substitutions</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
