@@ -13,8 +13,8 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 
     public void Walk(IReadOnlyCollection<ObservedGame> games)
     {
-        foreach (var game in games.Where(g => !g.IsAccepted))
-            tally.Rejected(game.Rejection);
+        foreach (var game in games.OfType<RejectedGame>())
+            tally.Rejected(game.Reason);
 
         var generated = 0;
 
@@ -24,14 +24,14 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
             generated++;
         }
 
-        tally.ShortHistories(games.Count(g => g.IsAccepted) - generated);
+        tally.ShortHistories(games.OfType<AcceptedGame>().Count() - generated);
     }
 
-    private void Generate(ObservedGame game, GameContext context)
+    private void Generate(AcceptedGame game, GameContext context)
     {
         collector.BeginGame(game.Id, game.StartUtc);
 
-        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context.HomePointsPerPossession, context.AwayPointsPerPossession), collector);
+        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context, game.Rotation), collector);
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

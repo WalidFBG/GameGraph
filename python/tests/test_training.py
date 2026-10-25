@@ -7,10 +7,13 @@ import torch
 from synthetic import (
     BERNOULLI_FEATURES,
     CATEGORICAL_FEATURES,
+    CHOICE_FEATURES,
     bernoulli,
     bernoulli_logit,
     categorical,
     categorical_log_odds,
+    choice,
+    choice_utility,
     intercept_only,
     johnson_su,
     johnson_su_parameters,
@@ -58,6 +61,20 @@ def test_training_recovers_known_log_odds() -> None:
     assert np.abs(second.numpy() - expected[:, 0]).max() < 0.08
     assert np.abs(third.numpy() - expected[:, 1]).max() < 0.08
     assert report.training_games == 800
+
+
+def test_training_recovers_known_utilities_up_to_a_constant(tmp_path: Path) -> None:
+    write_training_data(tmp_path / "data", choice("Synthetic", games=1000, decisions_per_game=100, seed=5))
+    fitted, report = train(read_training_data(tmp_path / "data"))
+    share = np.log(np.array([[0.05, 0.1, 0.2, 0.3, 0.35], [0.02, 0.08, 0.15, 0.25, 0.5]]))
+    indicator = np.array([[0.0, 1.0, 0.0, 1.0, 0.0], [1.0, 0.0, 0.0, 0.0, 1.0]])
+    model = Model.from_fitted(fitted, CHOICE_FEATURES)
+    (utility,) = model.parameter_values(torch.tensor(np.stack([share, indicator], axis=2), dtype=torch.float64))
+    expected = choice_utility(share, indicator)
+    difference = utility.numpy() - expected
+    assert np.abs(difference - difference.mean(axis=1, keepdims=True)).max() < 0.08
+    assert "intercept" not in fitted.to_json()["fit"]["utility"]
+    assert (report.examples.training, report.examples.validation) == (80_000, 20_000)
 
 
 def test_training_recovers_a_known_discrete_johnson_su() -> None:
@@ -186,6 +203,39 @@ def test_training_data_round_trips(tmp_path: Path) -> None:
     assert read.games == data.games
     assert torch.equal(read.examples.features, data.examples.features)
     assert torch.equal(read.examples.outcomes, data.examples.outcomes)
+
+
+def test_choice_training_data_round_trips_one_row_per_candidate(tmp_path: Path) -> None:
+    data = choice("Synthetic", games=3, decisions_per_game=4, seed=1)
+    write_training_data(tmp_path, data)
+    lines = (tmp_path / "examples.csv").read_text(encoding="utf-8").splitlines()
+    assert lines[0] == "decision,Share,Indicator,outcome"
+    assert len(lines) == 1 + 12 * 5
+    read = read_training_data(tmp_path)
+    assert read.manifest == data.manifest
+    assert torch.equal(read.examples.features, data.examples.features)
+    assert torch.equal(read.examples.outcomes, data.examples.outcomes)
+
+
+def test_reading_a_decision_that_chooses_two_candidates_fails(tmp_path: Path) -> None:
+    write_training_data(tmp_path, choice("Synthetic", games=3, decisions_per_game=4, seed=1))
+    examples = tmp_path / "examples.csv"
+    lines = examples.read_text(encoding="utf-8").splitlines()
+    rows = [line.split(",") for line in lines[1:6]]
+    for row in rows:
+        row[-1] = "1"
+    examples.write_text("\n".join([lines[0], *(",".join(r) for r in rows), *lines[6:]]) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="exactly one candidate"):
+        read_training_data(tmp_path)
+
+
+def test_reading_decisions_with_different_numbers_of_candidates_fails(tmp_path: Path) -> None:
+    write_training_data(tmp_path, choice("Synthetic", games=3, decisions_per_game=4, seed=1))
+    examples = tmp_path / "examples.csv"
+    lines = examples.read_text(encoding="utf-8").splitlines()
+    examples.write_text("\n".join([lines[0], *lines[2:]]) + "\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="same number of candidates"):
+        read_training_data(tmp_path)
 
 
 def test_reading_examples_with_the_wrong_header_fails(tmp_path: Path) -> None:

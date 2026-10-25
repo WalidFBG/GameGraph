@@ -4,7 +4,7 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedShot : ObservedAction
 {
-    public ObservedShot(int clock, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, bool? offensiveRebound)
+    public ObservedShot(int clock, int shooter, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, bool? offensiveRebound)
         : base(clock)
     {
         if (points is not (2 or 3))
@@ -17,12 +17,15 @@ public sealed record ObservedShot : ObservedAction
 
         CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1].Made : !made, offensiveRebound);
 
+        Shooter = shooter;
         Points = points;
         Fouled = fouled;
         Made = made;
         FreeThrows = freeThrows;
         OffensiveRebound = offensiveRebound;
     }
+
+    public int Shooter { get; }
 
     public int Points { get; }
 

@@ -12,7 +12,7 @@ from gamegraph.audit.findings import FEWEST_EXPECTED, LARGE_Z, Failure
 from gamegraph.audit.runs import BUCKETS, csv_name, latest
 from gamegraph.models.contract import CategoricalDistribution, TrainingDataManifest
 from gamegraph.models.contract_files import read_training_data_manifest
-from gamegraph.models.training_data import EXAMPLES, GAMES, MANIFEST, OUTCOME
+from gamegraph.models.training_data import DECISION, EXAMPLES, GAMES, MANIFEST, OUTCOME
 
 GAME = "game"
 GAMES_FILE = "games.parquet"
@@ -81,12 +81,16 @@ def audit(run: Path, training_data: Path) -> None:
 
 
 def _real(directory: Path, manifest: TrainingDataManifest, game_count: int) -> pl.DataFrame:
-    schema = {f: pl.Float64 for f in manifest.features} | {OUTCOME: pl.Int64}
+    choice = manifest.model.distribution.chooses_among_candidates()
+    schema = ({DECISION: pl.Int64} if choice else {}) | {f: pl.Float64 for f in manifest.features} | {OUTCOME: pl.Int64}
     real = pl.read_csv(directory / EXAMPLES, schema=schema)
     counts = pl.read_csv(directory / GAMES)["examples"].to_numpy()
-    if len(counts) != game_count or counts.sum() != real.height:
-        raise ValueError(f"{directory} has {len(counts)} games and {real.height} examples, not {game_count} games")
-    return real.with_columns(pl.Series(GAME, np.repeat(np.arange(len(counts)), counts)))
+    examples = real[DECISION].n_unique() if choice else real.height
+    if len(counts) != game_count or counts.sum() != examples:
+        raise ValueError(f"{directory} has {len(counts)} games and {examples} examples, not {game_count} games")
+    game_of_example = np.repeat(np.arange(len(counts)), counts)
+    games = game_of_example[real[DECISION].to_numpy()] if choice else game_of_example
+    return real.with_columns(pl.Series(GAME, games)).drop(DECISION, strict=False)
 
 
 def _table(

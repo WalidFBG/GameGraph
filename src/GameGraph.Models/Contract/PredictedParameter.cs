@@ -1,3 +1,3 @@
 namespace GameGraph.Models.Contract;
 
-public sealed record PredictedParameter(string Name, Link Link);
+public sealed record PredictedParameter(string Name, Link Link, bool HasIntercept);

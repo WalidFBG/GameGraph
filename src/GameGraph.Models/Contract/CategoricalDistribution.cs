@@ -14,9 +14,11 @@ public sealed record CategoricalDistribution : DistributionDeclaration
 
     public string[] Categories { get; }
 
-    public override PredictedParameter[] Predicted() => Categories[1..].Select(c => new PredictedParameter(c, Link.Identity)).ToArray();
+    public override PredictedParameter[] Predicted() => Categories[1..].Select(c => new PredictedParameter(c, Link.Identity, HasIntercept: true)).ToArray();
 
     public override string[] Given() => [];
+
+    public override bool ChoosesAmongCandidates() => false;
 
     public bool Equals(CategoricalDistribution? other) => other is not null && Categories.SequenceEqual(other.Categories);
 

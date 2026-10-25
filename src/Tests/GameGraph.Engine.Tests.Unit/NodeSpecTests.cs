@@ -8,7 +8,7 @@ public sealed class NodeSpecTests
     [Fact]
     public void ANodesFeaturesAreThoseOfItsTermsAndGivenInTheOrderTheyFirstAppear()
     {
-        var node = new NodeSpec<ToyState>(
+        var node = new VectorNode<ToyState>(
             "Timed",
             new DiscreteJohnsonSuDistribution(),
             new Dictionary<string, FeatureTerm<ToyState>[]>
@@ -31,7 +31,7 @@ public sealed class NodeSpecTests
     {
         var impostor = new Feature<ToyState>("Value", s => s.Value + 1);
 
-        var exception = Assert.Throws<ArgumentException>(() => new NodeSpec<ToyState>(
+        var exception = Assert.Throws<ArgumentException>(() => new VectorNode<ToyState>(
             "Confused",
             new DiscreteJohnsonSuDistribution(),
             new Dictionary<string, FeatureTerm<ToyState>[]>

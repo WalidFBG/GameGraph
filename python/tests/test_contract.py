@@ -12,6 +12,7 @@ from gamegraph.models.contract import (
     Attempt,
     BernoulliDistribution,
     CategoricalDistribution,
+    ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     Failure,
     FittedModel,
@@ -238,6 +239,37 @@ def test_a_johnson_su_model_with_a_given_maximum_round_trips(tmp_path: Path) -> 
     read = read_fitted_model(tmp_path / "model.json")
     assert read == johnson_su
     assert read.model.features() == {"Gaussian", "Bound"}
+
+
+CHOICE = FittedModel(
+    "Example",
+    ModelDeclaration(ChoiceDistribution(), {"utility": TERMS[:2]}, {}),
+    {
+        "utility": PredictorFit(
+            0.0, {"Gaussian": LinearFit(0.31, 8.4, (0.5,)), "Indicator": LinearFit(0.38, 0.49, (1.1,))}
+        )
+    },
+)
+
+
+def test_a_choice_model_round_trips_without_an_intercept(tmp_path: Path) -> None:
+    write_fitted_model(tmp_path / "model.json", CHOICE)
+    assert "intercept" not in json.loads((tmp_path / "model.json").read_text(encoding="utf-8"))["fit"]["utility"]
+    assert read_fitted_model(tmp_path / "model.json") == CHOICE
+
+
+def test_a_choice_fit_with_an_intercept_fails() -> None:
+    with pytest.raises(ValueError, match="has no intercept"):
+        replace(CHOICE, fit={"utility": replace(CHOICE.fit["utility"], intercept=0.3)})
+
+
+def test_reading_an_intercept_the_parameter_does_not_have_fails(tmp_path: Path) -> None:
+    write_fitted_model(tmp_path / "model.json", CHOICE)
+    document = json.loads((tmp_path / "model.json").read_text(encoding="utf-8"))
+    document["fit"]["utility"]["intercept"] = 0.0
+    (tmp_path / "model.json").write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(ValueError, match="has intercept, but the parameter has none"):
+        read_fitted_model(tmp_path / "model.json")
 
 
 def test_predicted_parameters_that_are_not_the_distribution_s_fail() -> None:

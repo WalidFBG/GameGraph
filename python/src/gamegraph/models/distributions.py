@@ -6,6 +6,7 @@ from gamegraph.models import normal
 from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
+    ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     DistributionDeclaration,
 )
@@ -118,7 +119,29 @@ class DiscreteJohnsonSu:
         return {"location": float(times.mean()), "scale": spread, "skew": 0.0, "tail": 1.0}
 
 
-type Distribution = Bernoulli | Categorical | DiscreteJohnsonSu
+class Choice:
+    def log_prob(self, parameters: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
+        (utility,) = parameters
+        self._require_outcomes(utility, outcomes)
+        return torch.log_softmax(utility, dim=1).gather(1, outcomes.unsqueeze(1)).squeeze(1)
+
+    def sample(self, parameters: tuple[torch.Tensor, ...], uniforms: torch.Tensor) -> torch.Tensor:
+        (utility,) = parameters
+        _require_uniforms(uniforms)
+        cumulative = torch.softmax(utility, dim=1).cumsum(dim=1)
+        passed = (cumulative <= uniforms.unsqueeze(1)).sum(dim=1)
+        return torch.clamp(passed, max=utility.shape[1] - 1)
+
+    def initial_parameters(self, outcomes: torch.Tensor) -> dict[str, float]:
+        return {}
+
+    @staticmethod
+    def _require_outcomes(utility: torch.Tensor, outcomes: torch.Tensor) -> None:
+        if not ((outcomes >= 0) & (outcomes < utility.shape[1])).all():
+            raise ValueError(f"A choice is a candidate from 0 to {utility.shape[1] - 1}")
+
+
+type Distribution = Bernoulli | Categorical | DiscreteJohnsonSu | Choice
 
 
 def distribution_for(declaration: DistributionDeclaration) -> Distribution:
@@ -129,6 +152,8 @@ def distribution_for(declaration: DistributionDeclaration) -> Distribution:
             return Categorical(declaration.categories)
         case DiscreteJohnsonSuDistribution():
             return DiscreteJohnsonSu()
+        case ChoiceDistribution():
+            return Choice()
 
 
 def _log_mass(skew: torch.Tensor, tail: torch.Tensor, start: torch.Tensor, end: torch.Tensor) -> torch.Tensor:

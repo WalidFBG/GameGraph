@@ -14,7 +14,7 @@
   "$defs": {
     "predictorFit": {
       "type": "object",
-      "required": ["intercept", "terms"],
+      "required": ["terms"],
       "additionalProperties": false,
       "properties": {
         "intercept": { "type": "number" },

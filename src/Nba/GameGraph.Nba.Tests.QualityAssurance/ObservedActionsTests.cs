@@ -11,7 +11,7 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
     public void SummarisesTheObservedActions()
     {
         var games = ValidatedDataReader.ReadAll().ToArray();
-        var accepted = games.Where(g => g.IsAccepted).ToArray();
+        var accepted = games.OfType<AcceptedGame>().ToArray();
         var possessions = accepted.SelectMany(g => g.Possessions).ToArray();
         var actions = possessions.SelectMany(p => p.Actions).ToArray();
         var shots = actions.OfType<ObservedShot>().ToArray();
@@ -23,7 +23,7 @@ public sealed class ObservedActionsTests(ITestOutputHelper output)
 
         output.WriteLine($"Games read {games.Length}, accepted {accepted.Length}");
 
-        foreach (var reason in games.Where(g => !g.IsAccepted).GroupBy(g => g.Rejection).OrderBy(g => g.Key))
+        foreach (var reason in games.OfType<RejectedGame>().GroupBy(g => g.Reason).OrderBy(g => g.Key))
             output.WriteLine($"  rejected {reason.Key}: {reason.Count()}");
 
         output.WriteLine($"Possessions {possessions.Length}, {(double)actions.Length / possessions.Length:F2} actions each; {accepted.Sum(g => g.PossessionsCutByPeriodEnd)} cut short by the end of a period");

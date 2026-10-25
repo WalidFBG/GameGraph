@@ -1,5 +1,4 @@
 using GameGraph.Engine;
-using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Replay;
@@ -9,11 +8,11 @@ namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class ObservedTotals
 {
-    public static GameTotals Of(ObservedGame game, GameContext context)
+    public static GameTotals Of(AcceptedGame game, GameContext context)
     {
         var score = new GameScore();
 
-        ObservedWalk.Walk(game, new NbaState(score, context.HomePointsPerPossession, context.AwayPointsPerPossession), new EmptyDecisionCollector<NbaState>());
+        ObservedWalk.Walk(game, new NbaState(score, context, game.Rotation), new EmptyDecisionCollector<NbaState>());
 
         var totals = score.Totals();
 

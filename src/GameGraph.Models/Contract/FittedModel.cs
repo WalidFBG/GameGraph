@@ -10,6 +10,12 @@ public sealed record FittedModel
         if (!Sorted(fit.Keys).SequenceEqual(Sorted(model.Terms.Keys)))
             throw new ArgumentException($"{node} predicts [{string.Join(", ", Sorted(model.Terms.Keys))}], but its fit has [{string.Join(", ", Sorted(fit.Keys))}]", nameof(fit));
 
+        foreach (var parameter in model.Distribution.Predicted())
+        {
+            if (!parameter.HasIntercept && fit[parameter.Name].Intercept != 0)
+                throw new ArgumentException($"The {parameter.Name} of {node} has no intercept, but its fit has {fit[parameter.Name].Intercept}", nameof(fit));
+        }
+
         foreach (var (name, terms) in model.Terms)
         {
             var fits = fit[name].Terms;

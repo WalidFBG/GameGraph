@@ -3,6 +3,7 @@ import numpy as np
 from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
+    ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     DistributionDeclaration,
 )
@@ -24,7 +25,7 @@ def assign(values: np.ndarray, cuts: np.ndarray) -> np.ndarray:
 
 def outcome_prefixes(distribution: DistributionDeclaration) -> dict[str, int] | None:
     match distribution:
-        case BernoulliDistribution():
+        case BernoulliDistribution() | ChoiceDistribution():
             return {"": 1}
         case CategoricalDistribution(categories=categories):
             return {f"{c} ": k for k, c in enumerate(categories)}

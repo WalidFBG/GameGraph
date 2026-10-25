@@ -6,6 +6,7 @@ import torch
 from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
+    ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     LinearSplineTerm,
     LinearTerm,
@@ -30,6 +31,12 @@ CATEGORICAL_DECLARATION = ModelDeclaration(
     CategoricalDistribution(CATEGORIES),
     {category: (LinearTerm("Gaussian"), LinearSplineTerm("Uniform", 5)) for category in CATEGORIES[1:]},
     {},
+)
+
+CANDIDATES = 5
+CHOICE_FEATURES = ("Share", "Indicator")
+CHOICE_DECLARATION = ModelDeclaration(
+    ChoiceDistribution(), {"utility": (LinearSplineTerm("Share", 4), LinearTerm("Indicator"))}, {}
 )
 
 INTERCEPT_ONLY_DECLARATION = ModelDeclaration(BernoulliDistribution(), {"probability": ()}, {})
@@ -63,6 +70,10 @@ def categorical_log_odds(gaussian: np.ndarray, uniform: np.ndarray) -> np.ndarra
     return np.column_stack([second, third])
 
 
+def choice_utility(share: np.ndarray, indicator: np.ndarray) -> np.ndarray:
+    return 1.2 * np.minimum(share, -1.5) + 0.3 * np.maximum(share + 1.5, 0) + 0.6 * indicator
+
+
 def bernoulli(node: str, games: int, rows_per_game: int, seed: int) -> TrainingData:
     generator = np.random.default_rng(seed)
     rows = games * rows_per_game
@@ -84,6 +95,18 @@ def categorical(node: str, games: int, rows_per_game: int, seed: int) -> Trainin
     outcomes = (probabilities.cumsum(axis=1) <= generator.random(rows)[:, None]).sum(axis=1)
     manifest = TrainingDataManifest(node, "synthetic", START, CATEGORICAL_FEATURES, rows, CATEGORICAL_DECLARATION)
     return _training_data(manifest, rows_per_game, np.column_stack([gaussian, uniform]), outcomes)
+
+
+def choice(node: str, games: int, decisions_per_game: int, seed: int) -> TrainingData:
+    generator = np.random.default_rng(seed)
+    decisions = games * decisions_per_game
+    share = np.log(generator.dirichlet(np.full(CANDIDATES, 2.0), decisions))
+    indicator = generator.binomial(1, 0.3, (decisions, CANDIDATES)).astype(np.float64)
+    utility = choice_utility(share, indicator)
+    probabilities = np.exp(utility) / np.exp(utility).sum(axis=1, keepdims=True)
+    outcomes = (probabilities.cumsum(axis=1) <= generator.random(decisions)[:, None]).sum(axis=1)
+    manifest = TrainingDataManifest(node, "synthetic", START, CHOICE_FEATURES, decisions, CHOICE_DECLARATION)
+    return _training_data(manifest, decisions_per_game, np.stack([share, indicator], axis=2), outcomes)
 
 
 def intercept_only(node: str, games: int, rows_per_game: int, seed: int, probability: float) -> TrainingData:

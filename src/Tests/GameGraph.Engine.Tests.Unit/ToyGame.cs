@@ -30,7 +30,7 @@ internal sealed class ToyGame
         var distribution = new BernoulliDistribution();
         FeatureTerm<ToyState>[] terms = [.. features.Select(FeatureTerm.Linear)];
 
-        return new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<ToyState>>(), transition);
+        return new VectorNode<ToyState>(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<ToyState>>(), transition);
     }
 
     private Next<ToyState> AfterWide(ToyState state, int outcome)

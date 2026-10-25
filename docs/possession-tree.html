@@ -19,6 +19,8 @@
   --categorical-edge: #7c3aed;
   --jsu: #ffedd5;
   --jsu-edge: #ea580c;
+  --choice: #dcfce7;
+  --choice-edge: #16a34a;
   --rule: #f1f2f4;
   --rule-edge: #6b7280;
   --code: #eef0f3;
@@ -39,6 +41,8 @@
     --categorical-edge: #b69cff;
     --jsu: #4f3420;
     --jsu-edge: #ff9d5c;
+    --choice: #1f3d2b;
+    --choice-edge: #5fd38d;
     --rule: #34363b;
     --rule-edge: #9aa0a8;
     --code: #34363b;
@@ -71,6 +75,7 @@ nav .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3
 nav .swatch.bernoulli { background: var(--bernoulli-edge); }
 nav .swatch.categorical { background: var(--categorical-edge); }
 nav .swatch.jsu { background: var(--jsu-edge); }
+nav .swatch.choice { background: var(--choice-edge); }
 nav .swatch.rule { background: var(--rule-edge); }
 main { flex: 1; min-width: 0; padding: 24px 40px 80px; }
 h1 { font-size: 28px; margin: 0 0 6px; }
@@ -84,6 +89,7 @@ code { background: var(--code); padding: 1px 5px; border-radius: 4px; font-size:
 .bernoulli { background: var(--bernoulli); border-color: var(--bernoulli-edge); }
 .categorical { background: var(--categorical); border-color: var(--categorical-edge); }
 .jsu { background: var(--jsu); border-color: var(--jsu-edge); }
+.choice { background: var(--choice); border-color: var(--choice-edge); }
 .rule { background: var(--rule); border-color: var(--rule-edge); border-style: dashed; }
 .diagram { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; overflow-x: auto; }
 svg { display: block; margin: 0 auto; font-family: "Segoe UI", system-ui, sans-serif; }
@@ -105,6 +111,7 @@ svg a { cursor: pointer; }
 .card.bernoulli { border-left-color: var(--bernoulli-edge); background: var(--card); }
 .card.categorical { border-left-color: var(--categorical-edge); background: var(--card); }
 .card.count { border-left-color: var(--jsu-edge); background: var(--card); }
+.card.choice { border-left-color: var(--choice-edge); background: var(--card); }
 .card.rule { border-left-style: dashed; background: var(--card); }
 .card:target { outline: 3px solid var(--accent); }
 .card .question { color: var(--muted); margin: 4px 0 10px; }
@@ -141,6 +148,7 @@ tr:last-child td { border-bottom: none; }
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
   <a href="#ActionType"><span class="swatch categorical"></span>ActionType</a>
   <a href="#ActionTime"><span class="swatch jsu"></span>ActionTime</a>
+  <a href="#Shooter"><span class="swatch choice"></span>Shooter</a>
   <a href="#FouledOnShot"><span class="swatch bernoulli"></span>FouledOnShot</a>
   <a href="#ShotMade"><span class="swatch bernoulli"></span>ShotMade</a>
   <a href="#InBonus"><span class="swatch bernoulli"></span>InBonus</a>
@@ -159,11 +167,12 @@ tr:last-child td { border-bottom: none; }
 
   <section id="idea">
     <h2>The idea</h2>
-    <p>A game is a walk through decisions. Rules (the sport's code) keep the state, both clocks included, and say which decision comes next; models (fitted in Python, sampled in C#) decide each outcome. The same walk, with observed outcomes in place of sampled ones, writes the training data. It is player-agnostic: choosing players waits for substitutions.</p>
+    <p>A game is a walk through decisions. Rules (the sport's code) keep the state, both clocks included, and say which decision comes next; models (fitted in Python, sampled in C#) decide each outcome. The same walk, with observed outcomes in place of sampled ones, writes the training data. Players are a one-way layer on top: the team state feeds them, and who is on court or who shoots changes no team decision (<code>plan.md</code>, step 6).</p>
     <div class="legend">
       <span class="bernoulli">Bernoulli (logit) · <code>bool</code></span>
       <span class="categorical">Categorical (log-odds) · <code>int</code> category</span>
       <span class="jsu">Discrete Johnson SU, truncated · <code>int</code> seconds</span>
+      <span class="choice">Choice (softmax) · <code>int</code> candidate</span>
       <span class="rule">Rule · no model</span>
     </div>
   </section>
@@ -288,8 +297,14 @@ tr:last-child td { border-bottom: none; }
         <td>location (identity), scale (log), skew (identity), tail (log); the maximum is given by a feature, not predicted</td>
         <td><a href="#ActionTime">ActionTime</a></td>
       </tr>
+      <tr>
+        <td><span class="tag choice" style="margin:0">Choice</span></td>
+        <td><code>int</code>: one of the decision's candidates</td>
+        <td>each candidate's utility (identity link, no intercept: it would cancel); the probabilities are their softmax, and the features are one row per candidate</td>
+        <td><a href="#Shooter">Shooter</a></td>
+      </tr>
     </table>
-    <p>Every predicted parameter is an intercept plus its own terms, each linear or a linear spline in one feature; a node's features are those its terms and given parameters use. Training fits each node directly and along a ridge path and chooses on validation (<code>models.md</code>).</p>
+    <p>Every predicted parameter is an intercept (except a choice's utility) plus its own terms, each linear or a linear spline in one feature; a node's features are those its terms and given parameters use. Training fits each node directly and along a ridge path and chooses on validation (<code>models.md</code>).</p>
   </section>
 
   <section id="clock">
@@ -390,8 +405,19 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
           <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game (the ball is advanced: 8 seconds after a made shot against 13)</li><li>the chosen action: three, turnover, foul (against a two), and a foul late in the game (these come fast: 57% within 3 seconds when the defence trails, against 28% at other times)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out, the ball after awarded free throws or the period start (against a defensive rebound); every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
-          <dt>Transition</dt><dd>both clocks run down by the outcome; then two or three → <a href="#FouledOnShot">FouledOnShot</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → adds one to the defence's team fouls (and to its fouls in the last two minutes when at most 120 seconds are left) → <a href="#InBonus">InBonus</a></dd>
+          <dt>Transition</dt><dd>both clocks run down by the outcome, and the five on court are read at the new clock; then two or three → <a href="#Shooter">Shooter</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → adds one to the defence's team fouls (and to its fouls in the last two minutes when at most 120 seconds are left) → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="Shooter">
+        <h3>Shooter <span class="tag">Choice</span></h3>
+        <p class="question">Which of the five on court takes the shot?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the shooter's place among the team's five</dd>
+          <dt>Features</dt><dd>one per candidate: the log of his share of the team's attempts of this type (two or three) while he was on court over his last 20 games, shrunk towards 1/5 by 5 attempts (a spline). The share in the last two minutes of the game and the other type's share each gained less than 0.0001 in validation and were dropped.</dd>
+          <dt>Transition</dt><dd>→ <a href="#FouledOnShot">FouledOnShot</a>; no team decision reads the shooter</dd>
+          <dt>Observed as</dt><dd>the shot's <code>ShotBy</code>, or the <code>FoulDrawnBy</code> of a shooting foul that stands in for a missed fouled shot</dd>
         </dl>
       </article>
 
@@ -519,6 +545,8 @@ tr:last-child td { border-bottom: none; }
       <tr><td>Free throws left, what was missed, who shoots an awarded free throw</td><td>the free-throw and shot transitions</td><td><a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
       <tr><td>The previous awarded free throw of the play, and whether one gave the defence the ball</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset when the play's awarded free throws end</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Context: each team's points per possession over its last 20 games (every point it scored, awarded free throws included)</td><td>augmentation, before the game</td><td>features</td></tr>
+      <tr><td>Context: each player's share of his team's twos and threes while on court, over his last 20 games</td><td>augmentation, before the game</td><td><a href="#Shooter">Shooter</a></td></tr>
+      <tr><td>The five on court for each team: until substitutions are simulated, the real game's five at the same period and clock, before that second's changes (a simulated overtime the real game did not have reads its last period)</td><td><a href="#ActionTime">ActionTime</a>'s transition</td><td><a href="#Shooter">Shooter</a>'s candidates</td></tr>
     </table>
   </section>
 
@@ -535,10 +563,10 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: who shoots, rebounds, turns it over and is fouled, together with substitutions</li>
+      <li>Players: who rebounds, turns it over, fouls and is fouled, and substitutions (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a> is not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
-      <li>Foul types, turnover types (live-ball steals and their fast breaks), shot zones, assists, blocks, timeouts, late-game fouling</li>
+      <li>Foul types, turnover types (live-ball steals and their fast breaks), shot zones, assists, blocks</li>
     </ul>
   </section>
 </main>

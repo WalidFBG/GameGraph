@@ -22,8 +22,8 @@ public sealed class SimulationAudit(ITestOutputHelper output)
 
         foreach (var node in NbaGameSpec.Instance.Nodes)
         {
-            var examples = CollectedExamples.Table([.. node.Features.Select(f => f.Name)], decisions.GamesFor(node));
-            var scored = ExampleScorer.Score(examples, fitted.ModelOf(node));
+            var examples = CollectedExamples.Table(node.FeatureNames, decisions.GamesFor(node));
+            var scored = ExampleScorer.Score(examples, fitted.ModelOf(node), node.Model.Distribution);
             var path = Path.Combine(directory, $"{node.Name}.parquet");
 
             await ScoredExamplesWriter.Write(path, scored);

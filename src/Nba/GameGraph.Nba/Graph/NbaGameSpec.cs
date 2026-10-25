@@ -14,6 +14,7 @@ public static class NbaGameSpec
             NbaNodes.PeriodRunsOut,
             NbaNodes.ActionType,
             NbaNodes.ActionTime,
+            NbaNodes.Shooter,
             NbaNodes.FouledOnShot,
             NbaNodes.ShotMade,
             NbaNodes.InBonus,

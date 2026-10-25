@@ -171,6 +171,40 @@ public sealed class ForwardPassTests
         Assert.Throws<ArgumentException>(() => new Categorical(3).LogProbability([0], 0));
 
     [Fact]
+    public void AChoiceIsTheSoftmaxOfItsCandidatesUtilities()
+    {
+        var choice = new Choice();
+        double[] utilities = [Math.Log(1), Math.Log(2), Math.Log(5)];
+
+        Assert.Equal(Math.Log(2 / 8.0), choice.LogProbability(utilities, 1), 1e-15);
+        Assert.Equal([1 / 8.0, 2 / 8.0, 5 / 8.0], choice.Probabilities(utilities), (a, b) => Math.Abs(a - b) < 1e-15);
+        Assert.Equal(0, choice.Sample(utilities, 0.124));
+        Assert.Equal(1, choice.Sample(utilities, 0.126));
+        Assert.Equal(2, choice.Sample(utilities, 0.376));
+    }
+
+    [Fact]
+    public void AChoiceRejectsAnOutcomeOutsideItsCandidates() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Choice().LogProbability([0, 0], 2));
+
+    [Fact]
+    public void AChoiceModelReadsOneRowOfFeaturesPerCandidate()
+    {
+        var model = Model.FromFitted(
+            new FittedModel(
+                "Golden",
+                new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = [new LinearTerm("Share")] }, new Dictionary<string, string>()),
+                new Dictionary<string, PredictorFit> { ["utility"] = new(0, new Dictionary<string, TermFit> { ["Share"] = new LinearFit(0, 1, [1]) }) }),
+            ["Share"]);
+
+        Assert.Equal([0.2, 0.3, 0.5], model.Probabilities([Math.Log(0.2), Math.Log(0.3), Math.Log(0.5)]), (a, b) => Math.Abs(a - b) < 1e-15);
+    }
+
+    [Fact]
+    public void AVectorModelRejectsMoreThanOneRowOfFeatures() =>
+        Assert.Throws<ArgumentException>(() => Model.FromFitted(Fitted, Features).Sample([4, 1, 4, 1], 0.5));
+
+    [Fact]
     public void TheDiscreteJohnsonSuProbabilitiesAddUpTo1UpToTheMaximum()
     {
         var johnsonSu = new DiscreteJohnsonSu();

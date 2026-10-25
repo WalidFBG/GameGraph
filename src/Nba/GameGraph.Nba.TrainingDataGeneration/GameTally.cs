@@ -19,13 +19,7 @@ public sealed class GameTally
         _clampedActionTimes += clamped;
     }
 
-    public void Rejected(RejectionReason reason)
-    {
-        if (reason == RejectionReason.NotSet)
-            throw new ArgumentOutOfRangeException(nameof(reason), reason, "No rejection reason");
-
-        Add($"Rejected{reason}", 1);
-    }
+    public void Rejected(RejectionReason reason) => Add($"Rejected{reason}", 1);
 
     public string Describe()
     {

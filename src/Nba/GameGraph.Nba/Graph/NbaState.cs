@@ -2,11 +2,29 @@ using GameGraph.Nba.Incidents;
 
 namespace GameGraph.Nba.Graph;
 
-public sealed class NbaState(INbaIncidentCollector incidents, double homePointsPerPossession, double awayPointsPerPossession)
+public sealed class NbaState
 {
-    public INbaIncidentCollector Incidents { get; } = incidents;
+    public NbaState(INbaIncidentCollector incidents, GameContext context, Rotation rotation)
+    {
+        Incidents = incidents;
+        PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
+        LogTwoShares = context.LogTwoShares;
+        LogThreeShares = context.LogThreeShares;
+        Rotation = rotation;
+        Rotation.FillOnCourt(OnCourt, Period, PeriodClock);
+    }
 
-    public double[] PointsPerPossession { get; } = [homePointsPerPossession, awayPointsPerPossession];
+    public INbaIncidentCollector Incidents { get; }
+
+    public double[] PointsPerPossession { get; }
+
+    public double[] LogTwoShares { get; }
+
+    public double[] LogThreeShares { get; }
+
+    public Rotation Rotation { get; }
+
+    public int[][] OnCourt { get; } = [new int[Lineup.Size], new int[Lineup.Size]];
 
     public int[] Score { get; } = new int[2];
 

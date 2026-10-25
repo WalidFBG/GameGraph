@@ -20,7 +20,7 @@
       }
     },
     "distribution": {
-      "oneOf": [{ "$ref": "#/$defs/bernoulli" }, { "$ref": "#/$defs/categorical" }, { "$ref": "#/$defs/discreteJohnsonSu" }]
+      "oneOf": [{ "$ref": "#/$defs/bernoulli" }, { "$ref": "#/$defs/categorical" }, { "$ref": "#/$defs/discreteJohnsonSu" }, { "$ref": "#/$defs/choice" }]
     },
     "bernoulli": {
       "type": "object",
@@ -45,6 +45,14 @@
       "additionalProperties": false,
       "properties": {
         "name": { "const": "discreteJohnsonSu" }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "required": ["name"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "const": "choice" }
       }
     },
     "given": { "type": "object", "additionalProperties": { "$ref": "#/$defs/name" } },

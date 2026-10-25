@@ -8,7 +8,7 @@ public sealed class ParityTests
 {
     private const double RelativeTolerance = 1e-12;
 
-    public static TheoryData<string> Sets => new("bernoulli-training", "categorical-training", "johnson-su-training");
+    public static TheoryData<string> Sets => new("bernoulli-training", "categorical-training", "johnson-su-training", "choice-training");
 
     [Theory]
     [MemberData(nameof(Sets))]
@@ -61,7 +61,7 @@ public sealed class ParityTests
 
     private static string Parity(string set) => Path.Combine(Repository.Root, "testdata", set);
 
-    private static double MeanNegativeLogLikelihood(Model model, TrainingData data, int from, int to)
+    private static double MeanNegativeLogLikelihood(Model model, TrainingDataFile data, int from, int to)
     {
         var total = 0.0;
 

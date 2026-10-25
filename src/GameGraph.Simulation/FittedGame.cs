@@ -29,6 +29,6 @@ public sealed class FittedGame<TState>
         if (!fitted.Model.Equals(node.Model))
             throw new ArgumentException($"The fitted model of {node.Name} was declared differently from the node's model", nameof(fitted));
 
-        return Model.FromFitted(fitted, node.Features.Select(f => f.Name).ToArray());
+        return Model.FromFitted(fitted, node.FeatureNames);
     }
 }

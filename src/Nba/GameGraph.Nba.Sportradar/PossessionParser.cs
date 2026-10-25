@@ -5,7 +5,7 @@ using OddsFactory.Sports.Data.Contracts.SportRadar;
 
 namespace GameGraph.Nba.Sportradar;
 
-internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
+internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Dictionary<long, int> slots)
 {
     private const int TakeFoulFreeThrows = 1;
 
@@ -113,7 +113,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         };
 
         StartAction(TeamOf(shot.Participants, ParticipationType.ShotBy));
-        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeTimeouts()) { Made = shot.Made };
+        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeTimeouts()) { Made = shot.Made, Shooter = SlotOf(shot.Participants, ParticipationType.ShotBy) };
     }
 
     private void Foul(Foul foul)
@@ -150,7 +150,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
             throw new RejectedGameException(RejectionReason.UnexpectedFoul);
 
         StartAction(drawn);
-        _open = new OpenAction(ActionClock(foul), foul.FreeThrowsAwarded, Phase.FreeThrows, TakeAwarded(), TakeTimeouts()) { Fouled = true };
+        _open = new OpenAction(ActionClock(foul), foul.FreeThrowsAwarded, Phase.FreeThrows, TakeAwarded(), TakeTimeouts()) { Fouled = true, Shooter = SlotOf(foul.Participants, ParticipationType.FoulDrawnBy) };
         _open.Expect(foul.FreeThrowsAwarded);
     }
 
@@ -263,7 +263,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
 
         _actions.Add(open.Points == 0
             ? new ObservedFoul(open.Clock, open.FreeThrows.ToArray(), offensiveRebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore }
-            : new ObservedShot(open.Clock, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), offensiveRebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore });
+            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), offensiveRebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore });
         _open = null;
     }
 
@@ -354,6 +354,12 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         return Side(teams.GetValueOrDefault(participant.ParticipantId));
     }
 
+    private int SlotOf(Participant[]? participants, ParticipationType role)
+    {
+        TeamOf(participants, role);
+        return slots[participants!.First(p => p.Type == role).ParticipantId];
+    }
+
     private static int Side(TeamType team) => team switch
     {
         TeamType.HomeOrA => Sides.Home,
@@ -382,6 +388,8 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         public Phase Phase { get; set; } = phase;
 
         public bool Made { get; init; }
+
+        public int Shooter { get; init; }
 
         public bool Fouled { get; set; }
 
