@@ -13,7 +13,7 @@ from gamegraph.contract import (
     ModelDeclaration,
     TrainingDataManifest,
 )
-from gamegraph.models.distributions import DiscreteJohnsonSu
+from gamegraph.models.distributions import Choice, DiscreteJohnsonSu
 from gamegraph.training.training_data import Examples, Game, TrainingData
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
@@ -33,10 +33,11 @@ CATEGORICAL_DECLARATION = ModelDeclaration(
     {},
 )
 
-CANDIDATES = 5
-CHOICE_FEATURES = ("Share", "Indicator")
+CANDIDATES = (3, 7)
+CHOICE_SIZES = (1, 3)
+CHOICE_FEATURES = ("Share", "Indicator", "Size")
 CHOICE_DECLARATION = ModelDeclaration(
-    ChoiceDistribution(), {"utility": (LinearSplineTerm("Share", 4), LinearTerm("Indicator"))}, {}
+    ChoiceDistribution(), {"utility": (LinearSplineTerm("Share", 4), LinearTerm("Indicator"))}, {"size": "Size"}
 )
 
 INTERCEPT_ONLY_DECLARATION = ModelDeclaration(BernoulliDistribution(), {"probability": ()}, {})
@@ -99,14 +100,18 @@ def categorical(node: str, games: int, rows_per_game: int, seed: int) -> Trainin
 
 def choice(node: str, games: int, decisions_per_game: int, seed: int) -> TrainingData:
     generator = np.random.default_rng(seed)
-    decisions = games * decisions_per_game
-    share = np.log(generator.dirichlet(np.full(CANDIDATES, 2.0), decisions))
-    indicator = generator.binomial(1, 0.3, (decisions, CANDIDATES)).astype(np.float64)
+    decisions, widest = games * decisions_per_game, CANDIDATES[1]
+    candidates = generator.integers(CANDIDATES[0], widest + 1, decisions)
+    real = np.arange(widest)[None, :] < candidates[:, None]
+    weights = np.where(real, generator.gamma(2.0, size=(decisions, widest)), 0.0)
+    share = np.where(real, np.log(np.where(real, weights, 1.0) / weights.sum(axis=1, keepdims=True)), 0.0)
+    indicator = np.where(real, generator.binomial(1, 0.3, (decisions, widest)), 0).astype(np.float64)
+    size = np.where(real, generator.integers(CHOICE_SIZES[0], CHOICE_SIZES[1] + 1, decisions)[:, None], 0.0)
     utility = choice_utility(share, indicator)
-    probabilities = np.exp(utility) / np.exp(utility).sum(axis=1, keepdims=True)
-    outcomes = (probabilities.cumsum(axis=1) <= generator.random(decisions)[:, None]).sum(axis=1)
+    outcomes = Choice().sample((torch.tensor(utility), torch.tensor(size)), torch.tensor(generator.random(decisions)))
     manifest = TrainingDataManifest(node, "synthetic", START, CHOICE_FEATURES, decisions, CHOICE_DECLARATION)
-    return _training_data(manifest, decisions_per_game, np.stack([share, indicator], axis=2), outcomes)
+    features = np.stack([share, indicator, size], axis=2)
+    return _training_data(manifest, decisions_per_game, features, outcomes.numpy())
 
 
 def intercept_only(node: str, games: int, rows_per_game: int, seed: int, probability: float) -> TrainingData:

@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-from gamegraph.contract import utc_from_text, utc_to_text
+from gamegraph.contract import ChoiceDistribution, TrainingDataManifest, utc_from_text, utc_to_text
 from gamegraph.files.contract_files import read_training_data_manifest, write_training_data_manifest
 from gamegraph.training.training_data import Examples, Game, TrainingData
 
@@ -25,26 +25,37 @@ def read_training_data(directory: Path) -> TrainingData:
     outcomes = table[:, -1]
     if not np.array_equal(outcomes, np.round(outcomes)):
         raise ValueError(f"{path} has an outcome that is not a whole number")
-    examples = _choices(path, table) if choice else Examples(_tensor(table[:, :-1]), _whole(outcomes))
+    examples = (
+        _choices(path, table, _size_column(manifest)) if choice else Examples(_tensor(table[:, :-1]), _whole(outcomes))
+    )
     if examples.outcomes.shape[0] != manifest.examples:
         raise ValueError(f"{path} has {examples.outcomes.shape[0]} examples, the manifest says {manifest.examples}")
     return TrainingData(manifest, _read_games(directory / GAMES), examples)
 
 
-def _choices(path: Path, table: np.ndarray) -> Examples:
-    decisions, chosen = table[:, 0].astype(np.int64), table[:, -1]
+def _choices(path: Path, table: np.ndarray, size_column: int) -> Examples:
+    decisions, chosen = table[:, 0].astype(np.int64), table[:, -1].astype(np.int64)
     count = int(decisions[-1]) + 1 if len(decisions) else 0
-    candidates = len(decisions) // count if count else 0
-    if not np.array_equal(decisions, np.repeat(np.arange(count), candidates)):
-        raise ValueError(
-            f"{path} does not number its decisions from 0 in order with the same number of candidates in each, "
-            "which is all the trainer reads yet"
-        )
-    chosen = chosen.reshape(count, candidates)
-    if not (((chosen == 0) | (chosen == 1)).all() and (chosen.sum(axis=1) == 1).all()):
-        raise ValueError(f"{path} has a decision that does not choose exactly one candidate")
-    features = table[:, 1:-1].reshape(count, candidates, table.shape[1] - 2)
-    return Examples(_tensor(features), _whole(chosen.argmax(axis=1)))
+    if len(decisions) and not (decisions[0] == 0 and np.isin(np.diff(decisions), (0, 1)).all()):
+        raise ValueError(f"{path} does not number its decisions from 0 in order")
+    candidates = np.bincount(decisions, minlength=count)
+    if (candidates > ChoiceDistribution.MOST_CANDIDATES).any():
+        raise ValueError(f"{path} has a decision with more than {ChoiceDistribution.MOST_CANDIDATES} candidates")
+    starts = np.concatenate([[0], np.cumsum(candidates)[:-1]])
+    position = np.arange(len(decisions)) - starts[decisions]
+    sizes = table[:, 1 + size_column]
+    if not ((chosen == 0) | (chosen == 1)).all():
+        raise ValueError(f"{path} has a candidate whose outcome is not 0 or 1")
+    if not np.array_equal(sizes, np.bincount(decisions, weights=chosen, minlength=count)[decisions]):
+        raise ValueError(f"{path} has a decision that does not choose as many candidates as its size")
+    features = np.zeros((count, int(candidates.max(initial=0)), table.shape[1] - 2))
+    features[decisions, position] = table[:, 1:-1]
+    outcomes = np.bincount(decisions, weights=chosen << position, minlength=count)
+    return Examples(_tensor(features), _whole(outcomes))
+
+
+def _size_column(manifest: TrainingDataManifest) -> int:
+    return manifest.features.index(manifest.model.given[ChoiceDistribution.SIZE])
 
 
 def _tensor(values: np.ndarray) -> torch.Tensor:
@@ -60,11 +71,11 @@ def write_training_data(directory: Path, data: TrainingData) -> None:
     write_training_data_manifest(directory / MANIFEST, data.manifest)
     features, outcomes = data.examples.features.numpy(), data.examples.outcomes.numpy()
     if data.manifest.model.distribution.chooses_among_candidates():
-        decisions, candidates = int(data.examples.features.shape[0]), int(data.examples.features.shape[1])
-        chosen = (np.arange(candidates)[None, :] == outcomes[:, None]).astype(np.int64)
-        table = np.column_stack(
-            [np.repeat(np.arange(decisions), candidates), features.reshape(decisions * candidates, -1), chosen.ravel()]
-        )
+        decisions, candidates = int(features.shape[0]), int(features.shape[1])
+        real = features[:, :, _size_column(data.manifest)] > 0
+        chosen = (outcomes[:, None] >> np.arange(candidates)[None, :]) & 1
+        decision = np.broadcast_to(np.arange(decisions)[:, None], (decisions, candidates))
+        table = np.column_stack([decision[real], features[real], chosen[real]])
         header, formats = [DECISION, *data.manifest.features, OUTCOME], ["%d"]
     else:
         table = np.column_stack([features, outcomes])

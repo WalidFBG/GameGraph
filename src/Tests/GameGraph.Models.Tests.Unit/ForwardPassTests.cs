@@ -175,21 +175,46 @@ public sealed class ForwardPassTests
         Assert.Throws<ArgumentException>(() => new Categorical(3).LogProbability([0], 0));
 
     [Fact]
-    public void AChoiceIsTheSoftmaxOfItsCandidatesUtilities()
+    public void AChoiceOfOneIsTheSoftmaxOfItsCandidatesUtilities()
     {
         var choice = new Choice();
-        double[] utilities = [Math.Log(1), Math.Log(2), Math.Log(5)];
+        double[] parameters = [Math.Log(1), 1, Math.Log(2), 1, Math.Log(5), 1];
 
-        Assert.Equal(Math.Log(2 / 8.0), choice.LogProbability(utilities, 1), 1e-15);
-        Assert.Equal([1 / 8.0, 2 / 8.0, 5 / 8.0], choice.Probabilities(utilities), (a, b) => Math.Abs(a - b) < 1e-15);
-        Assert.Equal(0, choice.Sample(utilities, 0.124));
-        Assert.Equal(1, choice.Sample(utilities, 0.126));
-        Assert.Equal(2, choice.Sample(utilities, 0.376));
+        Assert.Equal(Math.Log(2 / 8.0), choice.LogProbability(parameters, 0b010), 1e-15);
+        Assert.Equal([1 / 8.0, 2 / 8.0, 5 / 8.0], choice.Probabilities(parameters), (a, b) => Math.Abs(a - b) < 1e-15);
+        Assert.Equal(0b001, choice.Sample(parameters, 0.124));
+        Assert.Equal(0b010, choice.Sample(parameters, 0.126));
+        Assert.Equal(0b100, choice.Sample(parameters, 0.376));
+    }
+
+    [Fact]
+    public void ASetIsAsLikelyAsItsUtilitiesProductAmongEverySetOfItsSize()
+    {
+        var choice = new Choice();
+        double[] utilities = [0.3, -1.1, 0.8, 0.0];
+        double[] parameters = [.. utilities.SelectMany(u => new[] { u, 2.0 })];
+        int[] sets = [0b0011, 0b0101, 0b1001, 0b0110, 0b1010, 0b1100];
+        var weights = sets.Select(s => Math.Exp(utilities.Where((_, c) => (s >> c & 1) == 1).Sum())).ToArray();
+
+        for (var s = 0; s < sets.Length; s++)
+            Assert.Equal(Math.Log(weights[s] / weights.Sum()), choice.LogProbability(parameters, sets[s]), 1e-14);
+
+        var inclusion = utilities.Select((_, c) => sets.Where(s => (s >> c & 1) == 1).Sum(s => weights[Array.IndexOf(sets, s)]) / weights.Sum());
+
+        Assert.Equal(inclusion, choice.Probabilities(parameters), (a, b) => Math.Abs(a - b) < 1e-14);
     }
 
     [Fact]
     public void AChoiceRejectsAnOutcomeOutsideItsCandidates() =>
-        Assert.Throws<ArgumentOutOfRangeException>(() => new Choice().LogProbability([0, 0], 2));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Choice().LogProbability([0, 1, 0, 1], 0b100));
+
+    [Fact]
+    public void AChoiceRejectsASetOfAnotherSize() =>
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Choice().LogProbability([0, 2, 0, 2, 0, 2], 0b001));
+
+    [Fact]
+    public void AChoiceRejectsCandidatesOfDifferentSizes() =>
+        Assert.Throws<ArgumentException>(() => new Choice().LogProbability([0, 1, 0, 2], 0b01));
 
     [Fact]
     public void AChoiceModelReadsOneRowOfFeaturesPerCandidate()
@@ -197,11 +222,11 @@ public sealed class ForwardPassTests
         var model = Model.FromFitted(
             new FittedModel(
                 "Golden",
-                new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = [new LinearTerm("Share")] }, new Dictionary<string, string>()),
+                new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = [new LinearTerm("Share")] }, new Dictionary<string, string> { [ChoiceDistribution.Size] = "Size" }),
                 new Dictionary<string, PredictorFit> { ["utility"] = new(0, new Dictionary<string, TermFit> { ["Share"] = new LinearFit(0, 1, [1]) }) }),
-            ["Share"]);
+            ["Share", "Size"]);
 
-        Assert.Equal([0.2, 0.3, 0.5], model.Probabilities([Math.Log(0.2), Math.Log(0.3), Math.Log(0.5)]), (a, b) => Math.Abs(a - b) < 1e-15);
+        Assert.Equal([0.2, 0.3, 0.5], model.Probabilities([Math.Log(0.2), 1, Math.Log(0.3), 1, Math.Log(0.5), 1]), (a, b) => Math.Abs(a - b) < 1e-15);
     }
 
     [Fact]

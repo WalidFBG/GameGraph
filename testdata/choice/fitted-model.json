@@ -18,7 +18,9 @@
         }
       ]
     },
-    "given": {}
+    "given": {
+      "size": "Size"
+    }
   },
   "fit": {
     "utility": {

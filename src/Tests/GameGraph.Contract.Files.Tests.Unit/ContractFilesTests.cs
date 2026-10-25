@@ -258,7 +258,7 @@ public sealed class ContractFilesTests : IDisposable
         var path = PathOf("model.json");
         var choice = new FittedModel(
             "Example",
-            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..2] }, NoGiven),
+            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..2] }, new Dictionary<string, string> { [ChoiceDistribution.Size] = "Size" }),
             new Dictionary<string, PredictorFit>
             {
                 ["utility"] = new(0, new Dictionary<string, TermFit> { ["Gaussian"] = new LinearFit(0.31, 8.4, [0.5]), ["Indicator"] = new LinearFit(0.38, 0.49, [1.1]) }),
@@ -277,7 +277,7 @@ public sealed class ContractFilesTests : IDisposable
     {
         var error = Assert.Throws<ArgumentException>(() => new FittedModel(
             "Example",
-            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..1] }, NoGiven),
+            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..1] }, new Dictionary<string, string> { [ChoiceDistribution.Size] = "Size" }),
             new Dictionary<string, PredictorFit> { ["utility"] = new(0.3, new Dictionary<string, TermFit> { ["Gaussian"] = new LinearFit(0.31, 8.4, [0.5]) }) }));
 
         Assert.Contains("has no intercept", error.Message);

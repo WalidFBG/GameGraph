@@ -28,6 +28,9 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShotIsThree =
         new(nameof(ShotIsThree), s => s.ShotPoints == 3 ? 1 : 0);
 
+    public static readonly Feature<NbaState> Shooters =
+        new(nameof(Shooters), _ => 1);
+
     public static readonly CandidateFeature<NbaState> ShotShare =
         new(nameof(ShotShare), (s, player) => s.ShotPoints == 3 ? s.LogThreeShares[player] : s.LogTwoShares[player]);
 

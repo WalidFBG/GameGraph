@@ -1,5 +1,6 @@
 import math
 from pathlib import Path
+from typing import cast
 
 import golden
 import pytest
@@ -148,21 +149,60 @@ def test_categorical_fails_when_a_category_never_occurs() -> None:
         CATEGORICAL.initial_parameters(torch.tensor([0, 2, 2]))
 
 
-def test_a_choice_gives_the_log_softmax_of_its_candidates_utilities() -> None:
-    utility = tensor([math.log(1.0), math.log(2.0), math.log(5.0)]).repeat(3, 1)
-    log_prob = Choice().log_prob((utility,), torch.tensor([0, 1, 2]))
+def choosing(size: float, utilities: list[float], rows: int) -> tuple[torch.Tensor, torch.Tensor]:
+    return tensor(utilities).repeat(rows, 1), tensor([size] * len(utilities)).repeat(rows, 1)
+
+
+def test_a_choice_of_one_gives_the_log_softmax_of_its_candidates_utilities() -> None:
+    parameters = choosing(1, [math.log(1.0), math.log(2.0), math.log(5.0)], 3)
+    log_prob = Choice().log_prob(parameters, torch.tensor([0b001, 0b010, 0b100]))
     assert_close(log_prob, [math.log(1 / 8), math.log(2 / 8), math.log(5 / 8)])
 
 
-def test_a_choice_samples_the_first_candidate_whose_cumulative_probability_exceeds_the_uniform() -> None:
-    utility = tensor([math.log(1.0), math.log(2.0), math.log(5.0)]).repeat(4, 1)
-    samples = Choice().sample((utility,), tensor([0.0, 0.124, 0.126, 0.376]))
-    assert torch.equal(samples, torch.tensor([0, 0, 1, 2]))
+def test_a_choice_of_one_samples_the_first_candidate_whose_cumulative_probability_exceeds_the_uniform() -> None:
+    parameters = choosing(1, [math.log(1.0), math.log(2.0), math.log(5.0)], 4)
+    samples = Choice().sample(parameters, tensor([0.0, 0.124, 0.126, 0.376]))
+    assert torch.equal(samples, torch.tensor([0b001, 0b001, 0b010, 0b100]))
+
+
+def test_a_set_is_as_likely_as_its_utilities_product_among_every_set_of_its_size() -> None:
+    utilities = [0.3, -1.1, 0.8, 0.0]
+    sets = [a | b for i, a in enumerate((1, 2, 4, 8)) for b in (1, 2, 4, 8)[i + 1 :]]
+    log_prob = Choice().log_prob(choosing(2, utilities, len(sets)), torch.tensor(sets))
+    weights = [math.exp(sum(u for c, u in enumerate(utilities) if s >> c & 1)) for s in sets]
+    assert_close(log_prob, [math.log(w / sum(weights)) for w in weights])
+
+
+def test_samples_of_sets_follow_their_probabilities() -> None:
+    utilities = [0.3, -1.1, 0.8, 0.0]
+    rows = 100_000
+    samples = Choice().sample(
+        choosing(2, utilities, rows), torch.rand(rows, generator=torch.Generator().manual_seed(3), dtype=torch.float64)
+    )
+    sets, counts = cast(tuple[torch.Tensor, torch.Tensor], torch.unique(samples, return_counts=True))
+    expected = torch.exp(Choice().log_prob(choosing(2, utilities, len(sets)), sets))
+    assert float((counts / rows - expected).abs().max()) < 0.005
+
+
+def test_padding_rows_of_size_0_are_not_candidates() -> None:
+    padded = (tensor([[0.3, -1.1, 0.8, 7.0]]), tensor([[2.0, 2.0, 2.0, 0.0]]))
+    exact = (tensor([[0.3, -1.1, 0.8]]), tensor([[2.0, 2.0, 2.0]]))
+    assert_close(
+        Choice().log_prob(padded, torch.tensor([0b101])),
+        [float(v) for v in Choice().log_prob(exact, torch.tensor([0b101]))],
+    )
+    with pytest.raises(ValueError, match="set of its candidates' rows"):
+        Choice().log_prob(padded, torch.tensor([0b1001]))
 
 
 def test_a_choice_rejects_an_outcome_outside_its_candidates() -> None:
-    with pytest.raises(ValueError, match="from 0 to 1"):
-        Choice().log_prob((tensor([0.0, 0.0]).unsqueeze(0),), torch.tensor([2]))
+    with pytest.raises(ValueError, match="set of its candidates' rows"):
+        Choice().log_prob(choosing(1, [0.0, 0.0], 1), torch.tensor([0b100]))
+
+
+def test_a_choice_rejects_a_set_of_another_size() -> None:
+    with pytest.raises(ValueError, match="as many candidates as its size"):
+        Choice().log_prob(choosing(2, [0.0, 0.0, 0.0], 1), torch.tensor([0b001]))
 
 
 def test_a_choice_model_needs_features_per_candidate() -> None:

@@ -8,7 +8,7 @@ A sport is a graph of decisions. At each decision (a node) something is chosen: 
 
 The engine performs the walk, in both modes. At every node it:
 
-1. computes the node's features from the game state, using the sport's feature definitions: one row for a vector node, or one row per candidate for a choice node (who shoots: the candidates come from the state, and each feature reads the state and a candidate), whose outcome is the chosen row;
+1. computes the node's features from the game state, using the sport's feature definitions: one row for a vector node, or one row per candidate for a choice node (who shoots: the candidates come from the state, and each feature reads the state and a candidate, and every row also carries the number of candidates to choose), whose outcome is the chosen rows, as a bitmask;
 2. asks the **outcome decider** for the node's outcome, given the state and the features;
 3. hands the node, the state, the features and the outcome to the **decision collector**;
 4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome, reports to the state's **incident collector** whatever the rules say happened (for example, a possession ended with 2 points), and returns the next node.
@@ -78,7 +78,7 @@ GameGraph.Nba.Tests.QualityAssurance
   └── GameGraph.Engine
 ```
 
-- **Contract** is the contract with Python as records with their invariants: a model's declaration, the fitted model, the training-data manifest, and a node's training data (its games, each with its examples; a choice's example holds one row of features per candidate, and its outcome is the chosen row). It references nothing and knows no file format.
+- **Contract** is the contract with Python as records with their invariants: a model's declaration, the fitted model, the training-data manifest, and a node's training data (its games, each with its examples; a choice's example holds one row of features per candidate, and its outcome is the chosen rows as a bitmask). It references nothing and knows no file format.
 - **Contract.Files** reads and writes the contract's files: the manifest and fitted model as JSON validated against the schemas (the polymorphic records get their discriminators here, not from attributes), the training data as CSV, and the training report, which only the parity tests read. It is the only C# that knows the formats.
 - **Models** knows nothing about sports, games, the engine or files (see `models.md`): the forward pass, a fitted model's parameter values, log-probability and samples, from the node's features.
 - **Engine** owns the walk and the outcome-decider and decision-collector interfaces, and the recording decision collector (a decision collector that records each node's examples, game by game, as it is handed them, in either mode). Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport, nothing about files and nothing about how training works.

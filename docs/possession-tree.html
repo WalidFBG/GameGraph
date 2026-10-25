@@ -172,7 +172,7 @@ tr:last-child td { border-bottom: none; }
       <span class="bernoulli">Bernoulli (logit) · <code>bool</code></span>
       <span class="categorical">Categorical (log-odds) · <code>int</code> category</span>
       <span class="jsu">Discrete Johnson SU, truncated · <code>int</code> seconds</span>
-      <span class="choice">Choice (softmax) · <code>int</code> candidate</span>
+      <span class="choice">Choice (sets of k) · <code>int</code> chosen rows</span>
       <span class="rule">Rule · no model</span>
     </div>
   </section>
@@ -299,8 +299,8 @@ tr:last-child td { border-bottom: none; }
       </tr>
       <tr>
         <td><span class="tag choice" style="margin:0">Choice</span></td>
-        <td><code>int</code>: one of the decision's candidates</td>
-        <td>each candidate's utility (identity link, no intercept: it would cancel); the probabilities are their softmax, and the features are one row per candidate</td>
+        <td><code>int</code>: a bitmask of the chosen candidates' rows</td>
+        <td>each candidate's utility (identity link, no intercept: it would cancel), and the size k given on every row; a set's probability is exp(the sum of its utilities) over the elementary symmetric polynomial of every set of k, which for k = 1 is the softmax; the features are one row per candidate</td>
         <td><a href="#Shooter">Shooter</a></td>
       </tr>
     </table>
@@ -414,8 +414,8 @@ tr:last-child td { border-bottom: none; }
         <h3>Shooter <span class="tag">Choice</span></h3>
         <p class="question">Which of the five on court takes the shot?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>int</code>: the shooter's place among the team's five</dd>
-          <dt>Features</dt><dd>one per candidate: the log of his share of the team's attempts of this type (two or three) while he was on court over his last 20 games, shrunk towards 1/5 by 5 attempts (a spline). The share in the last two minutes of the game and the other type's share each gained less than 0.0001 in validation and were dropped.</dd>
+          <dt>Outcome</dt><dd><code>int</code>: the bit of the shooter's place among the team's five</dd>
+          <dt>Features</dt><dd>its size, <code>Shooters</code>, always 1; and one per candidate: the log of his share of the team's attempts of this type (two or three) while he was on court over his last 20 games, shrunk towards 1/5 by 5 attempts (a spline). The share in the last two minutes of the game and the other type's share each gained less than 0.0001 in validation and were dropped.</dd>
           <dt>Transition</dt><dd>→ <a href="#FouledOnShot">FouledOnShot</a>; no team decision reads the shooter</dd>
           <dt>Observed as</dt><dd>the shot's <code>ShotBy</code>, or the <code>FoulDrawnBy</code> of a shooting foul that stands in for a missed fouled shot</dd>
         </dl>

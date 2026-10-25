@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from itertools import pairwise
-from typing import Any
+from typing import Any, ClassVar
 
 type Json = dict[str, Any]
 
@@ -85,11 +85,14 @@ class DiscreteJohnsonSuDistribution:
 
 @dataclass(frozen=True)
 class ChoiceDistribution:
+    SIZE: ClassVar[str] = "size"
+    MOST_CANDIDATES: ClassVar[int] = 31
+
     def predicted(self) -> tuple[PredictedParameter, ...]:
         return (PredictedParameter("utility", Link.IDENTITY, has_intercept=False),)
 
     def given(self) -> tuple[str, ...]:
-        return ()
+        return (ChoiceDistribution.SIZE,)
 
     def chooses_among_candidates(self) -> bool:
         return True

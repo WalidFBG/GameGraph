@@ -5,7 +5,8 @@
   "createdUtc": "2024-01-01T00:00:00Z",
   "features": [
     "Share",
-    "Indicator"
+    "Indicator",
+    "Size"
   ],
   "examples": 2000,
   "model": {
@@ -25,6 +26,8 @@
         }
       ]
     },
-    "given": {}
+    "given": {
+      "size": "Size"
+    }
   }
 }

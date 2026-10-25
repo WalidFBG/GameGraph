@@ -10,6 +10,8 @@ public sealed class GoldenTests
 
     public static TheoryData<string> Distributions => new("bernoulli", "categorical", "johnson-su", "johnson-su-narrow", "choice");
 
+    public static TheoryData<string> Outcomes => new("bernoulli", "categorical", "johnson-su", "johnson-su-narrow");
+
     [Theory]
     [MemberData(nameof(Distributions))]
     public void CSharpAgreesWithPython(string distribution)
@@ -30,7 +32,7 @@ public sealed class GoldenTests
     }
 
     [Theory]
-    [MemberData(nameof(Distributions))]
+    [MemberData(nameof(Outcomes))]
     public void ProbabilitiesAreEveryOutcomesAndSumToOne(string distribution)
     {
         var (golden, model) = Read(distribution);
@@ -42,6 +44,21 @@ public sealed class GoldenTests
             Assert.InRange(c.Outcome, 0, probabilities.Length - 1);
             AssertClose(Math.Exp(c.LogProbability), probabilities[c.Outcome]);
             Assert.Equal(1, probabilities.Sum(), 1e-12);
+        }
+    }
+
+    [Fact]
+    public void AChoicesProbabilitiesAreEachCandidatesChanceOfBeingChosenAndSumToItsSize()
+    {
+        var (golden, model) = Read("choice");
+
+        foreach (var c in golden.Cases)
+        {
+            var probabilities = model.Probabilities(c.Features);
+
+            Assert.Equal(c.Features.Length / golden.Features.Length, probabilities.Length);
+            Assert.All(probabilities, p => Assert.InRange(p, 0, 1));
+            Assert.Equal(int.PopCount(c.Outcome), probabilities.Sum(), 1e-12);
         }
     }
 
