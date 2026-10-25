@@ -7,8 +7,8 @@ public sealed record ObservedFoul : ObservedAction
     public ObservedFoul(int clock, bool[] freeThrows, bool? offensiveRebound)
         : base(clock)
     {
-        if (freeThrows.Length is not (0 or NbaTransitions.BonusFreeThrows))
-            throw new ArgumentException($"A non-shooting foul gives 0 or {NbaTransitions.BonusFreeThrows} free throws, got {freeThrows.Length}", nameof(freeThrows));
+        if (freeThrows.Length is not (0 or Graph.FreeThrows.Bonus))
+            throw new ArgumentException($"A non-shooting foul gives 0 or {Graph.FreeThrows.Bonus} free throws, got {freeThrows.Length}", nameof(freeThrows));
 
         CheckRebound(freeThrows.Length > 0 && !freeThrows[^1], offensiveRebound);
 

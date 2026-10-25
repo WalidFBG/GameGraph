@@ -5,8 +5,6 @@ namespace GameGraph.Nba.Graph;
 
 public static class NbaTransitions
 {
-    public const int BonusFreeThrows = 2;
-
     public static Next<NbaState> JumpBall(NbaState state, int homeWon)
     {
         state.TeamInPossession = Yes(homeWon) ? Sides.Home : Sides.Away;
@@ -119,12 +117,12 @@ public static class NbaTransitions
     {
         if (Yes(inBonus))
         {
-            state.FreeThrowsLeft = BonusFreeThrows;
+            state.FreeThrowsLeft = FreeThrows.Bonus;
             return NbaNodes.FreeThrowMade;
         }
 
         state.ShotClock = Math.Max(state.ShotClock, Graph.ShotClock.SideOutMinimum);
-        state.Start = PlayStart.SideOut;
+        StartPlay(state, PlayStart.SideOut);
         return NextPlay(state);
     }
 
@@ -150,11 +148,8 @@ public static class NbaTransitions
         if (!Yes(offensive))
             return EndOfPossession(state, PlayStart.DefensiveRebound);
 
-        state.ShotPoints = 0;
-        state.Fouled = false;
-        state.LastMiss = Miss.NotSet;
         state.ShotClock = Graph.ShotClock.OffensiveRebound;
-        state.Start = PlayStart.OffensiveRebound;
+        StartPlay(state, PlayStart.OffensiveRebound);
         return NextPlay(state);
     }
 
@@ -181,10 +176,7 @@ public static class NbaTransitions
         if (state.Period >= Periods.Regulation && state.Score[Sides.Home] != state.Score[Sides.Away])
             return Next<NbaState>.GameOver;
 
-        state.PeriodClock = Periods.SecondsIn(state.Period);
-        state.TeamFouls[Sides.Home] = 0;
-        state.TeamFouls[Sides.Away] = 0;
-        StartPossession(state, PlayStart.PeriodStart);
+        StartPeriod(state);
 
         if (state.Period >= Periods.Regulation)
         {
@@ -199,14 +191,29 @@ public static class NbaTransitions
     private static void ReportPossession(NbaState state) =>
         state.Incidents.Possession(new PossessionIncident(state.TeamInPossession, state.Period, state.PossessionPoints));
 
+    private static void StartPeriod(NbaState state)
+    {
+        state.PeriodClock = Periods.SecondsIn(state.Period);
+        state.TeamFouls[Sides.Home] = 0;
+        state.TeamFouls[Sides.Away] = 0;
+        StartPossession(state, PlayStart.PeriodStart);
+    }
+
     private static void StartPossession(NbaState state, PlayStart start)
     {
         state.PossessionPoints = 0;
+        state.ShotClock = Graph.ShotClock.Full;
+        StartPlay(state, start);
+    }
+
+    private static void StartPlay(NbaState state, PlayStart start)
+    {
+        state.Start = start;
+        state.Action = Graph.ActionType.NotSet;
         state.ShotPoints = 0;
         state.Fouled = false;
+        state.FreeThrowsLeft = 0;
         state.LastMiss = Miss.NotSet;
-        state.ShotClock = Graph.ShotClock.Full;
-        state.Start = start;
     }
 
     private static void Score(NbaState state, int points)

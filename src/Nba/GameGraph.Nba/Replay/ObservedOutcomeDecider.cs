@@ -1,12 +1,13 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Observed;
 using GameGraph.Nba.Incidents;
 
-namespace GameGraph.Nba.Observed;
+namespace GameGraph.Nba.Replay;
 
 public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 {
-    private const double UnreadScoringRate = 0;
+    private const double UnreadPointsPerPossession = 0;
 
     private readonly ObservedDecision[] _decisions;
     private int _next;
@@ -35,7 +36,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     public static bool Follows(Possession[] possessions)
     {
         var decider = new ObservedOutcomeDecider(possessions);
-        var state = new NbaState(new EmptyIncidentCollector(), UnreadScoringRate, UnreadScoringRate);
+        var state = new NbaState(new EmptyIncidentCollector(), UnreadPointsPerPossession, UnreadPointsPerPossession);
 
         try
         {

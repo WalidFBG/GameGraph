@@ -1,7 +1,8 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Observed;
 
-namespace GameGraph.Nba.Observed;
+namespace GameGraph.Nba.Replay;
 
 public static class ObservedWalk
 {

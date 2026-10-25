@@ -81,6 +81,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 3. The tree's clock (step 13 in `models.md`): done. `PeriodRunsOut` ends periods, `JumpBall` starts the game and every overtime, `ActionTime` is a discrete Johnson SU, and free throws outside the play keep the score right; the schedule leak is gone, and possessions the period cuts short are kept (`PossessionsCutByPeriodEnd` only counts them now).
 4. The audit (see "The audit"): first, so that every later step is judged by it.
 5. The team graph's gaps, one at a time:
+   - the context is points per possession: done. It used to be the share of possessions with a made field goal, so a three counted as a two and free throws not at all; points per possession validates better on five of the six nodes that read it (`AwardedFreeThrowMade` by 0.00007) and worse on `ActionType` by 0.00002;
    - the ball after free throws outside the play: done. `AwardedFreeThrow` learns each free throw's kind (technical, flagrant, clear path, take foul) and remembers the play's previous one, and the ball moves by rule (`AwardedBall`) after a flagrant or clear-path free throw to the defence: about 0.011 times a game, and the 52 games this used to reject are kept;
    - late-game fouling: the trailing team fouls to stop the clock, which shapes close finishes and the totals and margins near the line;
    - timeouts: they stop the clock and advance the ball late in games.
@@ -107,7 +108,7 @@ Each piece builds and runs on its own and is reviewed before the next.
 2. Each node declares its model (family and terms); the manifest records it; the trainer and the simulator build the model from it: done.
 3. Features as expressions (`Expression<Func<TState, double>>`, compiled once for the plain walk), while there are only two features: done.
 4. Reading the data: an observed possession becomes a sequence of actions (two, three, turnover, non-shooting foul), with fouled or not, made or missed, the free throws and the offensive rebound.
-5. The NBA graph: the new nodes, state, features, transitions and incidents: done (the six decisions of the tree without the clock; first features are the score margin and team scoring rate plus each node's own state; the possession incident is the only incident yet).
+5. The NBA graph: the new nodes, state, features, transitions and incidents: done (the six decisions of the tree without the clock; first features are the score margin and the team's points per possession plus each node's own state; the possession incident is the only incident yet).
 6. End to end: training data, training and the quality-assurance simulation on the new graph: done. `InBonus` stops at the 200-step cap and `FouledOnShot` close to it, so plain gradient descent is already too slow for some nodes (see the optimiser question).
 
 ## Model families and data shapes
