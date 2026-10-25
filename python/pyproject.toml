@@ -13,6 +13,7 @@ dependencies = [
 [project.scripts]
 gamegraph-train = "gamegraph.models.train_nodes:main"
 gamegraph-calibration = "gamegraph.audit.calibration:main"
+gamegraph-simulation = "gamegraph.audit.simulation:main"
 
 [dependency-groups]
 dev = [

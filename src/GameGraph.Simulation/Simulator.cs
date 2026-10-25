@@ -6,13 +6,11 @@ public static class Simulator
 {
     public static void Run<TState>(
         FittedGame<TState> game,
-        int simulations,
-        Func<int, TState> createState)
+        IReadOnlyList<int> seeds,
+        Func<int, TState> createState,
+        IDecisionCollector<TState> decisionCollector)
     {
-        var seeds = Seeds.Draw(simulations);
-        var decisionCollector = new EmptyDecisionCollector<TState>();
-
-        for (var simulationIndex = 0; simulationIndex < simulations; simulationIndex++)
+        for (var simulationIndex = 0; simulationIndex < seeds.Count; simulationIndex++)
         {
             var decider = new SampledOutcomeDecider<TState>(game, new SeededRandom(seeds[simulationIndex]));
 

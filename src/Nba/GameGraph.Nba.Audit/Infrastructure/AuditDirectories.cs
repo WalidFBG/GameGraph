@@ -1,9 +1,11 @@
 using System.Globalization;
 
-namespace GameGraph.Nba.Audit;
+namespace GameGraph.Nba.Audit.Infrastructure;
 
-internal static class AuditData
+internal static class AuditDirectories
 {
+    public const string ValidatedData = @"C:\Data\Basketball\ValidatedData\PlayByPlay";
+
     private const string Root = @"C:\Data\GameGraph\nba";
 
     public static string TrainingData(string node) => Path.Combine(Root, "training-data", node);

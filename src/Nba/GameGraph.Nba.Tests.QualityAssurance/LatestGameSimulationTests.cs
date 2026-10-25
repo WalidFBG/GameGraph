@@ -1,4 +1,5 @@
 using System.Globalization;
+using GameGraph.Engine;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Simulation;
@@ -18,8 +19,9 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
 
         Simulator.Run(
             QualityAssuranceData.FittedGame(),
-            Simulations,
-            simulationIndex => new NbaState(scores.For(simulationIndex), context.HomeScoringRate, context.AwayScoringRate));
+            Seeds.Draw(Simulations),
+            simulationIndex => new NbaState(scores.For(simulationIndex), context.HomeScoringRate, context.AwayScoringRate),
+            new EmptyDecisionCollector<NbaState>());
 
         var simulations = Enumerable.Range(0, Simulations).ToArray();
 

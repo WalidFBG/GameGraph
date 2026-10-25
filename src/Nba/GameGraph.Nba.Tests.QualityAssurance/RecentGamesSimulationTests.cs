@@ -1,4 +1,5 @@
 using System.Globalization;
+using GameGraph.Engine;
 using GameGraph.Nba.Graph;
 using GameGraph.Simulation;
 using Xunit;
@@ -15,13 +16,14 @@ public sealed class RecentGamesSimulationTests(ITestOutputHelper output)
     {
         var games = QualityAssuranceData.GeneratedGames().TakeLast(Games).ToArray();
         var fitted = QualityAssuranceData.FittedGame();
+        var seeds = Seeds.Draw(Simulations);
         var rows = new List<Row>();
 
         foreach (var (game, context) in games)
         {
             var scores = new Scores(Simulations);
 
-            Simulator.Run(fitted, Simulations, s => new NbaState(scores.For(s), context.HomeScoringRate, context.AwayScoringRate));
+            Simulator.Run(fitted, seeds, s => new NbaState(scores.For(s), context.HomeScoringRate, context.AwayScoringRate), new EmptyDecisionCollector<NbaState>());
 
             var simulations = Enumerable.Range(0, Simulations).ToArray();
 

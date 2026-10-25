@@ -5,24 +5,17 @@ from pathlib import Path
 import numpy as np
 import polars as pl
 
-from gamegraph.models.contract import (
-    BernoulliDistribution,
-    CategoricalDistribution,
-    DiscreteJohnsonSuDistribution,
-    TrainingDataManifest,
-)
+from gamegraph.audit.buckets import assign, cuts, outcome_prefixes
+from gamegraph.audit.runs import BUCKETS, csv_name, latest
+from gamegraph.models.contract import TrainingDataManifest
 from gamegraph.models.contract_files import read_training_data_manifest
 from gamegraph.models.training_data import MANIFEST, OUTCOME
 
-MOST_VALUES_FOR_CATEGORIES = 30
-QUANTILE_BUCKETS = 20
 FEWEST_EXPECTED = 5
 LARGE_Z = 3.0
 CHANCE_OF_LARGE_Z = 0.0027
 WORST_SHOWN = 5
 QUARTILES = (0.25, 0.5, 0.75)
-BUCKETS = "buckets"
-FAILURES = "failures"
 
 
 @dataclass(frozen=True)
@@ -52,37 +45,24 @@ def audit(run: Path, training_data: Path) -> None:
         checked = 0
         for feature in manifest.features:
             table = _table(manifest, examples, feature)
-            table.write_csv(output / f"{manifest.node}_{feature}_{run.name}.csv")
+            table.write_csv(output / csv_name(run, manifest.node, feature))
             checked += table.select(pl.col("^.*z$").is_not_null().sum()).sum_horizontal().item()
             node_failures += _failures(manifest.node, feature, table)
         failures += node_failures
         _summarise(manifest.node, checked, node_failures)
     table = pl.DataFrame([astuple(f) for f in failures], schema=[f.name for f in fields(Failure)], orient="row")
-    table.sort(pl.col("z").abs(), descending=True).write_csv(run / BUCKETS / f"{FAILURES}_{run.name}.csv")
+    table.sort(pl.col("z").abs(), descending=True).write_csv(run / BUCKETS / csv_name(run, "failures"))
 
 
 def _table(manifest: TrainingDataManifest, examples: pl.DataFrame, feature: str) -> pl.DataFrame:
     values = examples[feature].to_numpy()
-    bucketed = examples.with_columns(bucket=pl.Series(_buckets(values)))
+    bucketed = examples.with_columns(bucket=pl.Series(assign(values, cuts(values))))
     grouped = bucketed.group_by("bucket").agg(
         pl.len().alias("n"), pl.col(feature).min().alias("lowest"), pl.col(feature).max().alias("highest")
     )
-    match manifest.model.distribution:
-        case BernoulliDistribution():
-            outcomes = _shares(bucketed, {"": 1})
-        case CategoricalDistribution(categories=categories):
-            outcomes = _shares(bucketed, {f"{c} ": k for k, c in enumerate(categories)})
-        case DiscreteJohnsonSuDistribution():
-            outcomes = _times(bucketed)
+    prefixes = outcome_prefixes(manifest.model.distribution)
+    outcomes = _times(bucketed) if prefixes is None else _shares(bucketed, prefixes)
     return grouped.join(outcomes, on="bucket").sort("bucket").drop("bucket")
-
-
-def _buckets(values: np.ndarray) -> np.ndarray:
-    distinct = np.unique(values)
-    if len(distinct) <= MOST_VALUES_FOR_CATEGORIES:
-        return np.searchsorted(distinct, values)
-    cuts = np.unique(np.quantile(values, np.linspace(0, 1, QUANTILE_BUCKETS + 1)[1:-1], method="lower"))
-    return np.searchsorted(cuts, values, side="right")
 
 
 def _shares(examples: pl.DataFrame, outcomes: dict[str, int]) -> pl.DataFrame:
@@ -183,13 +163,6 @@ def _summarise(node: str, checked: int, failures: list[Failure]) -> None:
 
 def _range(lowest: float, highest: float) -> str:
     return f"{lowest:g}" if lowest == highest else f"{lowest:g} to {highest:g}"
-
-
-def latest(calibration: Path) -> Path:
-    runs = sorted(d for d in calibration.iterdir() if d.is_dir())
-    if not runs:
-        raise ValueError(f"No calibration audit under {calibration}")
-    return runs[-1]
 
 
 def main() -> None:
