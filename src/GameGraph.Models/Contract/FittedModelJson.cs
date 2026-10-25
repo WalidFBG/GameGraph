@@ -10,9 +10,10 @@ internal sealed class FittedModelJson : JsonConverter<FittedModel>
         using var document = JsonDocument.ParseValue(ref reader);
         var root = document.RootElement;
         var model = root.GetProperty("model").Deserialize<ModelDeclaration>(options) ?? throw new JsonException("A fitted model has no model");
+        var parameters = model.Distribution.Predicted().ToDictionary(p => p.Name);
         var fit = root.GetProperty("fit").EnumerateObject().ToDictionary(
             p => p.Name,
-            p => ReadPredictorFit(Declared(model.Terms, p.Name, "predicted parameter"), p.Value, options));
+            p => ReadPredictorFit(Declared(parameters, p.Name, "predicted parameter"), Declared(model.Terms, p.Name, "predicted parameter"), p.Value, options));
 
         return new FittedModel(root.GetProperty("node").GetString() ?? throw new JsonException("A fitted model has no node"), model, fit);
     }
@@ -25,10 +26,15 @@ internal sealed class FittedModelJson : JsonConverter<FittedModel>
         JsonSerializer.Serialize(writer, value.Model, options);
         writer.WriteStartObject("fit");
 
+        var parameters = value.Model.Distribution.Predicted().ToDictionary(p => p.Name);
+
         foreach (var (name, predictor) in value.Fit)
         {
             writer.WriteStartObject(name);
-            writer.WriteNumber("intercept", predictor.Intercept);
+
+            if (parameters[name].HasIntercept)
+                writer.WriteNumber("intercept", predictor.Intercept);
+
             writer.WriteStartObject("terms");
 
             foreach (var (feature, fit) in predictor.Terms)
@@ -45,14 +51,18 @@ internal sealed class FittedModelJson : JsonConverter<FittedModel>
         writer.WriteEndObject();
     }
 
-    private static PredictorFit ReadPredictorFit(Term[] terms, JsonElement element, JsonSerializerOptions options)
+    private static PredictorFit ReadPredictorFit(PredictedParameter parameter, Term[] terms, JsonElement element, JsonSerializerOptions options)
     {
         var declared = terms.ToDictionary(t => t.Feature);
         var fits = element.GetProperty("terms").EnumerateObject().ToDictionary(
             p => p.Name,
             p => ReadTermFit(Declared(declared, p.Name, "term"), p.Value, options));
+        var hasIntercept = element.TryGetProperty("intercept", out var intercept);
 
-        return new PredictorFit(element.GetProperty("intercept").GetDouble(), fits);
+        if (hasIntercept != parameter.HasIntercept)
+            throw new ArgumentException($"The fit of {parameter.Name} {(hasIntercept ? "has" : "has no")} intercept, but the parameter {(parameter.HasIntercept ? "has one" : "has none")}", nameof(element));
+
+        return new PredictorFit(hasIntercept ? intercept.GetDouble() : 0, fits);
     }
 
     private static TermFit ReadTermFit(Term term, JsonElement element, JsonSerializerOptions options) => term switch

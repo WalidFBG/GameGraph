@@ -11,7 +11,7 @@ public static class NbaNodes
     private static readonly (string Name, int Lowest, int Highest)[] RunningOutBands =
         [("Trail10OrMore", int.MinValue, -10), ("Trail4To9", -9, -4), ("Trail1To3", -3, -1), ("Lead1To3", 1, 3), ("Lead4To8", 4, 8), ("Lead9OrMore", 9, int.MaxValue)];
 
-    public static readonly NodeSpec<NbaState> JumpBall = new(
+    public static readonly NodeSpec<NbaState> JumpBall = new VectorNode<NbaState>(
         nameof(JumpBall),
         new BernoulliDistribution(),
         new Dictionary<string, FeatureTerm<NbaState>[]> { ["probability"] = [] },
@@ -65,7 +65,7 @@ public static class NbaNodes
         ],
         NbaTransitions.ActionType);
 
-    public static readonly NodeSpec<NbaState> ActionTime = new(
+    public static readonly NodeSpec<NbaState> ActionTime = new VectorNode<NbaState>(
         nameof(ActionTime),
         new DiscreteJohnsonSuDistribution(),
         new Dictionary<string, FeatureTerm<NbaState>[]>
@@ -77,6 +77,12 @@ public static class NbaNodes
         },
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
+
+    public static readonly NodeSpec<NbaState> Shooter = new ChoiceNode<NbaState>(
+        nameof(Shooter),
+        s => s.OnCourt[s.TeamInPossession],
+        [CandidateTerm.Spline(NbaFeatures.ShotShare, 4)],
+        NbaTransitions.Shooter);
 
     public static readonly NodeSpec<NbaState> FouledOnShot = Node(
         nameof(FouledOnShot),
@@ -165,5 +171,5 @@ public static class NbaNodes
         DistributionDeclaration distribution,
         FeatureTerm<NbaState>[] terms,
         Transition<NbaState> transition) =>
-        new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
+        new VectorNode<NbaState>(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
 }

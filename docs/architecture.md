@@ -8,7 +8,7 @@ A sport is a graph of decisions. At each decision (a node) something is chosen: 
 
 The engine performs the walk, in both modes. At every node it:
 
-1. computes the node's features from the game state, using the sport's feature definitions;
+1. computes the node's features from the game state, using the sport's feature definitions: one row for a vector node, or one row per candidate for a choice node (who shoots: the candidates come from the state, and each feature reads the state and a candidate), whose outcome is the chosen row;
 2. asks the **outcome decider** for the node's outcome, given the state and the features;
 3. hands the node, the state, the features and the outcome to the **decision collector**;
 4. calls the node's **transition**, the sport's rule for the node: it updates the game state with the outcome, reports to the state's **incident collector** whatever the rules say happened (for example, a possession ended with 2 points), and returns the next node.

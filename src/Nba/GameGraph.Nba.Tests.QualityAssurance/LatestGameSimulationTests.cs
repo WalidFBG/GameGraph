@@ -14,7 +14,7 @@ public sealed class LatestGameSimulationTests(ITestOutputHelper output)
     public void SimulatesTheLatestGeneratedGame()
     {
         var (game, context) = GeneratedGames.InOrder(ValidatedDataReader.ReadAll()).Last();
-        var simulations = Simulations.Of(FittedModelReader.ReadGame(), context, SimulationCount);
+        var simulations = Simulations.Of(FittedModelReader.ReadGame(), game, context, SimulationCount);
 
         Assert.DoesNotContain(simulations, s => s.HomePoints == s.AwayPoints);
 

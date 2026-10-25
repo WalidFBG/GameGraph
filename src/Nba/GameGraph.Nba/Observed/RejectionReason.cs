@@ -19,4 +19,5 @@ public enum RejectionReason
     PeriodEndsMidAction = 14,
     RulesDisagreeWithData = 15,
     UnmatchedTimeout = 16,
+    InconsistentLineup = 17,
 }

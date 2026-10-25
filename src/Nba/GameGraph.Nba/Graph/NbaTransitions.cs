@@ -72,15 +72,16 @@ public static class NbaTransitions
 
         state.PeriodClock -= seconds;
         state.ShotClock -= seconds;
+        state.Rotation.FillOnCourt(state.OnCourt, state.Period, state.PeriodClock);
 
         switch (state.Action)
         {
             case Graph.ActionType.TwoPointAttempt:
                 state.ShotPoints = 2;
-                return NbaNodes.FouledOnShot;
+                return NbaNodes.Shooter;
             case Graph.ActionType.ThreePointAttempt:
                 state.ShotPoints = 3;
-                return NbaNodes.FouledOnShot;
+                return NbaNodes.Shooter;
             case Graph.ActionType.Turnover:
                 return EndOfPossession(state, PlayStart.Turnover);
             case Graph.ActionType.NonShootingFoul:
@@ -89,6 +90,14 @@ public static class NbaTransitions
             default:
                 throw new InvalidOperationException($"No action to time: {state.Action}");
         }
+    }
+
+    public static Next<NbaState> Shooter(NbaState state, int candidate)
+    {
+        if (candidate < 0 || candidate >= Lineup.Size)
+            throw new ArgumentOutOfRangeException(nameof(candidate), candidate, $"The shooter is one of the {Lineup.Size} on court");
+
+        return NbaNodes.FouledOnShot;
     }
 
     public static Next<NbaState> FouledOnShot(NbaState state, int fouled)

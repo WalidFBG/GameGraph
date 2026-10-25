@@ -11,12 +11,13 @@ public sealed class TeamHistory
 
     public bool IsComplete(ObservedGame game) => Count(game.HomeTeamId) == GamesKept && Count(game.AwayTeamId) == GamesKept;
 
-    public GameContext ContextFor(ObservedGame game)
+    public double PointsPerPossession(ObservedGame game, int side)
     {
         if (!IsComplete(game))
             throw new InvalidOperationException($"Game {game.Id}: a team has fewer than {GamesKept} games of history");
 
-        return new GameContext(PointsPerPossession(game.HomeTeamId), PointsPerPossession(game.AwayTeamId));
+        var history = _games[side == Sides.Home ? game.HomeTeamId : game.AwayTeamId];
+        return (double)history.Sum(g => g.Points) / history.Sum(g => g.Possessions);
     }
 
     public void Advance(ObservedGame game)
@@ -29,12 +30,6 @@ public sealed class TeamHistory
     }
 
     private int Count(long teamId) => _games.TryGetValue(teamId, out var history) ? history.Count : 0;
-
-    private double PointsPerPossession(long teamId)
-    {
-        var history = _games[teamId];
-        return (double)history.Sum(g => g.Points) / history.Sum(g => g.Possessions);
-    }
 
     private void Add(long teamId, TeamGame game)
     {

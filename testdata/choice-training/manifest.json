@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "source": "synthetic",
+  "createdUtc": "2024-01-01T00:00:00Z",
+  "features": [
+    "Share",
+    "Indicator"
+  ],
+  "examples": 2000,
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "Share",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "Indicator"
+        }
+      ]
+    },
+    "given": {}
+  }
+}

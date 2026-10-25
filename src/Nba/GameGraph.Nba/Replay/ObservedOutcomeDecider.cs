@@ -33,10 +33,12 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     public int ClampedActionTimes { get; private set; }
 
-    public static bool Follows(Possession[] possessions)
+    public static bool Follows(ObservedGame game)
     {
-        var decider = new ObservedOutcomeDecider(possessions);
-        var state = new NbaState(new EmptyIncidentCollector(), UnreadPointsPerPossession, UnreadPointsPerPossession);
+        var decider = new ObservedOutcomeDecider(game.Possessions);
+        var unread = new double[game.Players.Length];
+        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unread, unread);
+        var state = new NbaState(new EmptyIncidentCollector(), context, game.Rotation);
 
         try
         {
@@ -117,6 +119,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             switch (action)
             {
                 case ObservedShot shot:
+                    yield return new ObservedDecision(NbaNodes.Shooter, s => OnCourtPosition(s, shot.Shooter), team, possession.Period);
                     yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
@@ -168,6 +171,13 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
             new(node, _ => outcome, team, possession.Period);
+    }
+
+    private static int OnCourtPosition(NbaState state, int player)
+    {
+        var position = Array.IndexOf(state.OnCourt[state.TeamInPossession], player);
+
+        return position >= 0 ? position : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not on court");
     }
 
     private static int Number(bool value) => value ? 1 : 0;

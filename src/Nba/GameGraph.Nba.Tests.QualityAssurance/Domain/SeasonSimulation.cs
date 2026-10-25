@@ -1,4 +1,3 @@
-using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
@@ -23,7 +22,7 @@ internal static class SeasonSimulation
             var score = new GameScore();
 
             decisions.BeginGame(game.Id, game.StartUtc);
-            Simulator.Run(fitted, [seeds[g]], _ => new NbaState(score, context.HomePointsPerPossession, context.AwayPointsPerPossession), decisions);
+            Simulator.Run(fitted, [seeds[g]], _ => new NbaState(score, context, game.Rotation), decisions);
 
             comparisons[g] = new GameComparison(game.Id, ObservedTotals.Of(game, context), score.Totals());
         }

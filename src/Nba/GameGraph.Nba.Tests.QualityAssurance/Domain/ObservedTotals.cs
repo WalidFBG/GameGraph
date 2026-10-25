@@ -1,5 +1,4 @@
 using GameGraph.Engine;
-using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Replay;
@@ -13,7 +12,7 @@ internal static class ObservedTotals
     {
         var score = new GameScore();
 
-        ObservedWalk.Walk(game, new NbaState(score, context.HomePointsPerPossession, context.AwayPointsPerPossession), new EmptyDecisionCollector<NbaState>());
+        ObservedWalk.Walk(game, new NbaState(score, context, game.Rotation), new EmptyDecisionCollector<NbaState>());
 
         var totals = score.Totals();
 

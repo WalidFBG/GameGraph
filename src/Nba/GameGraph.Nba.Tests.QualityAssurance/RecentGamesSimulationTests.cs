@@ -21,7 +21,7 @@ public sealed class RecentGamesSimulationTests(ITestOutputHelper output)
 
         foreach (var (game, context) in games)
         {
-            var simulations = Simulations.Of(fitted, context, SimulationCount);
+            var simulations = Simulations.Of(fitted, game, context, SimulationCount);
             var real = ObservedTotals.Of(game, context);
 
             rows.Add(new RecentGameResult(

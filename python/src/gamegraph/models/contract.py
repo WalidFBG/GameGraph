@@ -21,15 +21,19 @@ class Link(StrEnum):
 class PredictedParameter:
     name: str
     link: Link
+    has_intercept: bool
 
 
 @dataclass(frozen=True)
 class BernoulliDistribution:
     def predicted(self) -> tuple[PredictedParameter, ...]:
-        return (PredictedParameter("probability", Link.LOGIT),)
+        return (PredictedParameter("probability", Link.LOGIT, has_intercept=True),)
 
     def given(self) -> tuple[str, ...]:
         return ()
+
+    def chooses_among_candidates(self) -> bool:
+        return False
 
     def to_json(self) -> Json:
         return {"name": "bernoulli"}
@@ -45,10 +49,15 @@ class CategoricalDistribution:
         _require_distinct(list(self.categories))
 
     def predicted(self) -> tuple[PredictedParameter, ...]:
-        return tuple(PredictedParameter(category, Link.IDENTITY) for category in self.categories[1:])
+        return tuple(
+            PredictedParameter(category, Link.IDENTITY, has_intercept=True) for category in self.categories[1:]
+        )
 
     def given(self) -> tuple[str, ...]:
         return ()
+
+    def chooses_among_candidates(self) -> bool:
+        return False
 
     def to_json(self) -> Json:
         return {"name": "categorical", "categories": list(self.categories)}
@@ -58,20 +67,40 @@ class CategoricalDistribution:
 class DiscreteJohnsonSuDistribution:
     def predicted(self) -> tuple[PredictedParameter, ...]:
         return (
-            PredictedParameter("location", Link.IDENTITY),
-            PredictedParameter("scale", Link.LOG),
-            PredictedParameter("skew", Link.IDENTITY),
-            PredictedParameter("tail", Link.LOG),
+            PredictedParameter("location", Link.IDENTITY, has_intercept=True),
+            PredictedParameter("scale", Link.LOG, has_intercept=True),
+            PredictedParameter("skew", Link.IDENTITY, has_intercept=True),
+            PredictedParameter("tail", Link.LOG, has_intercept=True),
         )
 
     def given(self) -> tuple[str, ...]:
         return ("maximum",)
 
+    def chooses_among_candidates(self) -> bool:
+        return False
+
     def to_json(self) -> Json:
         return {"name": "discreteJohnsonSu"}
 
 
-type DistributionDeclaration = BernoulliDistribution | CategoricalDistribution | DiscreteJohnsonSuDistribution
+@dataclass(frozen=True)
+class ChoiceDistribution:
+    def predicted(self) -> tuple[PredictedParameter, ...]:
+        return (PredictedParameter("utility", Link.IDENTITY, has_intercept=False),)
+
+    def given(self) -> tuple[str, ...]:
+        return ()
+
+    def chooses_among_candidates(self) -> bool:
+        return True
+
+    def to_json(self) -> Json:
+        return {"name": "choice"}
+
+
+type DistributionDeclaration = (
+    BernoulliDistribution | CategoricalDistribution | DiscreteJohnsonSuDistribution | ChoiceDistribution
+)
 
 
 def distribution_from_json(json: Json) -> DistributionDeclaration:
@@ -82,6 +111,8 @@ def distribution_from_json(json: Json) -> DistributionDeclaration:
             return CategoricalDistribution(tuple(json["categories"]))
         case "discreteJohnsonSu":
             return DiscreteJohnsonSuDistribution()
+        case "choice":
+            return ChoiceDistribution()
         case name:
             raise ValueError(f"Unknown distribution {name}")
 
@@ -227,14 +258,20 @@ class PredictorFit:
     intercept: float
     terms: dict[str, TermFit]
 
-    def to_json(self) -> Json:
-        return {"intercept": self.intercept, "terms": {feature: f.to_json() for feature, f in self.terms.items()}}
+    def to_json(self, parameter: PredictedParameter) -> Json:
+        terms = {"terms": {feature: f.to_json() for feature, f in self.terms.items()}}
+        return {"intercept": self.intercept} | terms if parameter.has_intercept else terms
 
     @staticmethod
-    def from_json(terms: tuple[Term, ...], json: Json) -> PredictorFit:
+    def from_json(parameter: PredictedParameter, terms: tuple[Term, ...], json: Json) -> PredictorFit:
         declared = {t.feature: t for t in terms}
+        if ("intercept" in json) != parameter.has_intercept:
+            raise ValueError(
+                f"The fit of {parameter.name} {'has' if 'intercept' in json else 'has no'} intercept, "
+                f"but the parameter {'has one' if parameter.has_intercept else 'has none'}"
+            )
         return PredictorFit(
-            json["intercept"],
+            json["intercept"] if parameter.has_intercept else 0.0,
             {
                 feature: term_fit_from_json(_declared(declared, feature, "term"), f)
                 for feature, f in json["terms"].items()
@@ -251,6 +288,10 @@ class FittedModel:
     def __post_init__(self) -> None:
         if sorted(self.fit) != sorted(self.model.terms):
             raise ValueError(f"{self.node} predicts {sorted(self.model.terms)}, but its fit has {sorted(self.fit)}")
+        for parameter in self.model.distribution.predicted():
+            intercept = self.fit[parameter.name].intercept
+            if not parameter.has_intercept and intercept != 0:
+                raise ValueError(f"The {parameter.name} of {self.node} has no intercept, but its fit has {intercept}")
         for name, terms in self.model.terms.items():
             fits = self.fit[name].terms
             if sorted(fits) != sorted(t.feature for t in terms):
@@ -264,17 +305,22 @@ class FittedModel:
         return {
             "node": self.node,
             "model": self.model.to_json(),
-            "fit": {name: f.to_json() for name, f in self.fit.items()},
+            "fit": {p.name: self.fit[p.name].to_json(p) for p in self.model.distribution.predicted()},
         }
 
     @staticmethod
     def from_json(json: Json) -> FittedModel:
         model = ModelDeclaration.from_json(json["model"])
+        parameters = {p.name: p for p in model.distribution.predicted()}
         return FittedModel(
             json["node"],
             model,
             {
-                name: PredictorFit.from_json(_declared(model.terms, name, "predicted parameter"), f)
+                name: PredictorFit.from_json(
+                    _declared(parameters, name, "predicted parameter"),
+                    _declared(model.terms, name, "predicted parameter"),
+                    f,
+                )
                 for name, f in json["fit"].items()
             },
         )

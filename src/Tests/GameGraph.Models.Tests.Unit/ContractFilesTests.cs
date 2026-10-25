@@ -276,6 +276,37 @@ public sealed class ContractFilesTests : IDisposable
     }
 
     [Fact]
+    public void AChoiceModelRoundTripsWithoutAnIntercept()
+    {
+        var path = PathOf("model.json");
+        var choice = new FittedModel(
+            "Example",
+            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..2] }, NoGiven),
+            new Dictionary<string, PredictorFit>
+            {
+                ["utility"] = new(0, new Dictionary<string, TermFit> { ["Gaussian"] = new LinearFit(0.31, 8.4, [0.5]), ["Indicator"] = new LinearFit(0.38, 0.49, [1.1]) }),
+            });
+
+        ContractFiles.WriteFittedModel(path, choice);
+        var read = ContractFiles.ReadFittedModel(path);
+
+        Assert.False(Document(path)["fit"]!["utility"]!.AsObject().ContainsKey("intercept"));
+        Assert.Equal(0, read.Fit["utility"].Intercept);
+        AssertRewrittenIdentically(path, p => ContractFiles.WriteFittedModel(p, read));
+    }
+
+    [Fact]
+    public void AChoiceFitWithAnInterceptFails()
+    {
+        var error = Assert.Throws<ArgumentException>(() => new FittedModel(
+            "Example",
+            new ModelDeclaration(new ChoiceDistribution(), new Dictionary<string, Term[]> { ["utility"] = Terms[..1] }, NoGiven),
+            new Dictionary<string, PredictorFit> { ["utility"] = new(0.3, new Dictionary<string, TermFit> { ["Gaussian"] = new LinearFit(0.31, 8.4, [0.5]) }) }));
+
+        Assert.Contains("has no intercept", error.Message);
+    }
+
+    [Fact]
     public void DeclarationsWithTheSameContentAreEqual()
     {
         ModelDeclaration Categorical(string[] categories, Term[] terms) =>
@@ -355,6 +386,7 @@ public sealed class ContractFilesTests : IDisposable
         ["an undeclared term"] = (d => ProbabilityOf(d)["terms"]!["Extra"] = TermFitOf(d, "Gaussian").DeepClone(), "Extra is not a declared term"),
         ["a missing term"] = (d => ProbabilityOf(d)["terms"]!.AsObject().Remove("Indicator"), "fitted [Gaussian, Uniform]"),
         ["more knot positions than knots"] = (d => d["model"]!["terms"]!["probability"]![2]!["knots"] = 2, "with 2 knots has 3 positions"),
+        ["a missing intercept"] = (d => ProbabilityOf(d).AsObject().Remove("intercept"), "has no intercept, but the parameter has one"),
     };
 
     private static JsonNode ProbabilityOf(JsonObject document) => document["fit"]!["probability"]!;

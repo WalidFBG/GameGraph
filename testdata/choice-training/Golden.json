@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "Share",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "Indicator"
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "Share": {
+          "knotPositions": [
+            -6.5072843257138695,
+            -2.0269077655289314,
+            -1.441527458729379,
+            -0.28469779616605
+          ],
+          "centres": [
+            4.271739905763872,
+            0.29602834293135355,
+            0.11108138884043717
+          ],
+          "scales": [
+            0.43919792421324827,
+            0.2578105295597575,
+            0.20653301578744726
+          ],
+          "coefficients": [
+            0.5234145571077101,
+            0.2969181654111661,
+            0.06642872139453028
+          ]
+        },
+        "Indicator": {
+          "centre": 0.301125,
+          "scale": 0.45874691756459024,
+          "coefficients": [
+            0.27031684824775076
+          ]
+        }
+      }
+    }
+  }
+}

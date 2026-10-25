@@ -9,7 +9,8 @@ public sealed class TrainingDataWriter(string root)
     public string Write<TState>(NodeSpec<TState> node, string source, IReadOnlyList<GameExamples> games)
     {
         var directory = Path.Combine(root, node.Name);
-        var features = node.Features.Select(f => f.Name).ToArray();
+        var features = node.FeatureNames;
+        var choice = node.Model.Distribution.ChoosesAmongCandidates();
 
         if (Directory.Exists(directory))
             Directory.Delete(directory, recursive: true);
@@ -18,21 +19,33 @@ public sealed class TrainingDataWriter(string root)
 
         using (var writer = new StreamWriter(Path.Combine(directory, "examples.csv")))
         {
-            writer.WriteLine(string.Join(',', [.. features, "outcome"]));
+            writer.WriteLine(string.Join(',', choice ? [TrainingDataFiles.Decision, .. features, TrainingDataFiles.Outcome] : (string[])[.. features, TrainingDataFiles.Outcome]));
+
+            var decision = 0;
 
             foreach (var example in games.SelectMany(g => g.Examples))
             {
-                if (example.Features.Length != features.Length)
-                    throw new InvalidDataException($"An example has {example.Features.Length} features, expected {features.Length}");
+                var rows = choice ? example.Features.Length / features.Length : 1;
 
-                var values = example.Features.Select(f => f.ToString("R", CultureInfo.InvariantCulture));
-                writer.WriteLine(string.Join(',', [.. values, example.Outcome.ToString(CultureInfo.InvariantCulture)]));
+                if (example.Features.Length != rows * features.Length || rows == 0)
+                    throw new InvalidDataException($"An example has {example.Features.Length} feature values, not {(choice ? "one or more candidates" : "one row")} of {features.Length} features");
+
+                for (var r = 0; r < rows; r++)
+                {
+                    var values = example.Features.Skip(r * features.Length).Take(features.Length).Select(f => f.ToString("R", CultureInfo.InvariantCulture));
+                    var outcome = choice ? (r == example.Outcome ? 1 : 0) : example.Outcome;
+                    string[] prefix = choice ? [decision.ToString(CultureInfo.InvariantCulture)] : [];
+
+                    writer.WriteLine(string.Join(',', [.. prefix, .. values, outcome.ToString(CultureInfo.InvariantCulture)]));
+                }
+
+                decision++;
             }
         }
 
         using (var writer = new StreamWriter(Path.Combine(directory, "games.csv")))
         {
-            writer.WriteLine("game,startUtc,examples");
+            writer.WriteLine(string.Join(',', TrainingDataFiles.GamesHeader));
 
             foreach (var game in games)
                 writer.WriteLine($"{game.GameId},{game.StartUtc.ToString("O", CultureInfo.InvariantCulture)},{game.Examples.Count.ToString(CultureInfo.InvariantCulture)}");

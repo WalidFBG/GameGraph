@@ -5,12 +5,13 @@ from pathlib import Path
 
 import numpy as np
 import torch
-from synthetic import START, bernoulli, categorical, johnson_su
+from synthetic import START, bernoulli, categorical, choice, johnson_su
 
 from gamegraph.models import normal
 from gamegraph.models.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
+    ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     FittedModel,
     LinearFit,
@@ -28,7 +29,7 @@ from gamegraph.models.training_data import TrainingData, write_training_data
 
 TESTDATA = REPOSITORY / "testdata"
 
-type Case = tuple[tuple[float, ...], int, float]
+type Case = tuple[tuple[float, ...] | tuple[tuple[float, ...], ...], int, float]
 
 BERNOULLI = FittedModel(
     "Golden",
@@ -155,6 +156,29 @@ JOHNSON_SU_NARROW_CASES: list[Case] = [
     (ABOVE_THE_NARROW_OUTCOME, 3, 0.3),
 ]
 
+CHOICE_FEATURES = ("Share", "Rest")
+CHOICE = FittedModel(
+    "Golden",
+    ModelDeclaration(ChoiceDistribution(), {"utility": (LinearTerm("Share"), LinearSplineTerm("Rest", 3))}, {}),
+    {
+        "utility": PredictorFit(
+            0.0,
+            {
+                "Share": LinearFit(-1.6, 0.7, (0.9,)),
+                "Rest": LinearSplineFit((0.0, 6.0, 12.0), (2.5, 1.0), (2.2, 1.6), (-0.3, 0.15)),
+            },
+        )
+    },
+)
+
+CHOICE_CASES: list[Case] = [
+    (((-1.2, 0.0), (-1.6, 3.0), (-2.3, 7.0), (-1.0, 12.0), (-3.0, 1.0)), 0, 0.1),
+    (((-1.2, 0.0), (-1.6, 3.0), (-2.3, 7.0), (-1.0, 12.0), (-3.0, 1.0)), 3, 0.9),
+    (((-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0)), 2, 0.5),
+    (((0.0, 20.0), (-9.0, -4.0), (-1.4, 6.0), (-0.7, 9.0), (-2.0, 0.0)), 1, 0.97),
+    (((40.0, 0.0), (-40.0, 0.0), (-1.4, 6.0), (-0.7, 9.0), (-2.0, 0.0)), 4, 0.3),
+]
+
 CASES: dict[str, tuple[FittedModel, tuple[str, ...], list[Case]]] = {
     "bernoulli": (BERNOULLI, ("Gaussian", "Indicator", "Uniform"), BERNOULLI_CASES),
     "categorical": (CATEGORICAL, ("Gaussian", "Uniform"), CATEGORICAL_CASES),
@@ -164,6 +188,7 @@ CASES: dict[str, tuple[FittedModel, tuple[str, ...], list[Case]]] = {
         ("Location", "LogScale", "Skew", "LogTail", "Bound"),
         JOHNSON_SU_NARROW_CASES,
     ),
+    "choice": (CHOICE, CHOICE_FEATURES, CHOICE_CASES),
 }
 
 NORMAL_POINTS = [
@@ -228,13 +253,14 @@ def write_cases(directory: Path, fitted: FittedModel, feature_names: tuple[str, 
     for nudged in ([nextafter(c[2], 1) for c in cases], [max(nextafter(c[2], 0), 0.0) for c in cases]):
         if not torch.equal(model.sample(features, torch.tensor(nudged, dtype=torch.float64)), samples):
             raise ValueError("A golden uniform sits on a category boundary, so its sample depends on rounding")
+    values = torch.stack(parameters, dim=-1)
     document = {
         "features": list(feature_names),
         "cases": [
             {
-                "features": [float(value) for value in features[i]],
+                "features": [float(value) for value in features[i].flatten()],
                 "outcome": int(outcomes[i]),
-                "parameters": [float(p[i]) for p in parameters],
+                "parameters": [float(p) for p in values[i].flatten()],
                 "logProbability": float(log_probability[i]),
                 "uniform": float(uniforms[i]),
                 "sample": int(samples[i]),
@@ -269,6 +295,7 @@ def parity_sets() -> dict[str, TrainingData]:
         "bernoulli-training": bernoulli("Golden", games=40, rows_per_game=50, seed=11),
         "categorical-training": categorical("Golden", games=40, rows_per_game=50, seed=13),
         "johnson-su-training": johnson_su("Golden", games=40, rows_per_game=50, seed=17),
+        "choice-training": choice("Golden", games=40, decisions_per_game=50, seed=19),
     }
 
 

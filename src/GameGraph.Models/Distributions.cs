@@ -9,6 +9,7 @@ internal static class Distributions
         BernoulliDistribution => new Bernoulli(),
         CategoricalDistribution categorical => new Categorical(categorical.Categories.Length),
         DiscreteJohnsonSuDistribution => new DiscreteJohnsonSu(),
+        ChoiceDistribution => new Choice(),
         _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration.GetType().Name, "Not a distribution"),
     };
 }

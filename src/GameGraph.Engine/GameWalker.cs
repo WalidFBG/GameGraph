@@ -9,14 +9,18 @@ public static class GameWalker
         IDecisionCollector<TState> decisionCollector)
     {
         Next<TState> next = spec.Start;
-        var buffer = new double[spec.Nodes.Max(n => n.Features.Length)];
+        var buffer = Array.Empty<double>();
 
         while (next is NextNode<TState>(var node))
         {
-            var features = buffer.AsSpan(0, node.Features.Length);
+            var count = node.FeatureValueCount(state);
 
-            for (var i = 0; i < features.Length; i++)
-                features[i] = node.Features[i].Compute(state);
+            if (count > buffer.Length)
+                buffer = new double[count];
+
+            var features = buffer.AsSpan(0, count);
+
+            node.WriteFeatures(state, features);
 
             var outcome = decider.Decide(node, state, features);
 

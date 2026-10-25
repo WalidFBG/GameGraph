@@ -1,3 +1,4 @@
+using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 
 namespace GameGraph.Nba.Augmentation;
@@ -6,14 +7,19 @@ public static class GeneratedGames
 {
     public static IEnumerable<(ObservedGame Game, GameContext Context)> InOrder(IEnumerable<ObservedGame> games)
     {
-        var history = new TeamHistory();
+        var teams = new TeamHistory();
+        var players = new PlayerHistory();
 
         foreach (var game in games.Where(g => g.IsAccepted).OrderBy(g => g.StartUtc).ThenBy(g => g.Id, StringComparer.Ordinal))
         {
-            if (history.IsComplete(game))
-                yield return (game, history.ContextFor(game));
+            if (teams.IsComplete(game))
+                yield return (game, ContextFor(game, teams, players));
 
-            history.Advance(game);
+            teams.Advance(game);
+            players.Advance(game);
         }
     }
+
+    private static GameContext ContextFor(ObservedGame game, TeamHistory teams, PlayerHistory players) =>
+        new(teams.PointsPerPossession(game, Sides.Home), teams.PointsPerPossession(game, Sides.Away), players.LogShares(game, 2), players.LogShares(game, 3));
 }

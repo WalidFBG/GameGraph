@@ -8,7 +8,7 @@ public sealed class GoldenTests
 {
     private const double RelativeTolerance = 1e-12;
 
-    public static TheoryData<string> Distributions => new("bernoulli", "categorical", "johnson-su", "johnson-su-narrow");
+    public static TheoryData<string> Distributions => new("bernoulli", "categorical", "johnson-su", "johnson-su-narrow", "choice");
 
     [Theory]
     [MemberData(nameof(Distributions))]

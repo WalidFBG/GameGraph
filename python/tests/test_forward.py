@@ -7,7 +7,7 @@ import torch
 
 from gamegraph.models import links
 from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
-from gamegraph.models.distributions import Bernoulli, Categorical, DiscreteJohnsonSu
+from gamegraph.models.distributions import Bernoulli, Categorical, Choice, DiscreteJohnsonSu
 from gamegraph.models.model import Model
 from gamegraph.models.terms import LinearColumns, LinearSplineColumns
 
@@ -146,6 +146,29 @@ def test_categorical_starts_from_the_log_odds_of_the_category_shares() -> None:
 def test_categorical_fails_when_a_category_never_occurs() -> None:
     with pytest.raises(ValueError, match="never occur"):
         CATEGORICAL.initial_parameters(torch.tensor([0, 2, 2]))
+
+
+def test_a_choice_gives_the_log_softmax_of_its_candidates_utilities() -> None:
+    utility = tensor([math.log(1.0), math.log(2.0), math.log(5.0)]).repeat(3, 1)
+    log_prob = Choice().log_prob((utility,), torch.tensor([0, 1, 2]))
+    assert_close(log_prob, [math.log(1 / 8), math.log(2 / 8), math.log(5 / 8)])
+
+
+def test_a_choice_samples_the_first_candidate_whose_cumulative_probability_exceeds_the_uniform() -> None:
+    utility = tensor([math.log(1.0), math.log(2.0), math.log(5.0)]).repeat(4, 1)
+    samples = Choice().sample((utility,), tensor([0.0, 0.124, 0.126, 0.376]))
+    assert torch.equal(samples, torch.tensor([0, 0, 1, 2]))
+
+
+def test_a_choice_rejects_an_outcome_outside_its_candidates() -> None:
+    with pytest.raises(ValueError, match="from 0 to 1"):
+        Choice().log_prob((tensor([0.0, 0.0]).unsqueeze(0),), torch.tensor([2]))
+
+
+def test_a_choice_model_needs_features_per_candidate() -> None:
+    model = Model.from_fitted(golden.CHOICE, golden.CHOICE_FEATURES)
+    with pytest.raises(ValueError, match="decisions, candidates"):
+        model.parameter_values(torch.zeros((2, 2), dtype=torch.float64))
 
 
 def johnson_su_parameters(rows: int, maximum: float) -> tuple[torch.Tensor, ...]:

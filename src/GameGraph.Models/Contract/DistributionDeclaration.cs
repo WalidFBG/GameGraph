@@ -6,11 +6,14 @@ namespace GameGraph.Models.Contract;
 [JsonDerivedType(typeof(BernoulliDistribution), "bernoulli")]
 [JsonDerivedType(typeof(CategoricalDistribution), "categorical")]
 [JsonDerivedType(typeof(DiscreteJohnsonSuDistribution), "discreteJohnsonSu")]
+[JsonDerivedType(typeof(ChoiceDistribution), "choice")]
 public abstract record DistributionDeclaration
 {
     public abstract PredictedParameter[] Predicted();
 
     public abstract string[] Given();
+
+    public abstract bool ChoosesAmongCandidates();
 
     internal void RequireParameters(IEnumerable<string> predicted, IEnumerable<string> given)
     {

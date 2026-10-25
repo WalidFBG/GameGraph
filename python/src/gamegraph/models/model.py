@@ -26,6 +26,14 @@ class Model:
     def designs(self, features: torch.Tensor) -> tuple[torch.Tensor, ...]:
         if features.dtype != torch.float64:
             raise ValueError(f"Features must be float64, got {features.dtype}")
+        if self.declaration.distribution.chooses_among_candidates():
+            if features.dim() != 3 or features.shape[-1] == 0:
+                raise ValueError(
+                    "A choice needs features of decisions, candidates and at least one feature, "
+                    f"got {tuple(features.shape)}"
+                )
+        elif features.dim() != 2:
+            raise ValueError(f"Features must be examples by features, got {tuple(features.shape)}")
         return tuple(p.design(features) for p in (*self.predictors, *self.given))
 
     def parameter_values_of(self, designs: tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
@@ -61,7 +69,7 @@ class Model:
         return Model(
             declaration,
             tuple(
-                Predictor.from_fit(p.link, declaration.terms[p.name], fitted.fit[p.name], features)
+                Predictor.from_fit(p, declaration.terms[p.name], fitted.fit[p.name], features)
                 for p in distribution.predicted()
             ),
             tuple(GivenColumn.of(declaration.given[name], features) for name in distribution.given()),
@@ -76,7 +84,7 @@ class Model:
         return Model(
             declaration,
             tuple(
-                Predictor.initial(p.link, declaration.terms[p.name], features, examples, starts[p.name])
+                Predictor.initial(p, declaration.terms[p.name], features, examples, starts)
                 for p in distribution.predicted()
             ),
             tuple(GivenColumn.of(declaration.given[name], features) for name in distribution.given()),

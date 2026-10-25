@@ -15,7 +15,7 @@ public sealed class CalibrationAudit(ITestOutputHelper output)
         foreach (var node in NbaGameSpec.Instance.Nodes)
         {
             var (manifest, examples) = TrainingDataReader.Read(node.Name);
-            var scored = ExampleScorer.Score(examples, CalibrationModel.For(node.Name, manifest, FittedModelReader.Read(node.Name)));
+            var scored = ExampleScorer.Score(examples, CalibrationModel.For(node.Name, manifest, FittedModelReader.Read(node.Name)), manifest.Model.Distribution);
             var path = Path.Combine(directory, $"{node.Name}.parquet");
 
             await ScoredExamplesWriter.Write(path, scored);

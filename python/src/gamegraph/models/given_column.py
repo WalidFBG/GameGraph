@@ -12,10 +12,10 @@ class GivenColumn:
     column: int
 
     def design(self, features: torch.Tensor) -> torch.Tensor:
-        return features[:, self.column].unsqueeze(1)
+        return features[..., self.column].unsqueeze(-1)
 
     def value_of(self, design: torch.Tensor) -> torch.Tensor:
-        return design[:, 0]
+        return design[..., 0]
 
     @staticmethod
     def of(feature: str, features: Sequence[str]) -> "GivenColumn":
