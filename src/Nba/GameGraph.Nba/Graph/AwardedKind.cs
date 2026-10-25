@@ -1,4 +1,4 @@
-namespace GameGraph.Nba.Observed;
+namespace GameGraph.Nba.Graph;
 
 public enum AwardedKind
 {

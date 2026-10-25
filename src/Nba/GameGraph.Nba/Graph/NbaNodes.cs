@@ -15,20 +15,14 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
         nameof(AwardedFreeThrow),
         new CategoricalDistribution(AwardedFreeThrows.Names),
-        [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame, NbaFeatures.AtHome],
+        [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame, NbaFeatures.AtHome, .. NbaFeatures.PreviousAwarded],
         NbaTransitions.AwardedFreeThrow);
 
     public static readonly NodeSpec<NbaState> AwardedFreeThrowMade = Node(
         nameof(AwardedFreeThrowMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ShooterMargin, NbaFeatures.ShooterScoringRate, NbaFeatures.ShooterAtHome],
+        [NbaFeatures.ShooterMargin, NbaFeatures.ShooterScoringRate, NbaFeatures.ShooterAtHome, .. NbaFeatures.KindAwarded],
         NbaTransitions.AwardedFreeThrowMade);
-
-    public static readonly NodeSpec<NbaState> AwardedBall = Node(
-        nameof(AwardedBall),
-        new BernoulliDistribution(),
-        [NbaFeatures.DefenceFreeThrows],
-        NbaTransitions.AwardedBall);
 
     public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
         nameof(PeriodRunsOut),

@@ -9,7 +9,6 @@ public static class NbaGameSpec
             NbaNodes.JumpBall,
             NbaNodes.AwardedFreeThrow,
             NbaNodes.AwardedFreeThrowMade,
-            NbaNodes.AwardedBall,
             NbaNodes.PeriodRunsOut,
             NbaNodes.ActionType,
             NbaNodes.ActionTime,

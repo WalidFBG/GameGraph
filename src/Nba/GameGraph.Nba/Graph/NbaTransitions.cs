@@ -19,20 +19,23 @@ public static class NbaTransitions
 
     public static Next<NbaState> AwardedFreeThrow(NbaState state, int awarded)
     {
-        switch (awarded)
+        if (awarded == AwardedFreeThrows.None)
         {
-            case AwardedFreeThrows.None:
-                return state.DefenceFreeThrows > 0 ? NbaNodes.AwardedBall : ActionOrPeriodEnd(state);
-            case AwardedFreeThrows.Offence:
-                state.AwardedTeam = state.TeamInPossession;
-                return NbaNodes.AwardedFreeThrowMade;
-            case AwardedFreeThrows.Defence:
-                state.AwardedTeam = Sides.Opponent(state.TeamInPossession);
-                state.DefenceFreeThrows++;
-                return NbaNodes.AwardedFreeThrowMade;
-            default:
-                throw new ArgumentOutOfRangeException(nameof(awarded), awarded, "Not an awarded free throw");
+            var ballToDefence = state.BallAwardedToDefence;
+
+            state.LastAwarded = AwardedFreeThrows.None;
+            state.BallAwardedToDefence = false;
+
+            return ballToDefence ? EndOfPossession(state, PlayStart.AwardedBall) : ActionOrPeriodEnd(state);
         }
+
+        var toDefence = AwardedFreeThrows.ToDefence(awarded);
+
+        state.LastAwarded = awarded;
+        state.AwardedTeam = toDefence ? Sides.Opponent(state.TeamInPossession) : state.TeamInPossession;
+        state.BallAwardedToDefence |= toDefence && AwardedFreeThrows.MovesTheBall(AwardedFreeThrows.KindOf(awarded));
+
+        return NbaNodes.AwardedFreeThrowMade;
     }
 
     public static Next<NbaState> AwardedFreeThrowMade(NbaState state, int made)
@@ -42,13 +45,6 @@ public static class NbaTransitions
 
         state.Incidents.AwardedFreeThrow(new AwardedFreeThrowIncident(state.AwardedTeam, state.Period, Yes(made)));
         return NbaNodes.AwardedFreeThrow;
-    }
-
-    public static Next<NbaState> AwardedBall(NbaState state, int toDefence)
-    {
-        state.DefenceFreeThrows = 0;
-
-        return Yes(toDefence) ? EndOfPossession(state, PlayStart.AwardedBall) : ActionOrPeriodEnd(state);
     }
 
     public static Next<NbaState> PeriodRunsOut(NbaState state, int runsOut)

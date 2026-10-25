@@ -81,7 +81,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 3. The tree's clock (step 13 in `models.md`): done. `PeriodRunsOut` ends periods, `JumpBall` starts the game and every overtime, `ActionTime` is a discrete Johnson SU, and free throws outside the play keep the score right; the schedule leak is gone, and possessions the period cuts short are kept (`PossessionsCutByPeriodEnd` only counts them now).
 4. The audit (see "The audit"): first, so that every later step is judged by it.
 5. The team graph's gaps, one at a time:
-   - the ball after free throws outside the play (`AwardedBall`): done. Asked when some went to the defence; about 0.011 times a game the defence gets the ball, always after a flagrant or clear-path foul, and the 52 games this used to reject are kept;
+   - the ball after free throws outside the play: done. `AwardedFreeThrow` learns each free throw's kind (technical, flagrant, clear path, take foul) and remembers the play's previous one, and the ball moves by rule (`AwardedBall`) after a flagrant or clear-path free throw to the defence: about 0.011 times a game, and the 52 games this used to reject are kept;
    - late-game fouling: the trailing team fouls to stop the clock, which shapes close finishes and the totals and margins near the line;
    - timeouts: they stop the clock and advance the ball late in games.
 6. Players and substitutions, so that the game is player-driven: who shoots, rebounds, turns it over and is fouled (the Choice family), and the five on court come from the simulation, not the real game. One slice at a time:
