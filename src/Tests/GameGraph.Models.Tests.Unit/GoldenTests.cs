@@ -31,17 +31,17 @@ public sealed class GoldenTests
 
     [Theory]
     [MemberData(nameof(Distributions))]
-    public void EveryOutcomeTogetherIsCertain(string distribution)
+    public void ProbabilitiesAreEveryOutcomesAndSumToOne(string distribution)
     {
         var (golden, model) = Read(distribution);
 
         foreach (var c in golden.Cases)
         {
-            var outcomes = model.Outcomes(c.Features);
-            var total = Enumerable.Range(0, outcomes).Sum(o => Math.Exp(model.LogProbability(c.Features, o)));
+            var probabilities = model.Probabilities(c.Features);
 
-            Assert.InRange(c.Outcome, 0, outcomes - 1);
-            Assert.Equal(1, total, 1e-12);
+            Assert.InRange(c.Outcome, 0, probabilities.Length - 1);
+            AssertClose(Math.Exp(c.LogProbability), probabilities[c.Outcome]);
+            Assert.Equal(1, probabilities.Sum(), 1e-12);
         }
     }
 

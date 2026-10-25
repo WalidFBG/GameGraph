@@ -9,9 +9,9 @@ public sealed class GameTally
     private int _actionTimes;
     private int _clampedActionTimes;
 
-    public void Generated() => Add("Generated");
+    public void Generated() => Add("Generated", 1);
 
-    public void ShortHistory() => Add("ShortHistory");
+    public void ShortHistories(int count) => Add("ShortHistory", count);
 
     public void ActionTimes(int total, int clamped)
     {
@@ -24,7 +24,7 @@ public sealed class GameTally
         if (reason == RejectionReason.NotSet)
             throw new ArgumentOutOfRangeException(nameof(reason), reason, "No rejection reason");
 
-        Add($"Rejected{reason}");
+        Add($"Rejected{reason}", 1);
     }
 
     public string Describe()
@@ -39,5 +39,5 @@ public sealed class GameTally
         return text.ToString();
     }
 
-    private void Add(string decision) => _games[decision] = _games.GetValueOrDefault(decision) + 1;
+    private void Add(string decision, int count) => _games[decision] = _games.GetValueOrDefault(decision) + count;
 }

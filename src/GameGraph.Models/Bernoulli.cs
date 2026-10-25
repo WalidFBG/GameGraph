@@ -16,5 +16,5 @@ internal sealed class Bernoulli : IDistribution
         return uniform < parameters[0] ? 1 : 0;
     }
 
-    public int Outcomes(ReadOnlySpan<double> parameters) => 2;
+    public double[] Probabilities(ReadOnlySpan<double> parameters) => [1 - parameters[0], parameters[0]];
 }

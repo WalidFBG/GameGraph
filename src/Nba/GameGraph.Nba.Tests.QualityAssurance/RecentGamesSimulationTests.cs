@@ -26,13 +26,14 @@ public sealed class RecentGamesSimulationTests(ITestOutputHelper output)
             Simulator.Run(fitted, seeds, s => new NbaState(scores.For(s), context.HomeScoringRate, context.AwayScoringRate), new EmptyDecisionCollector<NbaState>());
 
             var simulations = Enumerable.Range(0, Simulations).ToArray();
+            var real = QualityAssuranceData.Walked(game, context);
 
             rows.Add(new Row(
                 game.Id,
-                game.Points(Sides.Home),
-                game.Points(Sides.Away),
-                game.Possessions.Length,
-                game.Periods > Periods.Regulation,
+                real.Home(0),
+                real.Away(0),
+                real.Possessions[0],
+                real.Periods[0] > Periods.Regulation,
                 simulations.Average(s => scores.Home(s)),
                 simulations.Average(s => scores.Away(s)),
                 simulations.Average(s => scores.Possessions[s]),

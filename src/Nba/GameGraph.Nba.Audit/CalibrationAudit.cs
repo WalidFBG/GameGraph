@@ -22,5 +22,7 @@ public sealed class CalibrationAudit(ITestOutputHelper output)
 
             output.WriteLine($"{node.Name}: {examples.Outcomes.Length} examples, {scored.Probabilities.Length} outcomes, written to {path}");
         }
+
+        output.WriteLine($"Run complete: {AuditDirectories.Complete(directory)}");
     }
 }

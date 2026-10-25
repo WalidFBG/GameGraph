@@ -1,4 +1,5 @@
 using GameGraph.Nba.Audit.Domain;
+using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Audit.Infrastructure;
 using GameGraph.Nba.Graph;
 using Xunit;
@@ -12,10 +13,10 @@ public sealed class SimulationAudit(ITestOutputHelper output)
     {
         var directory = AuditDirectories.NewRun("simulation");
         var fitted = FittedModelReader.ReadGame();
-        var games = GeneratedGames.From(ValidatedDataReader.ReadAll()).ToArray();
+        var games = GeneratedGames.InOrder(ValidatedDataReader.ReadAll()).ToArray();
 
         foreach (var node in NbaGameSpec.Instance.Nodes)
-            GeneratedGames.RequireTrainingDataFrom(node.Name, TrainingDataReader.GameIds(node.Name), games.Select(g => g.Game));
+            TrainingDataOrigin.Require(node.Name, TrainingDataReader.GameIds(node.Name), games.Select(g => g.Game));
 
         var (decisions, comparisons) = SeasonSimulation.SimulateEachOnce(fitted, games);
 
@@ -34,5 +35,6 @@ public sealed class SimulationAudit(ITestOutputHelper output)
         await GameComparisonWriter.Write(gamesPath, comparisons);
 
         output.WriteLine($"{comparisons.Length} games, each simulated once, written to {gamesPath}");
+        output.WriteLine($"Run complete: {AuditDirectories.Complete(directory)}");
     }
 }

@@ -1,12 +1,14 @@
 import math
 import sys
-from dataclasses import astuple, dataclass, fields
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
 import polars as pl
 
+from gamegraph.audit import findings, predicted
 from gamegraph.audit.buckets import assign, cuts, outcome_prefixes
+from gamegraph.audit.findings import FEWEST_EXPECTED, LARGE_Z, Failure
 from gamegraph.audit.runs import BUCKETS, csv_name, latest
 from gamegraph.models.contract import CategoricalDistribution, TrainingDataManifest
 from gamegraph.models.contract_files import read_training_data_manifest
@@ -16,10 +18,9 @@ GAME = "game"
 GAMES_FILE = "games.parquet"
 SIDES = ("real", "simulated")
 REACHES = "reaches"
-FEWEST_EXPECTED = 5
-LARGE_Z = 3.0
-CHANCE_OF_LARGE_Z = 0.0027
-WORST_SHOWN = 5
+SIMULATION = "simulation"
+SAMPLING = "sampling"
+GAMES_CHECK = "games"
 QUARTILES = (0.25, 0.5, 0.75)
 REGULATION_PERIODS = 4
 BIN_WIDTHS = {"total points": 10, "home margin": 5}
@@ -48,18 +49,6 @@ COUNTS = (
 )
 
 
-@dataclass(frozen=True)
-class Failure:
-    node: str
-    feature: str
-    lowest: float
-    highest: float
-    measure: str
-    reference: float
-    simulated: float
-    z: float
-
-
 type Sides = tuple[pl.DataFrame, pl.DataFrame]
 
 
@@ -72,7 +61,6 @@ def audit(run: Path, training_data: Path) -> None:
     failures: list[Failure] = []
     manifests: dict[str, TrainingDataManifest] = {}
     examples: dict[str, Sides] = {}
-    sampling: list[dict[str, float | str | None]] = []
     for file in files:
         manifest = read_training_data_manifest(training_data / file.stem / MANIFEST)
         real = _real(training_data / file.stem, manifest, games.height)
@@ -84,14 +72,12 @@ def audit(run: Path, training_data: Path) -> None:
         node_failures: list[Failure] = []
         for name, table in tables.items():
             table.write_csv(output / manifest.node / csv_name(run, manifest.node, name))
-            node_failures += _failures(manifest.node, name, table)
-        _summarise(manifest.node, sum(_z_scores(t) for t in tables.values()), node_failures)
+            node_failures += findings.failures(SIMULATION, manifest.node, name, table, *SIDES)
+        findings.summarise(manifest.node, sum(findings.z_scores(t) for t in tables.values()), node_failures, *SIDES)
         failures += node_failures
-        sampling += _sampling(manifest, pl.read_parquet(file))
+        failures += _sampling(run, manifest, pl.read_parquet(file))
     failures += _games(run, games, manifests, examples)
-    failures += _sampled(run, pl.DataFrame(sampling))
-    table = pl.DataFrame([astuple(f) for f in failures], schema=[f.name for f in fields(Failure)], orient="row")
-    table.sort(pl.col("z").abs(), descending=True).write_csv(output / csv_name(run, "failures"))
+    findings.write(output / csv_name(run, "failures"), failures)
 
 
 def _real(directory: Path, manifest: TrainingDataManifest, game_count: int) -> pl.DataFrame:
@@ -194,51 +180,15 @@ def _compared(prefix: str, real: pl.Expr, simulated: pl.Expr, error: pl.Expr, en
     ]
 
 
-def _sampling(manifest: TrainingDataManifest, simulated: pl.DataFrame) -> list[dict[str, float | str | None]]:
-    prefixes = outcome_prefixes(manifest.model.distribution)
-    if prefixes is None:
-        outcomes = [int(c[1:]) for c in simulated.columns if c.startswith("p") and c[1:].isdigit()]
-        mean = pl.sum_horizontal([pl.col(f"p{k}") * k for k in outcomes])
-        square = pl.sum_horizontal([pl.col(f"p{k}") * k * k for k in outcomes])
-        sums = simulated.select(
-            pl.col(OUTCOME).sum().alias("observed"),
-            mean.sum().alias("expected"),
-            (square - mean**2).sum().alias("variance"),
-        )
-        return [_sampled_row(manifest.node, "mean", simulated.height, sums.row(0, named=True))]
-    rows: list[dict[str, float | str | None]] = []
-    for prefix, k in prefixes.items():
-        probability = pl.col(f"p{k}")
-        sums = simulated.select(
-            (pl.col(OUTCOME) == k).sum().alias("observed"),
-            probability.sum().alias("expected"),
-            (probability * (1 - probability)).sum().alias("variance"),
-        )
-        rows.append(_sampled_row(manifest.node, prefix.strip() or "share", simulated.height, sums.row(0, named=True)))
-    return rows
-
-
-def _sampled_row(node: str, measure: str, n: int, sums: dict[str, float]) -> dict[str, float | str | None]:
-    observed, expected, variance = sums["observed"], sums["expected"], sums["variance"]
-    return {
-        "node": node,
-        "measure": measure,
-        "n": n,
-        "predicted": expected / n,
-        "simulated": observed / n,
-        "difference": (observed - expected) / n,
-        "z": (observed - expected) / math.sqrt(variance) if variance > 0 else None,
-    }
-
-
-def _sampled(run: Path, sampling: pl.DataFrame) -> list[Failure]:
-    sampling.write_csv(run / BUCKETS / csv_name(run, "sampling"))
-    failures = [
-        Failure(r["node"], "sampling", math.nan, math.nan, r["measure"], r["predicted"], r["simulated"], r["z"])
-        for r in sampling.filter(pl.col("z").abs() > LARGE_Z).iter_rows(named=True)
-    ]
-    _summarise("sampling", int(sampling["z"].is_not_null().sum()), failures)
-    return failures
+def _sampling(run: Path, manifest: TrainingDataManifest, simulated: pl.DataFrame) -> list[Failure]:
+    tables = predicted.tables(manifest, simulated)
+    found: list[Failure] = []
+    for name, table in tables.items():
+        table.write_csv(run / BUCKETS / manifest.node / csv_name(run, manifest.node, name, SAMPLING))
+        found += findings.failures(SAMPLING, manifest.node, name, table, predicted.PREDICTED, predicted.OBSERVED)
+    checked = sum(findings.z_scores(t) for t in tables.values())
+    findings.summarise(f"{manifest.node} sampling", checked, found, predicted.PREDICTED, "sampled")
+    return found
 
 
 def _games(
@@ -249,16 +199,16 @@ def _games(
     statistics = pl.DataFrame(rows)
     statistics.write_csv(run / BUCKETS / csv_name(run, "games"))
     failures = [
-        Failure("games", r["statistic"], math.nan, math.nan, "mean", r["real"], r["simulated"], r["z"])
+        Failure(GAMES_CHECK, GAMES_CHECK, r["statistic"], math.nan, math.nan, "mean", r["real"], r["simulated"], r["z"])
         for r in statistics.filter(pl.col("z").abs() > LARGE_Z).iter_rows(named=True)
     ]
     checked = int(statistics["z"].is_not_null().sum())
     for name, width in BIN_WIDTHS.items():
         distribution = _distribution(*values[name], width)
         distribution.write_csv(run / BUCKETS / csv_name(run, name.replace(" ", "-")))
-        failures += _failures("games", name, distribution)
-        checked += _z_scores(distribution)
-    _summarise("games", checked, failures)
+        failures += findings.failures(GAMES_CHECK, GAMES_CHECK, name, distribution, *SIDES)
+        checked += findings.z_scores(distribution)
+    findings.summarise(GAMES_CHECK, checked, failures, *SIDES)
     return failures
 
 
@@ -345,47 +295,6 @@ def _distribution(real: np.ndarray, simulated: np.ndarray, width: int) -> pl.Dat
             "z": z,
         }
     ).with_columns(pl.col("z").fill_nan(None))
-
-
-def _z_scores(table: pl.DataFrame) -> int:
-    return table.select(pl.col("^.*z$").is_not_null().sum()).sum_horizontal().item()
-
-
-def _failures(node: str, feature: str, table: pl.DataFrame) -> list[Failure]:
-    failures: list[Failure] = []
-    for column in (c for c in table.columns if c.endswith("z")):
-        prefix = column[: -len("z")]
-        for row in table.filter(pl.col(column).abs() > LARGE_Z).iter_rows(named=True):
-            failures.append(
-                Failure(
-                    node,
-                    feature,
-                    row.get("lowest", math.nan),
-                    row.get("highest", math.nan),
-                    prefix.strip() or "share",
-                    row[f"{prefix}real"],
-                    row[f"{prefix}simulated"],
-                    row[column],
-                )
-            )
-    return failures
-
-
-def _summarise(node: str, checked: int, failures: list[Failure]) -> None:
-    print(
-        f"{node}: {checked} z-scores, |z| > {LARGE_Z:g}: {len(failures)} ({checked * CHANCE_OF_LARGE_Z:.1f} by chance)"
-    )
-    for f in sorted(failures, key=lambda f: -abs(f.z))[:WORST_SHOWN]:
-        print(
-            f"  {f.feature}{_range(f.lowest, f.highest)}, {f.measure}: "
-            f"{f.reference:.4g} against simulated {f.simulated:.4g}, z {f.z:.1f}"
-        )
-
-
-def _range(lowest: float, highest: float) -> str:
-    if math.isnan(lowest):
-        return ""
-    return f" {lowest:g}" if lowest == highest else f" {lowest:g} to {highest:g}"
 
 
 def main() -> None:

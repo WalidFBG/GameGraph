@@ -6,5 +6,5 @@ internal interface IDistribution
 
     int Sample(ReadOnlySpan<double> parameters, double uniform);
 
-    int Outcomes(ReadOnlySpan<double> parameters);
+    double[] Probabilities(ReadOnlySpan<double> parameters);
 }

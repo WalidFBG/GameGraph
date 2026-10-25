@@ -8,14 +8,18 @@ internal static class ExampleScorer
     public static ScoredExamples Score(ExampleTable examples, Model model)
     {
         var features = examples.Features;
-        var outcomes = features.Max(f => model.Outcomes(f));
+        var rows = new double[features.Length][];
+
+        Parallel.For(0, features.Length, e => rows[e] = model.Probabilities(features[e]));
+
+        var outcomes = rows.Max(r => r.Length);
         var probabilities = Enumerable.Range(0, outcomes).Select(_ => new double[features.Length]).ToArray();
 
-        Parallel.For(0, features.Length, e =>
+        for (var e = 0; e < rows.Length; e++)
         {
-            for (var outcome = 0; outcome < model.Outcomes(features[e]); outcome++)
-                probabilities[outcome][e] = Math.Exp(model.LogProbability(features[e], outcome));
-        });
+            for (var outcome = 0; outcome < rows[e].Length; outcome++)
+                probabilities[outcome][e] = rows[e][outcome];
+        }
 
         return new ScoredExamples(examples, probabilities);
     }

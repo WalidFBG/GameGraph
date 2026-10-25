@@ -1,12 +1,13 @@
 from pathlib import Path
 
 BUCKETS = "buckets"
+PARTIAL = ".partial"
 
 
 def latest(audits: Path) -> Path:
-    runs = sorted(d for d in audits.iterdir() if d.is_dir())
+    runs = sorted(d for d in audits.iterdir() if d.is_dir() and not d.name.endswith(PARTIAL))
     if not runs:
-        raise ValueError(f"No audit run under {audits}")
+        raise ValueError(f"No complete audit run under {audits}")
     return runs[-1]
 
 

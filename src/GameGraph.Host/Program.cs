@@ -1,4 +1,3 @@
-using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Sportradar;
 using GameGraph.Nba.TrainingDataGeneration;
@@ -13,11 +12,11 @@ public static class Program
 
     public static void Main()
     {
-        var games = new ValidatedGameReader(ValidatedData).ReadAll();
+        var games = new ValidatedGameReader(ValidatedData).ReadAll().ToArray();
         var tally = new GameTally();
         var collector = new TrainingDataCollector<NbaState>(NbaGameSpec.Instance);
 
-        new TrainingDataSeason(collector, tally).Walk(games, new TeamHistory());
+        new TrainingDataSeason(collector, tally).Walk(games);
 
         Console.WriteLine(tally.Describe());
 
