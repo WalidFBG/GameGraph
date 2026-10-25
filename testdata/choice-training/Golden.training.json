@@ -13,55 +13,55 @@
       "route": "direct",
       "ridge": 0.0,
       "negativeLogLikelihood": {
-        "training": 1.432945355587489,
-        "validation": 1.43041513568003
+        "training": 1.7170993289162073,
+        "validation": 1.701630179668877
       },
-      "iterations": 9
+      "iterations": 8
     },
     {
       "route": "ridgePath",
       "ridge": 0.01,
       "negativeLogLikelihood": {
-        "training": 1.4332065656165784,
-        "validation": 1.4307741565369927
+        "training": 1.717231467378787,
+        "validation": 1.7032914250544196
       },
-      "iterations": 9
+      "iterations": 8
     },
     {
       "route": "ridgePath",
       "ridge": 0.001,
       "negativeLogLikelihood": {
-        "training": 1.4329487961033274,
-        "validation": 1.4304350903462655
+        "training": 1.7171007872658148,
+        "validation": 1.7017967831267333
       },
-      "iterations": 6
+      "iterations": 5
     },
     {
       "route": "ridgePath",
       "ridge": 0.0001,
       "negativeLogLikelihood": {
-        "training": 1.43294538545301,
-        "validation": 1.4304161698214306
+        "training": 1.7170993560682033,
+        "validation": 1.7016620781670388
       },
-      "iterations": 6
+      "iterations": 3
     },
     {
       "route": "ridgePath",
       "ridge": 1e-05,
       "negativeLogLikelihood": {
-        "training": 1.43294538545301,
-        "validation": 1.4304161698214306
+        "training": 1.7170993433279071,
+        "validation": 1.7016546244783533
       },
-      "iterations": 0
+      "iterations": 1
     },
     {
       "route": "ridgePath",
       "ridge": 0.0,
       "negativeLogLikelihood": {
-        "training": 1.4329453727499313,
-        "validation": 1.430416679052491
+        "training": 1.7170993433279071,
+        "validation": 1.7016546244783533
       },
-      "iterations": 1
+      "iterations": 0
     }
   ],
   "failures": []

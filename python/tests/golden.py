@@ -13,6 +13,7 @@ from gamegraph.contract import (
     ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
     FittedModel,
+    Json,
     LinearFit,
     LinearSplineFit,
     LinearSplineTerm,
@@ -157,10 +158,12 @@ JOHNSON_SU_NARROW_CASES: list[Case] = [
     (ABOVE_THE_NARROW_OUTCOME, 3, 0.3),
 ]
 
-CHOICE_FEATURES = ("Share", "Rest")
+CHOICE_FEATURES = ("Share", "Rest", "Size")
 CHOICE = FittedModel(
     "Golden",
-    ModelDeclaration(ChoiceDistribution(), {"utility": (LinearTerm("Share"), LinearSplineTerm("Rest", 3))}, {}),
+    ModelDeclaration(
+        ChoiceDistribution(), {"utility": (LinearTerm("Share"), LinearSplineTerm("Rest", 3))}, {"size": "Size"}
+    ),
     {
         "utility": PredictorFit(
             0.0,
@@ -172,12 +175,21 @@ CHOICE = FittedModel(
     },
 )
 
+FIVE = ((-1.2, 0.0), (-1.6, 3.0), (-2.3, 7.0), (-1.0, 12.0), (-3.0, 1.0))
+
+
+def choosing(size: int, candidates: tuple[tuple[float, float], ...]) -> tuple[tuple[float, ...], ...]:
+    return tuple((*candidate, float(size)) for candidate in candidates)
+
+
 CHOICE_CASES: list[Case] = [
-    (((-1.2, 0.0), (-1.6, 3.0), (-2.3, 7.0), (-1.0, 12.0), (-3.0, 1.0)), 0, 0.1),
-    (((-1.2, 0.0), (-1.6, 3.0), (-2.3, 7.0), (-1.0, 12.0), (-3.0, 1.0)), 3, 0.9),
-    (((-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0), (-1.6, 2.0)), 2, 0.5),
-    (((0.0, 20.0), (-9.0, -4.0), (-1.4, 6.0), (-0.7, 9.0), (-2.0, 0.0)), 1, 0.97),
-    (((40.0, 0.0), (-40.0, 0.0), (-1.4, 6.0), (-0.7, 9.0), (-2.0, 0.0)), 4, 0.3),
+    (choosing(1, FIVE), 0b00001, 0.1),
+    (choosing(1, FIVE), 0b01000, 0.9),
+    (choosing(2, ((-1.6, 2.0),) * 5), 0b00101, 0.55),
+    (choosing(2, ((0.0, 20.0), (-9.0, -4.0), (-1.4, 6.0), (-0.7, 9.0))), 0b1001, 0.97),
+    (choosing(1, ((40.0, 0.0), (-40.0, 0.0), (-1.4, 6.0), (-0.7, 9.0), (-2.0, 0.0))), 0b10000, 0.3),
+    (choosing(3, (*FIVE, (-0.5, 4.0))), 0b110010, 0.42),
+    (choosing(3, FIVE[:3]), 0b111, 0.6),
 ]
 
 CASES: dict[str, tuple[FittedModel, tuple[str, ...], list[Case]]] = {
@@ -244,33 +256,29 @@ NORMAL_PROBABILITIES = [
 def write_cases(directory: Path, fitted: FittedModel, feature_names: tuple[str, ...], cases: list[Case]) -> None:
     directory.mkdir(parents=True, exist_ok=True)
     write_fitted_model(directory / "fitted-model.json", fitted)
-    features = torch.tensor([case[0] for case in cases], dtype=torch.float64)
-    outcomes = torch.tensor([case[1] for case in cases])
-    uniforms = torch.tensor([case[2] for case in cases], dtype=torch.float64)
     model = Model.from_fitted(fitted, feature_names)
-    parameters = model.parameter_values(features)
-    log_probability = model.log_prob(features, outcomes)
-    samples = model.sample(features, uniforms)
-    for nudged in ([nextafter(c[2], 1) for c in cases], [max(nextafter(c[2], 0), 0.0) for c in cases]):
-        if not torch.equal(model.sample(features, torch.tensor(nudged, dtype=torch.float64)), samples):
-            raise ValueError("A golden uniform sits on a category boundary, so its sample depends on rounding")
-    values = torch.stack(parameters, dim=-1)
-    document = {
-        "features": list(feature_names),
-        "cases": [
-            {
-                "features": [float(value) for value in features[i].flatten()],
-                "outcome": int(outcomes[i]),
-                "parameters": [float(p) for p in values[i].flatten()],
-                "logProbability": float(log_probability[i]),
-                "uniform": float(uniforms[i]),
-                "sample": int(samples[i]),
-            }
-            for i in range(len(cases))
-        ],
-    }
+    document = {"features": list(feature_names), "cases": [_case(model, *case) for case in cases]}
     text = json.dumps(document, indent=2, allow_nan=False) + "\n"
     (directory / "cases.json").write_text(text, encoding="utf-8", newline="\n")
+
+
+def _case(
+    model: Model, values: tuple[float, ...] | tuple[tuple[float, ...], ...], outcome: int, uniform: float
+) -> Json:
+    features = torch.tensor([values], dtype=torch.float64)
+    outcomes = torch.tensor([outcome])
+    sample = model.sample(features, torch.tensor([uniform], dtype=torch.float64))
+    for nudged in (nextafter(uniform, 1), max(nextafter(uniform, 0), 0.0)):
+        if not torch.equal(model.sample(features, torch.tensor([nudged], dtype=torch.float64)), sample):
+            raise ValueError("A golden uniform sits on a category boundary, so its sample depends on rounding")
+    return {
+        "features": [float(value) for value in features[0].flatten()],
+        "outcome": outcome,
+        "parameters": [float(p) for p in torch.stack(model.parameter_values(features), dim=-1)[0].flatten()],
+        "logProbability": float(model.log_prob(features, outcomes)[0]),
+        "uniform": uniform,
+        "sample": int(sample[0]),
+    }
 
 
 def write_normal(directory: Path) -> None:

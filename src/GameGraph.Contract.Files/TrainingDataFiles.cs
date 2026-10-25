@@ -83,26 +83,26 @@ public static class TrainingDataFiles
         {
             var values = example.Features.Skip(row * features).Take(features).Select(Text);
 
-            writer.WriteLine(string.Join(',', [Text(decision), .. values, Text(row == example.Outcome ? 1 : 0)]));
+            writer.WriteLine(string.Join(',', [Text(decision), .. values, Text(example.Outcome >> row & 1)]));
         }
     }
 
     private static TrainingExample[] Choices(string directory, string[][] rows)
     {
-        var decisions = rows.GroupBy(r => Whole(r[0])).ToArray();
+        var decisions = rows.Select(r => Whole(r[0])).ToArray();
 
-        if (decisions.Select(d => d.Key).Where((decision, index) => decision != index).Any())
+        if (decisions.Length > 0 && (decisions[0] != 0 || decisions.Zip(decisions[1..]).Any(p => p.Second - p.First is not (0 or 1))))
             throw new InvalidDataException($"{directory} does not number its decisions from 0 in order");
 
-        return [.. decisions.Select(d => new TrainingExample([.. d.SelectMany(r => Numbers(r[1..^1]))], Chosen(directory, d.Key, [.. d.Select(r => Whole(r[^1]))])))];
+        return [.. rows.GroupBy(r => Whole(r[0])).Select(d => new TrainingExample([.. d.SelectMany(r => Numbers(r[1..^1]))], Chosen(directory, d.Key, [.. d.Select(r => Whole(r[^1]))])))];
     }
 
     private static int Chosen(string directory, int decision, int[] chosen)
     {
-        if (chosen.Any(c => c is not (0 or 1)) || chosen.Sum() != 1)
-            throw new InvalidDataException($"Decision {decision} in {directory} does not choose exactly one candidate");
+        if (chosen.Any(c => c is not (0 or 1)))
+            throw new InvalidDataException($"Decision {decision} in {directory} has a candidate whose outcome is not 0 or 1");
 
-        return Array.IndexOf(chosen, 1);
+        return chosen.Select((c, row) => c << row).Sum();
     }
 
     private static string Text(double value) => value.ToString("R", CultureInfo.InvariantCulture);

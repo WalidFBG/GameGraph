@@ -243,7 +243,7 @@ def test_a_johnson_su_model_with_a_given_maximum_round_trips(tmp_path: Path) -> 
 
 CHOICE = FittedModel(
     "Example",
-    ModelDeclaration(ChoiceDistribution(), {"utility": TERMS[:2]}, {}),
+    ModelDeclaration(ChoiceDistribution(), {"utility": TERMS[:2]}, {"size": "Size"}),
     {
         "utility": PredictorFit(
             0.0, {"Gaussian": LinearFit(0.31, 8.4, (0.5,)), "Indicator": LinearFit(0.38, 0.49, (1.1,))}

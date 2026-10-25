@@ -18,7 +18,7 @@ public sealed class TrainingDataFilesTests : IDisposable
     private static readonly ModelDeclaration Choice = new(
         new ChoiceDistribution(),
         new Dictionary<string, Term[]> { ["utility"] = [new LinearTerm("Gaussian"), new LinearTerm("Indicator")] },
-        NoGiven);
+        new Dictionary<string, string> { [ChoiceDistribution.Size] = "Size" });
 
     private readonly string _directory = Path.Combine(Directory.CreateTempSubdirectory("gamegraph-training-data-").FullName, "Example");
 
@@ -36,15 +36,15 @@ public sealed class TrainingDataFilesTests : IDisposable
     }
 
     [Fact]
-    public void AChoiceWritesOneRowPerCandidateAndRoundTrips()
+    public void AChoiceWritesOneRowPerCandidateMarkingEachChosenOneAndRoundTrips()
     {
-        var data = Data(Choice, [[new([0.5, 1, 2, 0, -1, 1], 1)], [new([3, 1, 4, 0], 0)]]);
+        var data = Data(Choice, [[new([0.5, 1, 1, 2, 0, 1, -1, 1, 1], 0b010)], [new([3, 1, 2, 4, 0, 2], 0b11)]]);
 
         TrainingDataFiles.Write(_directory, data);
 
         AssertSame(data, TrainingDataFiles.Read(_directory));
         Assert.Equal(
-            ["decision,Gaussian,Indicator,outcome", "0,0.5,1,0", "0,2,0,1", "0,-1,1,0", "1,3,1,1", "1,4,0,0"],
+            ["decision,Gaussian,Indicator,Size,outcome", "0,0.5,1,1,0", "0,2,0,1,1", "0,-1,1,1,0", "1,3,1,2,1", "1,4,0,2,1"],
             File.ReadAllLines(Path.Combine(_directory, "examples.csv")));
     }
 
@@ -60,39 +60,39 @@ public sealed class TrainingDataFilesTests : IDisposable
     }
 
     [Fact]
-    public void ReadingADecisionThatDoesNotChooseExactlyOneCandidateFails()
+    public void ReadingADecisionThatChoosesMoreCandidatesThanItsSizeFails()
     {
-        TrainingDataFiles.Write(_directory, Data(Choice, [[new([0.5, 1, 2, 0], 1)]]));
+        TrainingDataFiles.Write(_directory, Data(Choice, [[new([0.5, 1, 1, 2, 0, 1], 0b01)]]));
         var path = Path.Combine(_directory, "examples.csv");
-        File.WriteAllLines(path, [.. File.ReadAllLines(path).Select(l => l.Replace(",0,1", ",0,0"))]);
+        File.WriteAllLines(path, [.. File.ReadAllLines(path).Select(l => l.EndsWith(",0") ? l[..^1] + "1" : l)]);
 
-        var error = Assert.Throws<InvalidDataException>(() => TrainingDataFiles.Read(_directory));
+        var error = Assert.Throws<ArgumentException>(() => TrainingDataFiles.Read(_directory));
 
-        Assert.Contains("does not choose exactly one candidate", error.Message);
+        Assert.Contains("chooses 2 candidates, but its size is 1", error.Message);
     }
 
     [Fact]
     public void AnExampleThatIsNotWholeRowsOfFeaturesFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 2], 0)]]));
+        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 1, 2], 0b1)]]));
 
-        Assert.Contains("not one or more candidates of 2 features", error.Message);
+        Assert.Contains("not 1 to 31 candidates of 3 features", error.Message);
     }
 
     [Fact]
     public void AChoiceOfACandidateThatIsNotThereFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 2, 0], 2)]]));
+        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 1, 2, 0, 1], 0b100)]]));
 
-        Assert.Contains("chooses candidate 2 of 2", error.Message);
+        Assert.Contains("not a set of its 2 candidates' rows", error.Message);
     }
 
     [Fact]
-    public void AChoiceOfANegativeCandidateFails()
+    public void AChoiceOfNoCandidateFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 2, 0], -1)]]));
+        var error = Assert.Throws<ArgumentException>(() => Data(Choice, [[new([0.5, 1, 1, 2, 0, 1], 0)]]));
 
-        Assert.Contains("chooses candidate -1 of 2", error.Message);
+        Assert.Contains("not a set of its 2 candidates' rows", error.Message);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class TrainingDataFilesTests : IDisposable
 
     private static TrainingData Data(ModelDeclaration model, TrainingExample[][] games)
     {
-        var manifest = new TrainingDataManifest("Example", "source", Created, ["Gaussian", "Indicator"], games.Sum(g => g.Length), model);
+        var manifest = new TrainingDataManifest("Example", "source", Created, [.. model.Features()], games.Sum(g => g.Length), model);
 
         return new TrainingData(manifest, [.. games.Select((examples, g) => new GameExamples($"g{g}", Created.AddDays(g), examples))]);
     }

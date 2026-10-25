@@ -92,7 +92,7 @@ public static class NbaTransitions
         }
     }
 
-    public static Next<NbaState> Shooter(NbaState state, int player) => NbaNodes.FouledOnShot;
+    public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter) => NbaNodes.FouledOnShot;
 
     public static Next<NbaState> FouledOnShot(NbaState state, int fouled)
     {

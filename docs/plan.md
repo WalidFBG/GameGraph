@@ -96,13 +96,25 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
       - **The engine**: a node is a vector node (one row of features of the state) or a choice node (candidates from an expression over the state, and features of the state and a candidate, one row per candidate); the outcome is the chosen row.
       - **The lineup state**: players are slots within the game (home roster, then away); `OnCourt` holds each team's five. Until substitutions are simulated, it is the real game's five at the action's period and clock, before the lineup changes made in that second (except at a period's full clock, which come before its first action): 29 of 776,235 shooters fall outside it. A simulated overtime the real game did not have reads the real game's last period. This leaks the real rotation, and touches only who is credited, never the team price.
       - **`Shooter`**: after `ActionTime` for a two or a three, before `FouledOnShot`; the team still chooses the action type and the player is chosen given it. Its feature is the log of the player's share of his team's attempts of that type while he was on court over his last 20 games, shrunk towards 1/5 (`PlayerHistory`). A shooter who is not among the five rejects the game (`RulesDisagreeWithData`).
-   2. substitutions, modelled as in `Quants.Models.Basketball` (its findings, not its code):
-      - **when**: one opportunity per team per stoppage (a dead ball: a period's start, after a timeout, a foul, a side-out, a dead-ball turnover, between free throws; not after a defensive rebound, a live-ball turnover or, mostly, a made shot), after the stoppage's timeouts; the data's net change over the stoppage (several `LineupChange` events in one stoppage are one opportunity). Of the data's lineup changes, 40,766 follow a timeout, 30,700 a free throw, 21,241 a non-shooting foul, 21,181 a period's end, 15,872 a turnover, 15,163 another stoppage, 10,456 a rebound (to explain first) and 326 a made shot;
-      - **how many**: a categorical count from 0 to 5 per team;
-      - **which ones**: an unordered subset of that size off (from the five) and on (from the bench), independent given the count: P(S) = exp(Σ utilities in S) / e_k, the elementary symmetric polynomial over every subset of size k, so no order or pairing is needed. The Choice family is its size-1 case and gains the size as a given parameter; a fouled-out player is forced off;
-      - **starters**: five choices from the active players (the starters of the team's last game, average minutes);
-      - **features**, each kept only if it earns its place: the player's stint or rest so far, his minutes against his usual, starter or not, foul trouble, the fourth period's time and score (closing lineups, garbage time), the team's habit at this clock;
-      - the real lineups and their leak go.
+   2. substitutions, modelled as in `Quants.Models.Basketball` (its findings, not its code), in two pull requests:
+      - **Sets in the Choice family**: done. Choice picks an unordered set of k candidates, P(S) = exp(Σ utilities in S) / e_k, with k a given feature on every row. The outcome is a bitmask of the chosen rows, and decisions may have different numbers of candidates. `Shooter` is the k = 1 case and keeps its fit.
+      - **The substitutions themselves**, measured on the data's 172,936 lineup changes. Each change is attached, in event order, to the next moment the graph asks:
+        - about 121,000 land before a play: after a made shot then a timeout, a period's start, a side-out, a turnover (almost all dead-ball ones), a rebound (almost all a team rebound: a missed first free throw or the ball out of bounds);
+        - about 50,000 land before a free throw (38,093 between free throws);
+        - about 500 come after a period's last action, and join the next period's start;
+        - in event order, only 8 of 776,235 shooters are off court, against 29 by the clock.
+      - **when**: one opportunity per team at every play start and every free throw, after that moment's timeouts. The graph cannot tell a dead ball from a live one, so the kind of moment is a feature. The outcome is the net change over the moment: 183 moments net to nothing, and 920 hold several change events.
+      - **the nodes**, per team at each moment:
+        - `Substitutes` (Bernoulli): is there a change?
+        - `SubstitutionCount`: a choice among the counts from 1 to what the bench allows. A team has 8 to 17 active players, so a categorical from 0 to 5 could draw more than its bench.
+        - `SubstitutedOff` (k of the five) and `SubstitutedOn` (k of the bench), independent given the count. Each is skipped when there is no choice.
+      - **the bench**: the game's active players (played, a coach's decision, or active but unused) not on court. Today they come from the real game, and in production from the injury report.
+      - **starters**: a choice of five from the active players.
+      - **features**, each kept only if it earns its place:
+        - for the moment: its kind and whether a timeout was just called, between free throws, the period, the clock and the late margin, and the five's longest stint;
+        - for each candidate: the stint or rest so far, his minutes against his usual, his usual minutes and whether he is a starter (`PlayerHistory` gains minutes and starts);
+      - **foul trouble and the forced foul-out** (845 players reached six fouls, all taken off) wait for slice 3, which simulates who fouls.
+      - The real lineups (`Rotation`, `Lineup`) and their leak go; the five on court becomes state that the substitutions change in both modes.
    3. the other player nodes: who rebounds (team rebounds have no player: 72,000 of them), turns it over, fouls (fouls per minute shrunk, fewer when in foul trouble) and is fouled, and the finer action types that need players (live-ball steals, assists, blocks).
 
    The data's lineups are clean: every team has one starting lineup and no change ever takes off a player who is not on, puts on one who is, or leaves other than five. Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
@@ -140,7 +152,7 @@ What the C# models are today; items 1 to 4 are built. `models.md` replaces this:
 5. **Outcomes stay `int` until the first `double`**: Bernoulli (0 or 1), categories and counts are all whole numbers, and each family rejects outcomes outside its range, loudly. Typed outcomes (`bool`, `int`, `double`) arrive with the first continuous outcome, when integers can no longer hold it: one node class per outcome type under a common base, and one decide and one collect method per type, so nothing is cast or boxed. Training data keeps 0/1 until then.
 6. **Two feature shapes, not a generic one**:
    - vector: one feature set per decision; flat `double[]` of n × f plus a typed outcome array;
-   - choice: one feature set per candidate (who shoots); flat `double[]` of all candidates × f, an offset per decision and the chosen index (long format, one CSV row per candidate).
+   - choice: one feature set per candidate (who shoots); flat `double[]` of all candidates × f, an offset per decision and the chosen rows as a bitmask (long format, one CSV row per candidate).
 7. **Splines as a second basis**: `SplineTerm(feature, knots)` expands a feature into `x, max(0, x − k₁), …` columns, and training data keeps raw features. Families, predictors and scaling do not change; the parameters file records each spline term's knots next to its coefficients.
 8. **Speed without our own codegen**: for readability, `Model` holds its family behind `IModelFamily` for now, so the family's arithmetic is an interface call and cannot be inlined. Simulation loses nothing by it, because compilation writes each node's family arithmetic out directly. Training is not compiled: its speed work makes the trainer generic over the family's struct again (`where TFamily : struct, IModelFamily`, one dispatch from the family's name to its struct, in the trainer only), together with spans of flat arrays, no allocation per example and SIMD (`System.Numerics.Tensors`).
 

@@ -15,9 +15,14 @@ public sealed class VectorNode<TState> : NodeSpec<TState>
     {
     }
 
+    private readonly Transition<TState> _transition;
+
     private VectorNode(string name, ModelDeclaration model, Feature<TState>[] features, Transition<TState> transition)
-        : base(name, model, [.. features.Select(f => f.Name)], transition) =>
+        : base(name, model, [.. features.Select(f => f.Name)])
+    {
         Features = features;
+        _transition = transition;
+    }
 
     public Feature<TState>[] Features { get; }
 
@@ -30,6 +35,8 @@ public sealed class VectorNode<TState> : NodeSpec<TState>
 
         return features;
     }
+
+    internal override Next<TState> Apply(TState state, int outcome) => _transition(state, outcome);
 
     private static ModelDeclaration Declaration(
         string name,

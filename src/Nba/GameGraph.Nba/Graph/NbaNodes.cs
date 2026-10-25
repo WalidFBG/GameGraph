@@ -81,6 +81,7 @@ public static class NbaNodes
     public static readonly ChoiceNode<NbaState> Shooter = new(
         nameof(Shooter),
         s => s.OnCourt[s.TeamInPossession],
+        NbaFeatures.Shooters,
         [CandidateTerm.Spline(NbaFeatures.ShotShare, 4)],
         NbaTransitions.Shooter);
 

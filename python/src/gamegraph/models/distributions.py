@@ -13,6 +13,7 @@ from gamegraph.models import normal
 
 NARROW_OUTCOME = 1e-3
 NARROW_RANGE = 1e-8
+NO_SETS = -1e300
 
 
 class Bernoulli:
@@ -121,24 +122,54 @@ class DiscreteJohnsonSu:
 
 class Choice:
     def log_prob(self, parameters: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
-        (utility,) = parameters
-        self._require_outcomes(utility, outcomes)
-        return torch.log_softmax(utility, dim=1).gather(1, outcomes.unsqueeze(1)).squeeze(1)
+        utility, candidate, size = self._decisions(parameters)
+        chosen = (outcomes.unsqueeze(1) >> torch.arange(utility.shape[1])) & 1 == 1
+        if (outcomes < 0).any() or (outcomes >> utility.shape[1] != 0).any() or (chosen & ~candidate).any():
+            raise ValueError("A choice's outcome is a set of its candidates' rows")
+        if not torch.equal(chosen.sum(dim=1), size):
+            raise ValueError("A choice chooses as many candidates as its size")
+        safe = torch.where(candidate, utility, 0.0)
+        return torch.where(chosen, safe, 0.0).sum(dim=1) - _log_sets(safe, candidate, size)
 
     def sample(self, parameters: tuple[torch.Tensor, ...], uniforms: torch.Tensor) -> torch.Tensor:
-        (utility,) = parameters
+        utility, candidate, size = self._decisions(parameters)
         _require_uniforms(uniforms)
-        cumulative = torch.softmax(utility, dim=1).cumsum(dim=1)
-        passed = (cumulative <= uniforms.unsqueeze(1)).sum(dim=1)
-        return torch.clamp(passed, max=utility.shape[1] - 1)
+        safe = torch.where(candidate, utility, 0.0)
+        suffixes = _log_suffix_sets(safe, candidate, int(size.max()))
+        remaining, uniform = size.clone(), uniforms.clone()
+        outcome = torch.zeros_like(size)
+        for c in range(utility.shape[1]):
+            rest = suffixes[:, c + 1].gather(1, (remaining - 1).clamp(min=0).unsqueeze(1)).squeeze(1)
+            whole = suffixes[:, c].gather(1, remaining.unsqueeze(1)).squeeze(1)
+            include = torch.where(candidate[:, c] & (remaining > 0), torch.exp(safe[:, c] + rest - whole), 0.0)
+            taken = uniform < include
+            uniform = torch.where(taken, uniform / include, (uniform - include) / (1 - include))
+            outcome = outcome | (taken.to(torch.int64) << c)
+            remaining = remaining - taken.to(torch.int64)
+        if (remaining != 0).any():
+            raise RuntimeError("A choice sampled fewer candidates than its size")
+        return outcome
 
     def initial_parameters(self, outcomes: torch.Tensor) -> dict[str, float]:
         return {}
 
     @staticmethod
-    def _require_outcomes(utility: torch.Tensor, outcomes: torch.Tensor) -> None:
-        if not ((outcomes >= 0) & (outcomes < utility.shape[1])).all():
-            raise ValueError(f"A choice is a candidate from 0 to {utility.shape[1] - 1}")
+    def _decisions(parameters: tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        utility, size = parameters
+        if utility.shape[1] > ChoiceDistribution.MOST_CANDIDATES:
+            raise ValueError(
+                f"A choice has at most {ChoiceDistribution.MOST_CANDIDATES} candidates, got {utility.shape[1]}"
+            )
+        candidate = size > 0
+        sizes = torch.where(candidate, size, 0.0).amax(dim=1)
+        if not (
+            candidate.any(dim=1).all()
+            and (torch.where(candidate, size, sizes.unsqueeze(1)) == sizes.unsqueeze(1)).all()
+        ):
+            raise ValueError("Every candidate of a choice has the same size, and padding rows have size 0")
+        if not (torch.equal(sizes, torch.round(sizes)) and (sizes <= candidate.sum(dim=1)).all()):
+            raise ValueError("A choice's size is a whole number of its candidates")
+        return utility, candidate, sizes.to(torch.int64)
 
 
 type Distribution = Bernoulli | Categorical | DiscreteJohnsonSu | Choice
@@ -154,6 +185,22 @@ def distribution_for(declaration: DistributionDeclaration) -> Distribution:
             return DiscreteJohnsonSu()
         case ChoiceDistribution():
             return Choice()
+
+
+def _log_sets(utility: torch.Tensor, candidate: torch.Tensor, size: torch.Tensor) -> torch.Tensor:
+    return _log_suffix_sets(utility, candidate, int(size.max()))[:, 0].gather(1, size.unsqueeze(1)).squeeze(1)
+
+
+def _log_suffix_sets(utility: torch.Tensor, candidate: torch.Tensor, largest: int) -> torch.Tensor:
+    decisions, candidates = utility.shape
+    empty = torch.zeros(decisions, 1, dtype=utility.dtype)
+    none = torch.full((decisions, largest), NO_SETS, dtype=utility.dtype)
+    suffixes = [torch.cat([empty, none], dim=1)]
+    for c in reversed(range(candidates)):
+        after = suffixes[0]
+        grown = torch.cat([after[:, :1], torch.logaddexp(after[:, 1:], utility[:, c : c + 1] + after[:, :-1])], dim=1)
+        suffixes.insert(0, torch.where(candidate[:, c : c + 1], grown, after))
+    return torch.stack(suffixes, dim=1)
 
 
 def _log_mass(skew: torch.Tensor, tail: torch.Tensor, start: torch.Tensor, end: torch.Tensor) -> torch.Tensor:

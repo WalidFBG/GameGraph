@@ -14,39 +14,64 @@ public sealed class ChoiceNodeTests
 
     private static readonly CandidateFeature<ToyState> Odd = new(nameof(Odd), (_, candidate) => candidate % 2);
 
+    private static readonly Feature<ToyState> Two = new(nameof(Two), _ => 2);
+
     [Fact]
-    public void AChoiceNodeWritesOneRowOfFeaturesPerCandidate()
+    public void AChoiceNodeWritesOneRowOfFeaturesPerCandidateEachWithItsSize()
     {
-        var node = new ChoiceNode<ToyState>("Pick", _ => Candidates, [CandidateTerm.Linear(Distance), CandidateTerm.Spline(Odd, 2)], (_, _) => Next<ToyState>.GameOver);
+        var node = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance), CandidateTerm.Spline(Odd, 2)], (_, _) => Next<ToyState>.GameOver);
         var state = new ToyState { Value = 2 };
         var buffer = Array.Empty<double>();
 
-        Assert.Equal([1, 1, 2, 0, 5, 1], node.WriteFeatures(state, ref buffer).ToArray());
-        Assert.Equal(["Distance", "Odd"], node.FeatureNames);
+        Assert.Equal([1, 1, 2, 2, 0, 2, 5, 1, 2], node.WriteFeatures(state, ref buffer).ToArray());
+        Assert.Equal(["Distance", "Odd", "Two"], node.FeatureNames);
         Assert.IsType<ChoiceDistribution>(node.Model.Distribution);
         Assert.Equal([new LinearTerm("Distance"), new LinearSplineTerm("Odd", 2)], node.Model.Terms["utility"]);
+        Assert.Equal("Two", node.Model.Given[ChoiceDistribution.Size]);
     }
 
     [Fact]
-    public void TheWalkPassesTheChosenRowsCandidateToTheTransition()
+    public void TheWalkPassesTheChosenRowsCandidatesToTheTransition()
     {
-        var chosen = -1;
-        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, [CandidateTerm.Linear(Distance)], (_, candidate) =>
+        int[] chosen = [];
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, candidates) =>
         {
-            chosen = candidate;
+            chosen = candidates.ToArray();
             return Next<ToyState>.GameOver;
         });
         var recorder = new Recorder();
 
         GameWalker.Walk(new GameSpec<ToyState>([pick], pick), new ToyState { Value = 1 }, recorder, recorder);
 
-        Assert.Equal([[2, 3, 6]], recorder.Collected.Select(c => c.Features));
-        Assert.Equal(4, chosen);
+        Assert.Equal([[2, 2, 3, 2, 6, 2]], recorder.Collected.Select(c => c.Features));
+        Assert.Equal([3], chosen);
+    }
+
+    [Fact]
+    public void ACandidatesRowsAreTheirBits()
+    {
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+
+        Assert.True(pick.TryRowsOf(new ToyState(), [7, 3], out var rows));
+        Assert.Equal(0b101, rows);
+    }
+
+    [Fact]
+    public void RowsOfAPlayerWhoIsNotACandidateOrIsChosenTwiceAreNotFound()
+    {
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+
+        Assert.False(pick.TryRowsOf(new ToyState(), [5], out _));
+        Assert.False(pick.TryRowsOf(new ToyState(), [4, 4], out _));
     }
 
     [Fact]
     public void AChoiceNodeWithoutFeaturesFails() =>
-        Assert.Throws<ArgumentException>(() => new ChoiceNode<ToyState>("Blind", _ => Pair, [], (_, _) => Next<ToyState>.GameOver));
+        Assert.Throws<ArgumentException>(() => new ChoiceNode<ToyState>("Blind", _ => Pair, Two, [], (_, _) => Next<ToyState>.GameOver));
+
+    [Fact]
+    public void AChoiceNodeWhoseSizeIsNamedLikeACandidateFeatureFails() =>
+        Assert.Throws<ArgumentException>(() => new ChoiceNode<ToyState>("Pick", _ => Pair, new Feature<ToyState>(nameof(Distance), _ => 1), [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver));
 
     [Fact]
     public void AVectorNodeCannotChooseAmongCandidates()

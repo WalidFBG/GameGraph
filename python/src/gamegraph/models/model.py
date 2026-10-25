@@ -2,10 +2,11 @@ from collections.abc import Sequence
 
 import torch
 
-from gamegraph.contract import FittedModel, ModelDeclaration
+from gamegraph.contract import ChoiceDistribution, FittedModel, ModelDeclaration
 from gamegraph.models.distributions import distribution_for
 from gamegraph.models.given_column import GivenColumn
 from gamegraph.models.predictor import Predictor
+from gamegraph.models.terms import column_of
 
 
 class Model:
@@ -81,10 +82,15 @@ class Model:
     ) -> "Model":
         distribution = declaration.distribution
         starts = distribution_for(distribution).initial_parameters(outcomes)
+        rows = (
+            examples[examples[..., column_of(declaration.given[ChoiceDistribution.SIZE], features)] > 0]
+            if distribution.chooses_among_candidates()
+            else examples
+        )
         return Model(
             declaration,
             tuple(
-                Predictor.initial(p, declaration.terms[p.name], features, examples, starts)
+                Predictor.initial(p, declaration.terms[p.name], features, rows, starts)
                 for p in distribution.predicted()
             ),
             tuple(GivenColumn.of(declaration.given[name], features) for name in distribution.given()),

@@ -33,7 +33,7 @@ internal static class ExampleScorer
             examples.FeatureNames,
             [.. candidates.Select(c => examples.Games[c.Decision])],
             [.. candidates.Select(c => examples.Features[c.Decision][(c.Candidate * width)..((c.Candidate + 1) * width)])],
-            [.. candidates.Select(c => examples.Outcomes[c.Decision] == c.Candidate ? 1 : 0)]);
+            [.. candidates.Select(c => examples.Outcomes[c.Decision] >> c.Candidate & 1)]);
 
         return new ScoredExamples(table, [[.. candidates.Select(c => 1 - c.Chosen)], [.. candidates.Select(c => c.Chosen)]]);
     }

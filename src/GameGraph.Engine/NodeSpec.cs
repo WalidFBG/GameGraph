@@ -6,12 +6,11 @@ public abstract class NodeSpec<TState>
 {
     private int? _index;
 
-    private protected NodeSpec(string name, ModelDeclaration model, string[] featureNames, Transition<TState> transition)
+    private protected NodeSpec(string name, ModelDeclaration model, string[] featureNames)
     {
         Name = name;
         Model = model;
         FeatureNames = featureNames;
-        Transition = transition;
         AsNext = new(this);
     }
 
@@ -21,8 +20,6 @@ public abstract class NodeSpec<TState>
 
     public string[] FeatureNames { get; }
 
-    internal Transition<TState> Transition { get; }
-
     internal NextNode<TState> AsNext { get; }
 
     internal bool IsInGame => _index is not null;
@@ -31,7 +28,7 @@ public abstract class NodeSpec<TState>
 
     public abstract ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer);
 
-    internal virtual Next<TState> Apply(TState state, int outcome) => Transition(state, outcome);
+    internal abstract Next<TState> Apply(TState state, int outcome);
 
     internal void JoinGame(int index) => _index = index;
 
