@@ -73,28 +73,8 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> LatePeriodClock =
         new(nameof(LatePeriodClock), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? s.PeriodClock : 0);
 
-    public static readonly Feature<NbaState> LateClockBinds =
-        new(nameof(LateClockBinds), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.PeriodClockBinds ? 1 : 0);
-
     public static readonly Feature<NbaState> LateFoul =
         new(nameof(LateFoul), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.Action == ActionType.NonShootingFoul ? 1 : 0);
-
-    private static readonly (string Name, int Lowest, int Highest)[] LateMargins =
-    [
-        ("Trail10OrMore", int.MinValue, -10),
-        ("Trail7To9", -9, -7),
-        ("Trail4To6", -6, -4),
-        ("Trail3", -3, -3),
-        ("Trail1To2", -2, -1),
-        ("Lead1To3", 1, 3),
-        ("Lead4To6", 4, 6),
-        ("Lead7To8", 7, 8),
-        ("Lead9To10", 9, 10),
-        ("Lead11To12", 11, 12),
-    ];
-
-    public static IReadOnlyList<Feature<NbaState>> LateMarginByClock(params (int Lowest, int Highest)[] clocks) =>
-        [.. LateMargins.SelectMany(m => clocks.Select(c => LateCell(m.Name, m.Lowest, m.Highest, c.Lowest, c.Highest)))];
 
     public static readonly Feature<NbaState> AfterTimeout =
         new(nameof(AfterTimeout), s => s.AfterTimeout ? 1 : 0);
@@ -108,24 +88,20 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> TimeoutJustCalled =
         new(nameof(TimeoutJustCalled), s => s.TimeoutJustCalled ? 1 : 0);
 
-    private static readonly (int Lowest, int Highest)[] Minutes =
-        [.. Enumerable.Range(0, Periods.RegulationSeconds / 60).Select(m => (m * 60, m * 60 + 59))];
+    public static readonly IReadOnlyList<(Feature<NbaState> Inside, Feature<NbaState> Clock)> PeriodTimeouts =
+        [PeriodTimeoutsSoFar("None", 0, 0), PeriodTimeoutsSoFar("One", 1, 1), PeriodTimeoutsSoFar("TwoOrMore", 2, int.MaxValue)];
 
-    public static readonly IReadOnlyList<Feature<NbaState>> PeriodTimeoutsByClock =
-    [
-        .. new[] { (0, 299) }.Concat(Minutes.Skip(5)).Select(c => PeriodTimeoutsCell("None", 0, 0, c.Item1, c.Item2)),
-        .. Minutes.Select(c => PeriodTimeoutsCell("One", 1, 1, c.Lowest, c.Highest)),
-        .. Minutes.Select(c => PeriodTimeoutsCell("TwoOrMore", 2, int.MaxValue, c.Lowest, c.Highest)),
-    ];
+    public static (Feature<NbaState> Inside, Feature<NbaState> Clock) LateBand(string name, int lowestMargin, int highestMargin) =>
+    (
+        new($"Late{name}", s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] >= lowestMargin && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] <= highestMargin ? 1 : 0),
+        new($"Late{name}Clock", s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] >= lowestMargin && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] <= highestMargin ? s.PeriodClock : 0)
+    );
 
     public static readonly Feature<NbaState> OffenceTimeoutsLeft =
         new(nameof(OffenceTimeoutsLeft), s => s.TimeoutsLeft[s.TeamInPossession]);
 
     public static readonly Feature<NbaState> DefenceTimeoutsLeft =
         new(nameof(DefenceTimeoutsLeft), s => s.TimeoutsLeft[Sides.Opponent(s.TeamInPossession)]);
-
-    public static readonly Feature<NbaState> PeriodClockExpired =
-        new(nameof(PeriodClockExpired), s => s.PeriodClock == 0 ? 1 : 0);
 
     public static readonly Feature<NbaState> DefenceInPenalty =
         new(nameof(DefenceInPenalty), s => s.TeamFouls[Sides.Opponent(s.TeamInPossession)] >= (s.Period < Periods.Regulation ? FreeThrows.PenaltyFoul : FreeThrows.OvertimePenaltyFoul) ? 1 : 0);
@@ -169,27 +145,11 @@ public static class NbaFeatures
     private static Feature<NbaState> After(PlayStart indicator) =>
         Indicator($"After{indicator}", nameof(NbaState.Start), Enum.GetValues<PlayStart>().Where(p => IndicatorOf(p) == indicator).Cast<object>());
 
-    private static Feature<NbaState> LateCell(string margin, int lowestMargin, int highestMargin, int lowestClock, int highestClock) =>
-        new(
-            $"Late{margin}Clock{lowestClock}To{highestClock}",
-            s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds
-                && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] >= lowestMargin
-                && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] <= highestMargin
-                && s.PeriodClock >= lowestClock
-                && s.PeriodClock <= highestClock
-                    ? 1
-                    : 0);
-
-    private static Feature<NbaState> PeriodTimeoutsCell(string timeouts, int fewest, int most, int lowestClock, int highestClock) =>
-        new(
-            $"Period{timeouts}TimeoutsClock{lowestClock}To{highestClock}",
-            s => s.Period < Periods.Regulation
-                && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] >= fewest
-                && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] <= most
-                && s.PeriodClock >= lowestClock
-                && s.PeriodClock <= highestClock
-                    ? 1
-                    : 0);
+    private static (Feature<NbaState> Inside, Feature<NbaState> Clock) PeriodTimeoutsSoFar(string name, int fewest, int most) =>
+    (
+        new($"{name}PeriodTimeouts", s => s.Period < Periods.Regulation && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] >= fewest && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] <= most ? 1 : 0),
+        new($"{name}PeriodTimeoutsClock", s => s.Period < Periods.Regulation && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] >= fewest && s.TimeoutsThisPeriod[Sides.Home] + s.TimeoutsThisPeriod[Sides.Away] <= most ? s.PeriodClock : 0)
+    );
 
     private static Feature<NbaState> LastAwardedIn(string name, int[] categories) =>
         Indicator(name, nameof(NbaState.LastAwarded), categories.Cast<object>());

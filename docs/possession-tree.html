@@ -324,7 +324,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Before a play or a free throw, does the team with the ball call a timeout?</p>
         <dl>
           <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
-          <dt>Features</dt><dd><ul><li>before a free throw rather than a play</li><li>whether a timeout was just called</li><li>the cross of the period's timeouts so far (none, one, two or more) and the minute of the period, one indicator per cell, in regulation: the mandatory timeouts, forced at the first dead ball once none is taken before 7:00 left or fewer than two before 3:00</li><li>the calling team's timeouts left (a spline)</li><li>how the play started</li><li>the period, the seconds left (a spline), the score margin</li><li>late in the game, the margin (a spline) and the late margin-by-clock cells</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>before a free throw rather than a play</li><li>whether a timeout was just called</li><li>for each count of the period's timeouts so far (none, one, two or more), in regulation, whether it is the count and the seconds left (a spline): the mandatory timeouts, forced at the first dead ball once none is taken before 7:00 left or fewer than two before 3:00</li><li>the calling team's timeouts left (a spline)</li><li>how the play started</li><li>the period</li><li>the score margin, and late in the game the margin (a spline)</li></ul> 20 features</dd>
           <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → <a href="#DefenceTimeout">DefenceTimeout</a></dd>
           <dt>Observed as</dt><dd>every <code>TeamTimeout</code> whose <code>teamInPossession</code>, the team charged with it, is the offence; attached to the next play, free throw or period end. 8.9 a game; the mandatory ones are ordinary team timeouts in the data</dd>
         </dl>
@@ -335,7 +335,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Then, does the team without the ball call one?</p>
         <dl>
           <dt>Exists when</dt><dd>the team has a timeout left: 7 a game, at most 4 in the fourth period and 2 in its last 3 minutes, 2 in each overtime (unused regulation timeouts do not carry over)</dd>
-          <dt>Features</dt><dd>the same, with the defence's timeouts left</dd>
+          <dt>Features</dt><dd>the same, with the defence's timeouts left and without the margins (they gained less than 0.0001): 17 features</dd>
           <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → back to the play (<a href="#AwardedFreeThrow">AwardedFreeThrow</a>) or the free throw (<a href="#FreeThrowMade">FreeThrowMade</a>)</dd>
           <dt>Observed as</dt><dd>timeouts charged to the defence, 1.8 a game: icing a free-throw shooter, and some of the mandatory ones</dd>
         </dl>
@@ -367,7 +367,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">Does the period run out before anything else happens?</p>
         <dl>
           <dt>Exists when</dt><dd>a play starts with the period clock below the shot clock plus 4 seconds; a miss that leaves 0 on the clock starts a play</dd>
-          <dt>Features</dt><dd><ul><li>seconds left in the period (a spline), and whether none are left</li><li>score margin</li><li>which period</li><li>whether it follows a miss</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline)</li><li>the cross of the late margin (trailing by 10 or more, 7 to 9, 4 to 6, 3, 1 to 2; leading by 1 to 3, 4 to 6, 7 to 8, 9 to 10, 11 to 12) and the seconds left, one indicator per cell (0, 1 to 6, 7 to 12, 13 to 24, 25 or more): a leading team runs the clock out, and a team far behind lets it run</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>seconds left in the period (a spline)</li><li>which period</li><li>whether it follows a miss</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline)</li><li>for each late margin band (trailing by 10 or more, 4 to 9, 1 to 3; leading by 1 to 3, 4 to 8, 9 or more), whether the play is in it and its seconds left (a spline): a leading team runs the clock out, and a team far behind lets it run</li></ul> 17 features</dd>
           <dt>Transition</dt><dd>yes → <a href="#PeriodEnds">PeriodEnds</a>; no → <a href="#ActionType">ActionType</a>, or <a href="#OffensiveRebound">OffensiveRebound</a> after a miss</dd>
           <dt>Observed as</dt><dd>yes when the period has no further action</dd>
         </dl>
@@ -378,7 +378,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game</li><li>score margin</li><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>at home</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline), the seconds left (a spline) and whether the period clock binds</li><li>the cross of the late margin (trailing by 10 or more, 7 to 9, 4 to 6, 3, 1 to 2; leading by 1 to 3, 4 to 6, 7 to 8, 9 to 10, 11 to 12) and the seconds left, one indicator per cell (1 to 12, 13 to 24, 25 to 36, 37 to 48, 49 to 60, 61 to 90, 91 to 120): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline) and the seconds left (a spline)</li><li>for each late margin band (trailing by 3; leading by 1 to 3, 4 to 8, 9 to 12), whether the play is in it and its seconds left (a spline): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li></ul> 15 features; the score margin, at home, after a timeout and whether the clock binds each gained less than 0.0001 in validation and were dropped</dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
           <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
@@ -409,7 +409,7 @@ tr:last-child td { border-bottom: none; }
         <h3>ShotMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shot go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>whether the play follows a timeout, and late in the game</li><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
           <dt>Transition</dt><dd>score +2 or +3 if made; fouled → <a href="#FreeThrowsDue">FreeThrowsDue</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>whether the field-goal attempt was made</dd>
         </dl>
