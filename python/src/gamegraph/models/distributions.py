@@ -10,7 +10,8 @@ from gamegraph.models.contract import (
     DistributionDeclaration,
 )
 
-NARROW_WIDTH = 1e-5
+NARROW_OUTCOME = 1e-3
+NARROW_RANGE = 1e-8
 
 
 class Bernoulli:
@@ -96,13 +97,17 @@ class DiscreteJohnsonSu:
         location, scale, skew, tail, maximum = parameters
         _require_maximum(maximum)
         _require_uniforms(uniforms)
-        low = skew + tail * torch.asinh((0 - location) / scale)
-        high = skew + tail * torch.asinh((maximum + 1 - location) / scale)
+        start = torch.asinh((0 - location) / scale)
+        end = torch.asinh((maximum + 1 - location) / scale)
+        low, high = skew + tail * start, skew + tail * end
+        width = tail * (end - start)
         above = low > 0
         lower_side = normal.cdf(low) + uniforms * (normal.cdf(high) - normal.cdf(low))
         upper_side = normal.cdf(-low) - uniforms * (normal.cdf(-low) - normal.cdf(-high))
         quantile = torch.where(above, -normal.inverse_cdf(upper_side), normal.inverse_cdf(lower_side))
-        times = location + scale * torch.sinh((quantile - skew) / tail)
+        narrow = _narrow(width, low + width / 2, NARROW_RANGE)
+        edge = torch.where(narrow, start + uniforms * (end - start), (quantile - skew) / tail)
+        times = location + scale * torch.sinh(edge)
         return torch.minimum(torch.clamp(torch.floor(times), min=0), maximum).to(torch.int64)
 
     def initial_parameters(self, outcomes: torch.Tensor) -> dict[str, float]:
@@ -130,9 +135,17 @@ def _log_mass(skew: torch.Tensor, tail: torch.Tensor, start: torch.Tensor, end: 
     low, high = skew + tail * start, skew + tail * end
     width = tail * (end - start)
     middle = low + width / 2
-    narrow = width * torch.clamp(middle.abs(), min=1.0) < NARROW_WIDTH
+    narrow = _narrow(width, middle, NARROW_OUTCOME)
     wide = _log_mass_between(torch.where(narrow, -1.0, low), torch.where(narrow, 0.0, high))
-    return torch.where(narrow, normal.log_density(middle) + torch.log(torch.where(narrow, width, 1.0)), wide)
+    narrow_width = torch.where(narrow, width, 1.0)
+    midpoint = (
+        normal.log_density(middle) + torch.log(narrow_width) + torch.log1p((middle**2 - 1) * narrow_width**2 / 24)
+    )
+    return torch.where(narrow, midpoint, wide)
+
+
+def _narrow(width: torch.Tensor, middle: torch.Tensor, threshold: float) -> torch.Tensor:
+    return width * torch.clamp(middle.abs(), min=1.0) < threshold
 
 
 def _log_mass_between(low: torch.Tensor, high: torch.Tensor) -> torch.Tensor:

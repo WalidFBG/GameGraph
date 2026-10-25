@@ -2,7 +2,8 @@ namespace GameGraph.Models;
 
 internal sealed class DiscreteJohnsonSu : IDistribution
 {
-    private const double NarrowWidth = 1e-5;
+    private const double NarrowOutcome = 1e-3;
+    private const double NarrowRange = 1e-8;
 
     public double LogProbability(ReadOnlySpan<double> parameters, int outcome)
     {
@@ -22,14 +23,20 @@ internal sealed class DiscreteJohnsonSu : IDistribution
 
         Uniforms.Require(uniform);
 
-        var low = skew + tail * Math.Asinh((0 - location) / scale);
-        var high = skew + tail * Math.Asinh((maximum + 1 - location) / scale);
+        var start = Math.Asinh((0 - location) / scale);
+        var end = Math.Asinh((maximum + 1 - location) / scale);
+        var low = skew + tail * start;
+        var high = skew + tail * end;
+        var width = tail * (end - start);
+
+        if (IsNarrow(width, low + width / 2, NarrowRange))
+            return Floored(location + scale * Math.Sinh(start + uniform * (end - start)), maximum);
+
         var quantile = low > 0
             ? -Normal.InverseCdf(Normal.Cdf(-low) - uniform * (Normal.Cdf(-low) - Normal.Cdf(-high)))
             : Normal.InverseCdf(Normal.Cdf(low) + uniform * (Normal.Cdf(high) - Normal.Cdf(low)));
-        var time = location + scale * Math.Sinh((quantile - skew) / tail);
 
-        return (int)Math.Min(Math.Max(Math.Floor(time), 0), maximum);
+        return Floored(location + scale * Math.Sinh((quantile - skew) / tail), maximum);
     }
 
     public double[] Probabilities(ReadOnlySpan<double> parameters)
@@ -66,10 +73,14 @@ internal sealed class DiscreteJohnsonSu : IDistribution
         var width = tail * (end - start);
         var middle = low + width / 2;
 
-        return width * Math.Max(1, Math.Abs(middle)) < NarrowWidth
-            ? Normal.LogDensity(middle) + Math.Log(width)
+        return IsNarrow(width, middle, NarrowOutcome)
+            ? Normal.LogDensity(middle) + Math.Log(width) + LogOnePlus.Of((middle * middle - 1) * width * width / 24)
             : LogMassBetween(low, skew + tail * end);
     }
+
+    private static bool IsNarrow(double width, double middle, double threshold) => width * Math.Max(1, Math.Abs(middle)) < threshold;
+
+    private static int Floored(double time, int maximum) => (int)Math.Min(Math.Max(Math.Floor(time), 0), maximum);
 
     private static double LogMassBetween(double low, double high)
     {

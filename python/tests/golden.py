@@ -1,6 +1,6 @@
 import json
 from dataclasses import replace
-from math import nextafter
+from math import log, nextafter
 from pathlib import Path
 
 import numpy as np
@@ -125,10 +125,45 @@ JOHNSON_SU_CASES: list[Case] = [
     ((0.5, 24.0), 0, 0.0),
 ]
 
+JOHNSON_SU_NARROW = FittedModel(
+    "Golden",
+    ModelDeclaration(
+        DiscreteJohnsonSuDistribution(),
+        {
+            "location": (LinearTerm("Location"),),
+            "scale": (LinearTerm("LogScale"),),
+            "skew": (LinearTerm("Skew"),),
+            "tail": (LinearTerm("LogTail"),),
+        },
+        {"maximum": "Bound"},
+    ),
+    {
+        name: PredictorFit(0.0, {feature: LinearFit(0.0, 1.0, (1.0,))})
+        for name, feature in (("location", "Location"), ("scale", "LogScale"), ("skew", "Skew"), ("tail", "LogTail"))
+    },
+)
+
+UNIFORM_LIMIT = (0.0, log(5e6), 14.2, log(3e-9), 28.0)
+BELOW_THE_NARROW_OUTCOME = (6.0, log(4.0), 0.5, log(4.6e-3), 24.0)
+ABOVE_THE_NARROW_OUTCOME = (6.0, log(4.0), 0.5, log(4.8e-3), 24.0)
+
+JOHNSON_SU_NARROW_CASES: list[Case] = [
+    (UNIFORM_LIMIT, 0, 0.01),
+    (UNIFORM_LIMIT, 13, 0.5),
+    (UNIFORM_LIMIT, 28, 0.99),
+    (BELOW_THE_NARROW_OUTCOME, 3, 0.3),
+    (ABOVE_THE_NARROW_OUTCOME, 3, 0.3),
+]
+
 CASES: dict[str, tuple[FittedModel, tuple[str, ...], list[Case]]] = {
     "bernoulli": (BERNOULLI, ("Gaussian", "Indicator", "Uniform"), BERNOULLI_CASES),
     "categorical": (CATEGORICAL, ("Gaussian", "Uniform"), CATEGORICAL_CASES),
     "johnson-su": (JOHNSON_SU, ("Gaussian", "Bound"), JOHNSON_SU_CASES),
+    "johnson-su-narrow": (
+        JOHNSON_SU_NARROW,
+        ("Location", "LogScale", "Skew", "LogTail", "Bound"),
+        JOHNSON_SU_NARROW_CASES,
+    ),
 }
 
 NORMAL_POINTS = [

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "node": "Golden",
+  "model": {
+    "distribution": {
+      "name": "discreteJohnsonSu"
+    },
+    "terms": {
+      "location": [
+        {
+          "basis": "linear",
+          "feature": "Location"
+        }
+      ],
+      "scale": [
+        {
+          "basis": "linear",
+          "feature": "LogScale"
+        }
+      ],
+      "skew": [
+        {
+          "basis": "linear",
+          "feature": "Skew"
+        }
+      ],
+      "tail": [
+        {
+          "basis": "linear",
+          "feature": "LogTail"
+        }
+      ]
+    },
+    "given": {
+      "maximum": "Bound"
+    }
+  },
+  "fit": {
+    "location": {
+      "intercept": 0.0,
+      "terms": {
+        "Location": {
+          "centre": 0.0,
+          "scale": 1.0,
+          "coefficients": [
+            1.0
+          ]
+        }
+      }
+    },
+    "scale": {
+      "intercept": 0.0,
+      "terms": {
+        "LogScale": {
+          "centre": 0.0,
+          "scale": 1.0,
+          "coefficients": [
+            1.0
+          ]
+        }
+      }
+    },
+    "skew": {
+      "intercept": 0.0,
+      "terms": {
+        "Skew": {
+          "centre": 0.0,
+          "scale": 1.0,
+          "coefficients": [
+            1.0
+          ]
+        }
+      }
+    },
+    "tail": {
+      "intercept": 0.0,
+      "terms": {
+        "LogTail": {
+          "centre": 0.0,
+          "scale": 1.0,
+          "coefficients": [
+            1.0
+          ]
+        }
+      }
+    }
+  }
+}
