@@ -10,4 +10,5 @@ public enum PlayStart
     MadeFreeThrow = 5,
     Turnover = 6,
     SideOut = 7,
+    AwardedBall = 8,
 }

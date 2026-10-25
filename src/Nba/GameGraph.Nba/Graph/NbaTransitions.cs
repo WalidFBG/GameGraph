@@ -22,12 +22,13 @@ public static class NbaTransitions
         switch (awarded)
         {
             case AwardedFreeThrows.None:
-                return state.PeriodClockBinds ? NbaNodes.PeriodRunsOut : NbaNodes.ActionType;
+                return state.DefenceFreeThrows > 0 ? NbaNodes.AwardedBall : ActionOrPeriodEnd(state);
             case AwardedFreeThrows.Offence:
                 state.AwardedTeam = state.TeamInPossession;
                 return NbaNodes.AwardedFreeThrowMade;
             case AwardedFreeThrows.Defence:
                 state.AwardedTeam = Sides.Opponent(state.TeamInPossession);
+                state.DefenceFreeThrows++;
                 return NbaNodes.AwardedFreeThrowMade;
             default:
                 throw new ArgumentOutOfRangeException(nameof(awarded), awarded, "Not an awarded free throw");
@@ -41,6 +42,13 @@ public static class NbaTransitions
 
         state.Incidents.AwardedFreeThrow(new AwardedFreeThrowIncident(state.AwardedTeam, state.Period, Yes(made)));
         return NbaNodes.AwardedFreeThrow;
+    }
+
+    public static Next<NbaState> AwardedBall(NbaState state, int toDefence)
+    {
+        state.DefenceFreeThrows = 0;
+
+        return Yes(toDefence) ? EndOfPossession(state, PlayStart.AwardedBall) : ActionOrPeriodEnd(state);
     }
 
     public static Next<NbaState> PeriodRunsOut(NbaState state, int runsOut)
@@ -155,6 +163,8 @@ public static class NbaTransitions
     }
 
     private static Next<NbaState> NextPlay(NbaState state) => NbaNodes.AwardedFreeThrow;
+
+    private static Next<NbaState> ActionOrPeriodEnd(NbaState state) => state.PeriodClockBinds ? NbaNodes.PeriodRunsOut : NbaNodes.ActionType;
 
     private static Next<NbaState> AfterMiss(NbaState state) =>
         state.PeriodClock == 0 ? NextPlay(state) : NbaNodes.OffensiveRebound;

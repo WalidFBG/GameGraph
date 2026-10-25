@@ -24,6 +24,12 @@ public static class NbaNodes
         [NbaFeatures.ShooterMargin, NbaFeatures.ShooterScoringRate, NbaFeatures.ShooterAtHome],
         NbaTransitions.AwardedFreeThrowMade);
 
+    public static readonly NodeSpec<NbaState> AwardedBall = Node(
+        nameof(AwardedBall),
+        new BernoulliDistribution(),
+        [NbaFeatures.DefenceFreeThrows],
+        NbaTransitions.AwardedBall);
+
     public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
         nameof(PeriodRunsOut),
         new BernoulliDistribution(),

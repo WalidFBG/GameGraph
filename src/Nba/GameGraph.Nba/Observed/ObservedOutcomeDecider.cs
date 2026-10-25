@@ -101,7 +101,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         foreach (var action in possession.Actions)
         {
-            foreach (var decision in Awarded(action.AwardedBefore, team))
+            foreach (var decision in Awarded(action.AwardedBefore, team, ballToDefence: false))
                 yield return decision;
 
             yield return Decision(NbaNodes.ActionType, ActionTypes.Category(action.Type));
@@ -140,15 +140,20 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         var last = possession.Actions[^1];
         var after = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(team) : team;
 
-        foreach (var decision in Awarded(possession.AwardedAfter, after))
+        foreach (var decision in Awarded(possession.AwardedAfter, after, possession.BallAwardedAfter))
             yield return decision;
 
-        IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
-            awarded.SelectMany(f => new[]
+        IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession, bool ballToDefence)
+        {
+            foreach (var f in awarded)
             {
-                new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => f.Team == inPossession ? AwardedFreeThrows.Offence : AwardedFreeThrows.Defence, inPossession, possession.Period),
-                new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period),
-            });
+                yield return new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => f.Team == inPossession ? AwardedFreeThrows.Offence : AwardedFreeThrows.Defence, inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period);
+            }
+
+            if (awarded.Any(f => f.Team != inPossession))
+                yield return new ObservedDecision(NbaNodes.AwardedBall, _ => Number(ballToDefence), inPossession, possession.Period);
+        }
 
         ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
             new(node, _ => outcome, team, possession.Period);

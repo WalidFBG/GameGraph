@@ -136,6 +136,7 @@ tr:last-child td { border-bottom: none; }
   <a href="#JumpBall"><span class="swatch bernoulli"></span>JumpBall</a>
   <a href="#AwardedFreeThrow"><span class="swatch categorical"></span>AwardedFreeThrow</a>
   <a href="#AwardedFreeThrowMade"><span class="swatch bernoulli"></span>AwardedFreeThrowMade</a>
+  <a href="#AwardedBall"><span class="swatch bernoulli"></span>AwardedBall</a>
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
   <a href="#ActionType"><span class="swatch categorical"></span>ActionType</a>
   <a href="#ActionTime"><span class="swatch jsu"></span>ActionTime</a>
@@ -237,6 +238,12 @@ tr:last-child td { border-bottom: none; }
   <path class="edge" d="M420,848 V979"/>
   <text class="label" x="430" y="940">defensive rebound</text>
   <path class="edge" d="M780,1008 V1050 H100 V149 H318" marker-end="url(#arrow)"/>
+  <path class="edge" d="M320,250 H292" marker-end="url(#arrow)"/>
+  <text class="label" x="112" y="212">none, after free throws to the defence</text>
+  <path class="edge" d="M200,220 V151"/>
+  <text class="label" x="206" y="190">yes: the defence has the ball</text>
+  <path class="edge" d="M200,278 V359 H318" marker-end="url(#arrow)"/>
+  <text class="label" x="206" y="320">no: the play</text>
   <text class="label" x="430" y="1044">the other team's possession</text>
 
   <a href="#JumpBall"><rect class="box bernoulli" x="320" y="20" width="200" height="58" rx="10"/><text class="name" x="420" y="45">JumpBall</text><text class="kind" x="420" y="64">Bernoulli · no terms</text></a>
@@ -244,6 +251,7 @@ tr:last-child td { border-bottom: none; }
   <a href="#PossessionStarts"><rect class="box rule" x="320" y="120" width="200" height="58" rx="10"/><text class="name" x="420" y="145">PossessionStarts</text><text class="kind" x="420" y="164">rule · shot clock 24 s</text></a>
   <a href="#AwardedFreeThrow"><rect class="box categorical" x="320" y="220" width="200" height="58" rx="10"/><text class="name" x="420" y="245">AwardedFreeThrow</text><text class="kind" x="420" y="264">Categorical · int</text></a>
   <a href="#AwardedFreeThrowMade"><rect class="box bernoulli" x="680" y="220" width="200" height="58" rx="10"/><text class="name" x="780" y="245">AwardedFreeThrowMade</text><text class="kind" x="780" y="264">Bernoulli · bool</text></a>
+  <a href="#AwardedBall"><rect class="box bernoulli" x="110" y="220" width="180" height="58" rx="10"/><text class="name" x="200" y="245">AwardedBall</text><text class="kind" x="200" y="264">Bernoulli · bool</text></a>
   <a href="#ActionType"><rect class="box categorical" x="320" y="330" width="200" height="58" rx="10"/><text class="name" x="420" y="355">ActionType</text><text class="kind" x="420" y="374">Categorical · int</text></a>
   <a href="#PeriodRunsOut"><rect class="box bernoulli" x="680" y="330" width="200" height="58" rx="10"/><text class="name" x="780" y="355">PeriodRunsOut</text><text class="kind" x="780" y="374">Bernoulli · bool · gated</text></a>
   <a href="#ActionTime"><rect class="box jsu" x="320" y="440" width="200" height="58" rx="10"/><text class="name" x="420" y="465">ActionTime</text><text class="kind" x="420" y="484">Johnson SU · int seconds</text></a>
@@ -266,7 +274,7 @@ tr:last-child td { border-bottom: none; }
         <td><span class="tag bernoulli" style="margin:0">Bernoulli</span></td>
         <td><code>bool</code></td>
         <td>the probability (logit link)</td>
-        <td><a href="#JumpBall">JumpBall</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
+        <td><a href="#JumpBall">JumpBall</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a>, <a href="#PeriodRunsOut">PeriodRunsOut</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a>, <a href="#InBonus">InBonus</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a></td>
       </tr>
       <tr>
         <td><span class="tag categorical" style="margin:0">Categorical</span></td>
@@ -317,7 +325,7 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence</dd>
           <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li><li>whether the team with the ball is at home</li></ul></dd>
-          <dt>Transition</dt><dd>offence or defence → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
+          <dt>Transition</dt><dd>offence or defence → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#AwardedBall">AwardedBall</a> if any of these free throws went to the defence, otherwise <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
           <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period, or asked before the period ends after its last play</dd>
         </dl>
       </article>
@@ -329,6 +337,17 @@ tr:last-child td { border-bottom: none; }
           <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's scoring rate (context)</li><li>whether the shooting team is at home</li></ul></dd>
           <dt>Transition</dt><dd>score +1 for the shooting team if made; the ball does not move → <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
           <dt>Incidents</dt><dd>an awarded free throw: team, period, made</dd>
+        </dl>
+      </article>
+
+      <article class="card bernoulli" id="AwardedBall">
+        <h3>AwardedBall <span class="tag">Bernoulli</span></h3>
+        <p class="question">After free throws outside the play to the team without the ball, does that team get the ball?</p>
+        <dl>
+          <dt>Exists when</dt><dd>at least one of the play's awarded free throws went to the defence</dd>
+          <dt>Features</dt><dd><ul><li>how many of them went to the defence (a technical gives 1, a flagrant 2)</li></ul></dd>
+          <dt>Transition</dt><dd>yes → the possession ends and is reported, even with no action in it, and the defence starts one with a full shot clock; no → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
+          <dt>Observed as</dt><dd>yes when the team awarded the free throws acts next against the rules (the same team twice in a row, or a possession cut short): about 0.014 times a game, mostly flagrant fouls; no for every other such group, and for those after a period's last action. Yes 3.5% of the time after one free throw to the defence, 11% after two.</dd>
         </dl>
       </article>
 
@@ -475,6 +494,7 @@ tr:last-child td { border-bottom: none; }
       <tr><td>The first period's starter</td><td><a href="#JumpBall">JumpBall</a></td><td><a href="#PeriodEnds">PeriodEnds</a></td></tr>
       <tr><td>Team fouls this period</td><td>fouls; reset by <a href="#PeriodEnds">PeriodEnds</a></td><td><a href="#InBonus">InBonus</a>, <a href="#ActionType">ActionType</a></td></tr>
       <tr><td>Free throws left, what was missed, who shoots an awarded free throw</td><td>the free-throw and shot transitions</td><td><a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
+      <tr><td>Free throws awarded to the defence this play</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset by <a href="#AwardedBall">AwardedBall</a></td><td><a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Context: team scoring rates over the last 20 games</td><td>augmentation, before the game</td><td>features</td></tr>
     </table>
   </section>
@@ -484,7 +504,7 @@ tr:last-child td { border-bottom: none; }
     <p>What the outside world sees. Each simulation's state holds its own incident collector.</p>
     <table>
       <tr><th>Incident</th><th>Fields</th><th>Reported by</th></tr>
-      <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a>, <a href="#PeriodEnds">PeriodEnds</a></td></tr>
+      <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a>, <a href="#PeriodEnds">PeriodEnds</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Awarded free throw</td><td>team, period, made</td><td><a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
     </table>
   </section>
@@ -492,7 +512,6 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>The ball after a flagrant or a take foul: the fouled team keeps it in reality, not in a simulation</li>
       <li>Players: who shoots, rebounds, turns it over and is fouled, together with substitutions</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>

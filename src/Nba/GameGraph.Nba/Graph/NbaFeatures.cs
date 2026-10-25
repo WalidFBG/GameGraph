@@ -15,6 +15,9 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShooterAtHome =
         new(nameof(ShooterAtHome), s => s.AwardedTeam == Sides.Home ? 1 : 0);
 
+    public static readonly Feature<NbaState> DefenceFreeThrows =
+        new(nameof(DefenceFreeThrows), s => s.DefenceFreeThrows);
+
     public static readonly Feature<NbaState> TeamScoringRate =
         new(nameof(TeamScoringRate), s => s.ScoringRate[s.TeamInPossession]);
 

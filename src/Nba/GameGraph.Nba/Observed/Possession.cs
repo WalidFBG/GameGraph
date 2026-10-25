@@ -26,7 +26,9 @@ public sealed record Possession
 
     public AwardedFreeThrow[] AwardedAfter { get; init; } = [];
 
-    public bool CutByPeriodEnd => !Actions[^1].EndsPossession;
+    public bool BallAwardedAfter { get; init; }
+
+    public bool CutByPeriodEnd => !Actions[^1].EndsPossession && !BallAwardedAfter;
 
     public bool Scored => Actions.OfType<ObservedShot>().Any(s => s.Made);
 
