@@ -18,6 +18,8 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
 
     public int[] TeamFouls { get; } = new int[2];
 
+    public int[] TeamFoulsInLastTwoMinutes { get; } = new int[2];
+
     public int TeamInPossession { get; set; }
 
     public int PossessionPoints { get; set; }

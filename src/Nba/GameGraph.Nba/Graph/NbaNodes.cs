@@ -27,13 +27,27 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
         nameof(PeriodRunsOut),
         new BernoulliDistribution(),
-        [NbaFeatures.PeriodClock, NbaFeatures.ScoreMargin, NbaFeatures.Period, NbaFeatures.AfterMiss],
+        [
+            FeatureTerm.Spline(NbaFeatures.PeriodClock, 6),
+            FeatureTerm.Linear(NbaFeatures.PeriodClockExpired),
+            FeatureTerm.Linear(NbaFeatures.ScoreMargin),
+            FeatureTerm.Linear(NbaFeatures.Period),
+            FeatureTerm.Linear(NbaFeatures.AfterMiss),
+            .. LateSituation(),
+            .. NbaFeatures.LateMarginByClock((0, 0), (1, 6), (7, 12), (13, 24), (25, NbaFeatures.LateSeconds)).Select(FeatureTerm.Linear),
+        ],
         NbaTransitions.PeriodRunsOut);
 
     public static readonly NodeSpec<NbaState> ActionType = Node(
         nameof(ActionType),
         new CategoricalDistribution(ActionTypes.Names),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock, NbaFeatures.AtHome],
+        [
+            .. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.DefenceTeamFouls, NbaFeatures.ShotClock, NbaFeatures.PeriodClock, NbaFeatures.AtHome }.Select(FeatureTerm.Linear),
+            .. LateSituation(),
+            FeatureTerm.Spline(NbaFeatures.LatePeriodClock, 6),
+            FeatureTerm.Linear(NbaFeatures.LateClockBinds),
+            .. NbaFeatures.LateMarginByClock((1, 12), (13, 24), (25, 36), (37, 48), (49, 60), (61, 90), (91, NbaFeatures.LateSeconds)).Select(FeatureTerm.Linear),
+        ],
         NbaTransitions.ActionType);
 
     public static readonly NodeSpec<NbaState> ActionTime = new(
@@ -64,7 +78,7 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> InBonus = Node(
         nameof(InBonus),
         new BernoulliDistribution(),
-        [NbaFeatures.DefenceTeamFouls, NbaFeatures.Period],
+        [NbaFeatures.DefenceInPenalty, NbaFeatures.DefenceSecondFoulInLastTwoMinutes],
         NbaTransitions.InBonus);
 
     public static readonly NodeSpec<NbaState> FreeThrowMade = Node(
@@ -99,19 +113,28 @@ public static class NbaNodes
     ];
 
     private static IEnumerable<FeatureTerm<NbaState>> ActionTimeSituation() =>
-        new[] { NbaFeatures.ActionThree, NbaFeatures.ActionTurnover, NbaFeatures.ActionFoul }
+        new[] { NbaFeatures.ActionThree, NbaFeatures.ActionTurnover, NbaFeatures.ActionFoul, NbaFeatures.LateFoul }
             .Concat(NbaFeatures.AfterPlayStart)
             .Append(NbaFeatures.AtHome)
             .Select(FeatureTerm.Linear);
+
+    private static FeatureTerm<NbaState>[] LateSituation() =>
+    [
+        FeatureTerm.Linear(NbaFeatures.LateInGame),
+        FeatureTerm.Spline(NbaFeatures.LateMargin, 8),
+    ];
 
     private static NodeSpec<NbaState> Node(
         string name,
         DistributionDeclaration distribution,
         Feature<NbaState>[] features,
-        Transition<NbaState> transition)
-    {
-        FeatureTerm<NbaState>[] terms = [.. features.Select(FeatureTerm.Linear)];
+        Transition<NbaState> transition) =>
+        Node(name, distribution, [.. features.Select(FeatureTerm.Linear)], transition);
 
-        return new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
-    }
+    private static NodeSpec<NbaState> Node(
+        string name,
+        DistributionDeclaration distribution,
+        FeatureTerm<NbaState>[] terms,
+        Transition<NbaState> transition) =>
+        new(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
 }
