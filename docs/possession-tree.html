@@ -347,7 +347,7 @@ tr:last-child td { border-bottom: none; }
           <dt>Exists when</dt><dd>at least one of the play's awarded free throws went to the defence</dd>
           <dt>Features</dt><dd><ul><li>how many of them went to the defence (a technical gives 1, a flagrant 2)</li></ul></dd>
           <dt>Transition</dt><dd>yes → the possession ends and is reported, even with no action in it, and the defence starts one with a full shot clock; no → <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
-          <dt>Observed as</dt><dd>yes when the team awarded the free throws acts next against the rules (the same team twice in a row, or a possession cut short): about 0.014 times a game, mostly flagrant fouls; no for every other such group, and for those after a period's last action. Yes 3.5% of the time after one free throw to the defence, 11% after two.</dd>
+          <dt>Observed as</dt><dd>yes when the team awarded a flagrant or clear-path free throw acts next against the rules (the same team twice in a row, or a possession cut short): about 0.011 times a game; no for every other such group, and for those after a period's last action. In the data the kind decides it: after a flagrant to the defence the ball moved every time (50 of 50), after a technical never (0 of 1,237). Yes 2.9% of the time after one free throw to the defence, 11% after two.</dd>
         </dl>
       </article>
 
@@ -378,7 +378,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">How many seconds did the action take?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: whole seconds, from 0 up to the bound</dd>
-          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out or the period start (against a defensive rebound)</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>the chosen action: three, turnover, foul (against a two)</li><li>how the play started: after an offensive rebound, a made shot, a made free throw, a turnover, a side-out (and the ball after awarded free throws, also an inbound after a dead ball, too rare for its own indicator) or the period start (against a defensive rebound); every play start is mapped to an indicator or to the reference level, so a new one cannot be left out silently</li><li>the bound (a spline on location and scale), its log (skew and tail), whether the period clock binds</li><li>score margin (a spline on location and scale), late in the game, at home</li></ul></dd>
           <dt>Transition</dt><dd>both clocks run down by the outcome; then two or three → <a href="#FouledOnShot">FouledOnShot</a>; turnover → <a href="#EndOfPossession">EndOfPossession</a>; non-shooting foul → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the period clock at the previous action minus the clock at this one, clamped to the bound</dd>
         </dl>

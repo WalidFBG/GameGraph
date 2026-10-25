@@ -105,19 +105,10 @@ public static class NbaNodes
     ];
 
     private static IEnumerable<FeatureTerm<NbaState>> ActionTimeSituation() =>
-        new[]
-        {
-            NbaFeatures.ActionThree,
-            NbaFeatures.ActionTurnover,
-            NbaFeatures.ActionFoul,
-            NbaFeatures.AfterOffensiveRebound,
-            NbaFeatures.AfterMadeShot,
-            NbaFeatures.AfterMadeFreeThrow,
-            NbaFeatures.AfterTurnover,
-            NbaFeatures.AfterSideOut,
-            NbaFeatures.AfterPeriodStart,
-            NbaFeatures.AtHome,
-        }.Select(FeatureTerm.Linear);
+        new[] { NbaFeatures.ActionThree, NbaFeatures.ActionTurnover, NbaFeatures.ActionFoul }
+            .Concat(NbaFeatures.AfterPlayStart)
+            .Append(NbaFeatures.AtHome)
+            .Select(FeatureTerm.Linear);
 
     private static NodeSpec<NbaState> Node(
         string name,
