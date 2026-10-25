@@ -2,6 +2,8 @@ namespace GameGraph.Models;
 
 internal sealed class DiscreteJohnsonSu : IDistribution
 {
+    private const double NarrowWidth = 1e-5;
+
     public double LogProbability(ReadOnlySpan<double> parameters, int outcome)
     {
         var (location, scale, skew, tail, maximum) = Unpack(parameters);
@@ -9,9 +11,9 @@ internal sealed class DiscreteJohnsonSu : IDistribution
         if (outcome < 0 || outcome > maximum)
             throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "A discrete Johnson SU outcome is a whole number from 0 to its maximum");
 
-        double Z(double x) => skew + tail * Math.Asinh((x - location) / scale);
+        double Edge(double x) => Math.Asinh((x - location) / scale);
 
-        return LogMassBetween(Z(outcome), Z(outcome + 1)) - LogMassBetween(Z(0), Z(maximum + 1));
+        return LogMass(skew, tail, Edge(outcome), Edge(outcome + 1)) - LogMass(skew, tail, Edge(0), Edge(maximum + 1));
     }
 
     public int Sample(ReadOnlySpan<double> parameters, double uniform)
@@ -34,13 +36,13 @@ internal sealed class DiscreteJohnsonSu : IDistribution
     {
         var (location, scale, skew, tail, maximum) = Unpack(parameters);
 
-        double Z(double x) => skew + tail * Math.Asinh((x - location) / scale);
+        double Edge(double x) => Math.Asinh((x - location) / scale);
 
-        var logTotal = LogMassBetween(Z(0), Z(maximum + 1));
+        var logTotal = LogMass(skew, tail, Edge(0), Edge(maximum + 1));
         var probabilities = new double[maximum + 1];
 
         for (var outcome = 0; outcome <= maximum; outcome++)
-            probabilities[outcome] = Math.Exp(LogMassBetween(Z(outcome), Z(outcome + 1)) - logTotal);
+            probabilities[outcome] = Math.Exp(LogMass(skew, tail, Edge(outcome), Edge(outcome + 1)) - logTotal);
 
         return probabilities;
     }
@@ -56,6 +58,17 @@ internal sealed class DiscreteJohnsonSu : IDistribution
             throw new ArgumentOutOfRangeException(nameof(parameters), maximum, "A maximum is a whole number of 0 or more");
 
         return (parameters[0], parameters[1], parameters[2], parameters[3], (int)maximum);
+    }
+
+    private static double LogMass(double skew, double tail, double start, double end)
+    {
+        var low = skew + tail * start;
+        var width = tail * (end - start);
+        var middle = low + width / 2;
+
+        return width * Math.Max(1, Math.Abs(middle)) < NarrowWidth
+            ? Normal.LogDensity(middle) + Math.Log(width)
+            : LogMassBetween(low, skew + tail * end);
     }
 
     private static double LogMassBetween(double low, double high)

@@ -171,6 +171,27 @@ def test_the_discrete_johnson_su_is_a_floored_normal_transform() -> None:
     assert float(torch.exp(log_prob)[0]) == pytest.approx(expected, rel=1e-12)
 
 
+def test_the_discrete_johnson_su_is_uniform_when_its_outcomes_are_narrower_than_the_precision_of_z() -> None:
+    def column(value: float) -> torch.Tensor:
+        return torch.full((29,), value, dtype=torch.float64)
+
+    parameters = column(0.0), column(5e6), column(14.2), column(3e-9), column(28.0)
+    log_prob = DiscreteJohnsonSu().log_prob(parameters, torch.arange(29))
+    torch.testing.assert_close(torch.exp(log_prob), torch.full((29,), 1 / 29, dtype=torch.float64), rtol=1e-9, atol=0)
+
+
+def test_the_discrete_johnson_su_of_a_narrow_outcome_is_its_midpoint_density_times_its_width() -> None:
+    location, scale, skew, tail, maximum = 6.0, 4.0, 0.5, 1.3e-5, 24.0
+
+    def cdf(x: float) -> float:
+        return 0.5 * math.erfc(-(skew + tail * math.asinh((x - location) / scale)) / math.sqrt(2))
+
+    expected = (cdf(4) - cdf(3)) / (cdf(25) - cdf(0))
+    parameters = tuple(tensor([v]) for v in (location, scale, skew, tail, maximum))
+    log_prob = DiscreteJohnsonSu().log_prob(parameters, torch.tensor([3]))
+    assert float(torch.exp(log_prob)[0]) == pytest.approx(expected, rel=1e-8)
+
+
 def test_the_discrete_johnson_su_samples_whole_numbers_within_its_maximum() -> None:
     uniforms = torch.linspace(0, 0.999, 500, dtype=torch.float64)
     samples = DiscreteJohnsonSu().sample(johnson_su_parameters(500, 10.0), uniforms)

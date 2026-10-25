@@ -63,6 +63,8 @@ internal static class Normal
             ? Math.Log(0.5 * ComplementaryError(-z / Math.Sqrt(2), scaled: true)) - 0.5 * z * z
             : LogOnePlus.Of(-0.5 * ComplementaryError(z / Math.Sqrt(2), scaled: false));
 
+    public static double LogDensity(double z) => -0.5 * z * z - 0.5 * Math.Log(2 * Math.PI);
+
     public static double InverseCdf(double p)
     {
         if (p is < 0 or > 1)

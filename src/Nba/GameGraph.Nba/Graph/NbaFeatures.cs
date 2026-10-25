@@ -95,7 +95,8 @@ public static class NbaFeatures
         PlayStart.MadeShot => PlayStart.MadeShot,
         PlayStart.MadeFreeThrow => PlayStart.MadeFreeThrow,
         PlayStart.Turnover => PlayStart.Turnover,
-        PlayStart.SideOut or PlayStart.AwardedBall => PlayStart.SideOut,
+        PlayStart.SideOut => PlayStart.SideOut,
+        PlayStart.AwardedBall => PlayStart.AwardedBall,
         _ => throw new ArgumentOutOfRangeException(nameof(start), start, "A play start needs an indicator, or the reference level"),
     };
 

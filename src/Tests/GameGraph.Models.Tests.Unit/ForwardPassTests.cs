@@ -184,6 +184,25 @@ public sealed class ForwardPassTests
     }
 
     [Fact]
+    public void TheDiscreteJohnsonSuIsUniformWhenItsOutcomesAreNarrowerThanThePrecisionOfZ()
+    {
+        var probabilities = new DiscreteJohnsonSu().Probabilities([0, 5e6, 14.2, 3e-9, 28]);
+
+        Assert.All(probabilities, p => Assert.Equal(1.0 / 29, p, 1e-11));
+    }
+
+    [Fact]
+    public void TheDiscreteJohnsonSuOfANarrowOutcomeIsItsMidpointDensityTimesItsWidth()
+    {
+        double Cdf(double x) => Normal.Cdf(0.5 + 1.3e-5 * Math.Asinh((x - 6) / 4));
+        var expected = (Cdf(4) - Cdf(3)) / (Cdf(25) - Cdf(0));
+
+        var probability = Math.Exp(new DiscreteJohnsonSu().LogProbability([6, 4, 0.5, 1.3e-5, 24], 3));
+
+        Assert.Equal(1, probability / expected, 1e-8);
+    }
+
+    [Fact]
     public void TheDiscreteJohnsonSuSamplesWholeNumbersWithinItsMaximum()
     {
         var johnsonSu = new DiscreteJohnsonSu();

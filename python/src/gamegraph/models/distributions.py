@@ -10,6 +10,8 @@ from gamegraph.models.contract import (
     DistributionDeclaration,
 )
 
+NARROW_WIDTH = 1e-5
+
 
 class Bernoulli:
     def log_prob(self, parameters: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
@@ -82,11 +84,13 @@ class DiscreteJohnsonSu:
         if not ((outcomes >= 0) & (outcomes <= maximum)).all():
             raise ValueError("A discrete Johnson SU outcome is a whole number from 0 to its maximum")
 
-        def z(x: torch.Tensor) -> torch.Tensor:
-            return skew + tail * torch.asinh((x - location) / scale)
+        def edge(x: torch.Tensor) -> torch.Tensor:
+            return torch.asinh((x - location) / scale)
 
         k = outcomes.to(torch.float64)
-        return _log_mass_between(z(k), z(k + 1)) - _log_mass_between(z(torch.zeros_like(k)), z(maximum + 1))
+        return _log_mass(skew, tail, edge(k), edge(k + 1)) - _log_mass(
+            skew, tail, edge(torch.zeros_like(k)), edge(maximum + 1)
+        )
 
     def sample(self, parameters: tuple[torch.Tensor, ...], uniforms: torch.Tensor) -> torch.Tensor:
         location, scale, skew, tail, maximum = parameters
@@ -120,6 +124,15 @@ def distribution_for(declaration: DistributionDeclaration) -> Distribution:
             return Categorical(declaration.categories)
         case DiscreteJohnsonSuDistribution():
             return DiscreteJohnsonSu()
+
+
+def _log_mass(skew: torch.Tensor, tail: torch.Tensor, start: torch.Tensor, end: torch.Tensor) -> torch.Tensor:
+    low, high = skew + tail * start, skew + tail * end
+    width = tail * (end - start)
+    middle = low + width / 2
+    narrow = width * torch.clamp(middle.abs(), min=1.0) < NARROW_WIDTH
+    wide = _log_mass_between(torch.where(narrow, -1.0, low), torch.where(narrow, 0.0, high))
+    return torch.where(narrow, normal.log_density(middle) + torch.log(torch.where(narrow, width, 1.0)), wide)
 
 
 def _log_mass_between(low: torch.Tensor, high: torch.Tensor) -> torch.Tensor:
