@@ -79,7 +79,11 @@ public static class NbaFeatures
 
     private static readonly (string Name, int Lowest, int Highest)[] LateMargins =
     [
+        ("Trail10OrMore", int.MinValue, -10),
+        ("Trail7To9", -9, -7),
+        ("Trail4To6", -6, -4),
         ("Trail3", -3, -3),
+        ("Trail1To2", -2, -1),
         ("Lead1To3", 1, 3),
         ("Lead4To6", 4, 6),
         ("Lead7To8", 7, 8),
