@@ -1,5 +1,6 @@
 using System.Linq.Expressions;
-using GameGraph.Models.Contract;
+using GameGraph.Contract;
+using GameGraph.Contract.Distributions;
 
 namespace GameGraph.Engine;
 

@@ -7,8 +7,7 @@ import numpy as np
 import torch
 from synthetic import START, bernoulli, categorical, choice, johnson_su
 
-from gamegraph.models import normal
-from gamegraph.models.contract import (
+from gamegraph.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     ChoiceDistribution,
@@ -21,11 +20,13 @@ from gamegraph.models.contract import (
     ModelDeclaration,
     PredictorFit,
 )
-from gamegraph.models.contract_files import write_fitted_model
+from gamegraph.files.contract_files import write_fitted_model, write_training_result
+from gamegraph.files.paths import REPOSITORY
+from gamegraph.files.training_data_files import write_training_data
+from gamegraph.models import normal
 from gamegraph.models.model import Model
-from gamegraph.models.paths import REPOSITORY
-from gamegraph.models.training import train, write_training_result
-from gamegraph.models.training_data import TrainingData, write_training_data
+from gamegraph.training.training import train
+from gamegraph.training.training_data import TrainingData
 
 TESTDATA = REPOSITORY / "testdata"
 

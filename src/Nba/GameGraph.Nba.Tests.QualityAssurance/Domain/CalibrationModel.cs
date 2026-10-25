@@ -1,5 +1,5 @@
+using GameGraph.Contract;
 using GameGraph.Models;
-using GameGraph.Models.Contract;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 

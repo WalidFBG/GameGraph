@@ -5,8 +5,8 @@ import golden
 import pytest
 import torch
 
+from gamegraph.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
 from gamegraph.models import links
-from gamegraph.models.contract import LinearFit, LinearSplineFit, LinearSplineTerm, Link
 from gamegraph.models.distributions import Bernoulli, Categorical, Choice, DiscreteJohnsonSu
 from gamegraph.models.model import Model
 from gamegraph.models.terms import LinearColumns, LinearSplineColumns

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using GameGraph.Models.Distributions;
 using Xunit;
 
 namespace GameGraph.Models.Tests.Unit;

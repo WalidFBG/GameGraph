@@ -1,13 +1,13 @@
+using GameGraph.Engine;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Replay;
-using GameGraph.TrainingDataGeneration;
 
 namespace GameGraph.Nba.TrainingDataGeneration;
 
-public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector, GameTally tally)
+public sealed class TrainingDataSeason(RecordingDecisionCollector<NbaState> decisions, GameTally tally)
 {
     private readonly EmptyIncidentCollector _incidentCollector = new();
 
@@ -29,9 +29,9 @@ public sealed class TrainingDataSeason(TrainingDataCollector<NbaState> collector
 
     private void Generate(AcceptedGame game, GameContext context)
     {
-        collector.BeginGame(game.Id, game.StartUtc);
+        decisions.BeginGame(game.Id, game.StartUtc);
 
-        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context, game.Rotation), collector);
+        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context, game.Rotation), decisions);
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

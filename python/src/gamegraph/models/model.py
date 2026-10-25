@@ -2,7 +2,7 @@ from collections.abc import Sequence
 
 import torch
 
-from gamegraph.models.contract import FittedModel, ModelDeclaration
+from gamegraph.contract import FittedModel, ModelDeclaration
 from gamegraph.models.distributions import distribution_for
 from gamegraph.models.given_column import GivenColumn
 from gamegraph.models.predictor import Predictor

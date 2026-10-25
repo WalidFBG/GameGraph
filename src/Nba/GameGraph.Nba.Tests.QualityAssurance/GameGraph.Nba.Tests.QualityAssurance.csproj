@@ -12,10 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\GameGraph.Contract.Files\GameGraph.Contract.Files.csproj" />
     <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
     <ProjectReference Include="..\..\GameGraph.Models\GameGraph.Models.csproj" />
     <ProjectReference Include="..\..\GameGraph.Simulation\GameGraph.Simulation.csproj" />
-    <ProjectReference Include="..\..\GameGraph.TrainingDataGeneration\GameGraph.TrainingDataGeneration.csproj" />
     <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Augmentation\GameGraph.Nba.Augmentation.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Sportradar\GameGraph.Nba.Sportradar.csproj" />

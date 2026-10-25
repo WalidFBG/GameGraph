@@ -3,8 +3,8 @@ import polars as pl
 
 from gamegraph.audit.buckets import assign, cuts, outcome_prefixes
 from gamegraph.audit.findings import FEWEST_EXPECTED, Z
-from gamegraph.models.contract import TrainingDataManifest
-from gamegraph.models.training_data import OUTCOME
+from gamegraph.contract import TrainingDataManifest
+from gamegraph.files.training_data_files import OUTCOME
 
 ALL = "all"
 OBSERVED = "observed"

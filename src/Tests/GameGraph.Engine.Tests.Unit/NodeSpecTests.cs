@@ -1,4 +1,5 @@
-using GameGraph.Models.Contract;
+using GameGraph.Contract.Distributions;
+using GameGraph.Contract.Terms;
 using Xunit;
 
 namespace GameGraph.Engine.Tests.Unit;

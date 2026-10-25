@@ -18,21 +18,22 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 
 | Path | What it holds |
 |---|---|
-| `src/GameGraph.Models` | The models (GAMLSS, `docs/models.md`): the contract with Python, and evaluating and sampling fitted models |
-| `python/` | Training, in Python: reads each node's training data, writes its fitted model and report |
+| `src/GameGraph.Contract` | The contract with Python: model declarations, fitted models, the training-data manifest and training data, as records with their invariants |
+| `src/GameGraph.Contract.Files` | Reads and writes the contract's files, validated against the schemas: the only C# that knows their formats |
+| `src/GameGraph.Models` | The models (GAMLSS, `docs/models.md`): evaluating and sampling fitted models |
+| `python/` | Training, in Python: reads each node's training data, writes its fitted model and report (`gamegraph.contract`, `gamegraph.files`, `gamegraph.models`, `gamegraph.training`) |
 | `schemas/` | The contract between C# and Python: JSON Schemas for the training data, fitted models and training reports |
 | `testdata/` | Test data only: reference outputs (golden files) written by `python/tests/golden.py` (`uv run python tests/golden.py`) and checked by both test suites |
-| `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors |
+| `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors, among them the one that records training examples |
 | `src/GameGraph.Simulation` | Simulates a game many times: samples each decision from its node's fitted model, reports incidents |
-| `src/GameGraph.TrainingDataGeneration` | Collects what the engine's walk hands it and writes it as training data |
 | `src/Nba/GameGraph.Nba` | The NBA: state, rules, features, observed games |
 | `src/Nba/GameGraph.Nba.Sportradar` | Reads Sportradar ValidatedData into observed games |
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
 | `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests (simulate real games, compare, write CSVs) and the audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
 | `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
-| `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game) and `GameGraph.Models.Tests.Unit` (the forward pass and the contract) |
-| `src/GameGraph.Host` | Command line: generates the training data |
+| `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game), `GameGraph.Models.Tests.Unit` (the forward pass and the parity with Python) and `GameGraph.Contract.Files.Tests.Unit` (the contract and its files) |
+| `src/GameGraph.Host` | Command line: generates the training data and writes it |
 | `docs/` | Architecture, plan, data, lessons, and the possession tree as built (`possession-tree.html`) |
 
 ## Build

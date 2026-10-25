@@ -11,6 +11,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\GameGraph.Contract.Files\GameGraph.Contract.Files.csproj" />
     <ProjectReference Include="..\..\GameGraph.Models\GameGraph.Models.csproj" />
   </ItemGroup>
 </Project>

@@ -10,9 +10,9 @@ from gamegraph.audit import findings, predicted
 from gamegraph.audit.buckets import assign, cuts, outcome_prefixes
 from gamegraph.audit.findings import FEWEST_EXPECTED, LARGE_Z, Failure
 from gamegraph.audit.runs import BUCKETS, csv_name, latest
-from gamegraph.models.contract import CategoricalDistribution, TrainingDataManifest
-from gamegraph.models.contract_files import read_training_data_manifest
-from gamegraph.models.training_data import DECISION, EXAMPLES, GAMES, MANIFEST, OUTCOME
+from gamegraph.contract import CategoricalDistribution, TrainingDataManifest
+from gamegraph.files.contract_files import read_training_data_manifest
+from gamegraph.files.training_data_files import DECISION, EXAMPLES, GAMES, MANIFEST, OUTCOME
 
 GAME = "game"
 GAMES_FILE = "games.parquet"

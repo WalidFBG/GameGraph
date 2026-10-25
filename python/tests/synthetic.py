@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import numpy as np
 import torch
 
-from gamegraph.models.contract import (
+from gamegraph.contract import (
     BernoulliDistribution,
     CategoricalDistribution,
     ChoiceDistribution,
@@ -14,7 +14,7 @@ from gamegraph.models.contract import (
     TrainingDataManifest,
 )
 from gamegraph.models.distributions import DiscreteJohnsonSu
-from gamegraph.models.training_data import Examples, Game, TrainingData
+from gamegraph.training.training_data import Examples, Game, TrainingData
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
 

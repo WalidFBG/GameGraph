@@ -8,7 +8,7 @@ from typing import Any
 
 import pytest
 
-from gamegraph.models.contract import (
+from gamegraph.contract import (
     Attempt,
     BernoulliDistribution,
     CategoricalDistribution,
@@ -27,7 +27,7 @@ from gamegraph.models.contract import (
     TrainingDataManifest,
     TrainingReport,
 )
-from gamegraph.models.contract_files import (
+from gamegraph.files.contract_files import (
     read_fitted_model,
     read_training_data_manifest,
     read_training_report,

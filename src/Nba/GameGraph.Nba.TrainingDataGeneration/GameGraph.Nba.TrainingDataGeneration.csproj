@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
-    <ProjectReference Include="..\..\GameGraph.TrainingDataGeneration\GameGraph.TrainingDataGeneration.csproj" />
     <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Augmentation\GameGraph.Nba.Augmentation.csproj" />
   </ItemGroup>

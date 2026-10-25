@@ -1,4 +1,4 @@
-using GameGraph.Models.Contract;
+using GameGraph.Contract.Terms;
 
 namespace GameGraph.Engine;
 

@@ -1,4 +1,4 @@
-using GameGraph.Models.Contract;
+using GameGraph.Contract.Distributions;
 
 namespace GameGraph.Engine.Tests.Unit;
 
