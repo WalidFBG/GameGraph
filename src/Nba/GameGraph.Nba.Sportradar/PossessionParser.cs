@@ -11,7 +11,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
 
     private readonly List<Possession> _possessions = [];
     private readonly List<ObservedAction> _actions = [];
-    private readonly HashSet<string> _foulsWithoutFreeThrowsInTheTree = [];
+    private readonly Dictionary<string, AwardedKind> _foulsWithoutFreeThrowsInTheTree = [];
     private int? _team;
     private int _period;
     private int? _lastClock;
@@ -79,7 +79,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         if (_team is not null && !_actions[^1].EndsPossession)
             PossessionsCutByPeriodEnd++;
 
-        ClosePossession();
+        ClosePossession(ballAwarded: false);
 
         if (_awarded.Count == 0)
             return;
@@ -117,7 +117,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
                 PersonalFoul(foul);
                 break;
             case FoulType.NotSet:
-                _foulsWithoutFreeThrowsInTheTree.Add(foul.SourceId);
+                _foulsWithoutFreeThrowsInTheTree[foul.SourceId] = AwardedKind.Unclassified;
                 break;
         }
     }
@@ -150,7 +150,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
 
         if (foul.FreeThrowsAwarded == TakeFoulFreeThrows)
         {
-            _foulsWithoutFreeThrowsInTheTree.Add(foul.SourceId);
+            _foulsWithoutFreeThrowsInTheTree[foul.SourceId] = AwardedKind.TakeFoul;
             return;
         }
 
@@ -185,9 +185,9 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
 
     private void FreeThrow(FreeThrow freeThrow)
     {
-        if (freeThrow.FreeThrowType != FreeThrowType.Regular || _foulsWithoutFreeThrowsInTheTree.Contains(freeThrow.FoulId))
+        if (AwardedKindOf(freeThrow) is { } kind)
         {
-            _awarded.Add(new AwardedFreeThrow(Side(teams.GetValueOrDefault(freeThrow.ShooterId)), freeThrow.Made));
+            _awarded.Add(new AwardedFreeThrow(Side(teams.GetValueOrDefault(freeThrow.ShooterId)), freeThrow.Made, kind));
             return;
         }
 
@@ -206,6 +206,16 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         else
             open.Phase = Phase.Rebound;
     }
+
+    private AwardedKind? AwardedKindOf(FreeThrow freeThrow) => freeThrow.FreeThrowType switch
+    {
+        FreeThrowType.Technical => AwardedKind.Technical,
+        FreeThrowType.Flagrant => AwardedKind.Flagrant,
+        FreeThrowType.ClearPath => AwardedKind.ClearPath,
+        FreeThrowType.NotSet => AwardedKind.Unclassified,
+        FreeThrowType.Regular => _foulsWithoutFreeThrowsInTheTree.TryGetValue(freeThrow.FoulId, out var kind) ? kind : null,
+        _ => throw new ArgumentOutOfRangeException(nameof(freeThrow), freeThrow.FreeThrowType, "Not a free-throw type"),
+    };
 
     private void Rebound(Rebound rebound)
     {
@@ -252,24 +262,36 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams)
         if (team == _team)
         {
             if (_actions.Count > 0 && _actions[^1].EndsPossession)
-                throw new RejectedGameException(RejectionReason.SameTeamTwice);
+            {
+                RequireBallAwardedTo(team, RejectionReason.SameTeamTwice);
+                ClosePossession(ballAwarded: true);
+                _team = team;
+            }
 
             return;
         }
 
-        if (_team is not null && !_actions[^1].EndsPossession)
-            throw new RejectedGameException(RejectionReason.PossessionCutShort);
+        var cutShort = _team is not null && !_actions[^1].EndsPossession;
 
-        ClosePossession();
+        if (cutShort)
+            RequireBallAwardedTo(team, RejectionReason.PossessionCutShort);
+
+        ClosePossession(ballAwarded: cutShort);
         _team = team;
     }
 
-    private void ClosePossession()
+    private void RequireBallAwardedTo(int team, RejectionReason otherwise)
+    {
+        if (!_awarded.Any(f => f.Team == team && f.MovesTheBall))
+            throw new RejectedGameException(otherwise);
+    }
+
+    private void ClosePossession(bool ballAwarded)
     {
         if (_team is not { } team)
             return;
 
-        _possessions.Add(new Possession(team, _period, _actions.ToArray()));
+        _possessions.Add(new Possession(team, _period, _actions.ToArray()) { AwardedAfter = ballAwarded ? TakeAwarded() : [], BallAwardedAfter = ballAwarded });
         _actions.Clear();
         _team = null;
     }

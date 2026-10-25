@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using GameGraph.Engine;
 
 namespace GameGraph.Nba.Graph;
@@ -75,21 +76,43 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ActionFoul =
         new(nameof(ActionFoul), s => s.Action == ActionType.NonShootingFoul ? 1 : 0);
 
-    public static readonly Feature<NbaState> AfterOffensiveRebound =
-        new(nameof(AfterOffensiveRebound), s => s.Start == PlayStart.OffensiveRebound ? 1 : 0);
+    public static readonly IReadOnlyList<Feature<NbaState>> AfterPlayStart =
+        [.. Enum.GetValues<PlayStart>().Select(IndicatorOf).OfType<PlayStart>().Distinct().Select(After)];
 
-    public static readonly Feature<NbaState> AfterMadeShot =
-        new(nameof(AfterMadeShot), s => s.Start == PlayStart.MadeShot ? 1 : 0);
+    public static readonly IReadOnlyList<Feature<NbaState>> PreviousAwarded =
+        [.. AwardedFreeThrows.Categories.Select(c => LastAwardedIn($"Previous{AwardedFreeThrows.Names[c]}", [c]))];
 
-    public static readonly Feature<NbaState> AfterMadeFreeThrow =
-        new(nameof(AfterMadeFreeThrow), s => s.Start == PlayStart.MadeFreeThrow ? 1 : 0);
+    public static readonly IReadOnlyList<Feature<NbaState>> KindAwarded =
+        [.. AwardedFreeThrows.Kinds.Where(k => k != ReferenceAwardedKind).Select(k => LastAwardedIn($"Awarded{k}", [.. AwardedFreeThrows.Categories.Where(c => AwardedFreeThrows.KindOf(c) == k)]))];
 
-    public static readonly Feature<NbaState> AfterTurnover =
-        new(nameof(AfterTurnover), s => s.Start == PlayStart.Turnover ? 1 : 0);
+    private const AwardedKind ReferenceAwardedKind = AwardedKind.Technical;
 
-    public static readonly Feature<NbaState> AfterSideOut =
-        new(nameof(AfterSideOut), s => s.Start == PlayStart.SideOut ? 1 : 0);
+    private static PlayStart? IndicatorOf(PlayStart start) => start switch
+    {
+        PlayStart.NotSet or PlayStart.DefensiveRebound => null,
+        PlayStart.PeriodStart => PlayStart.PeriodStart,
+        PlayStart.OffensiveRebound => PlayStart.OffensiveRebound,
+        PlayStart.MadeShot => PlayStart.MadeShot,
+        PlayStart.MadeFreeThrow => PlayStart.MadeFreeThrow,
+        PlayStart.Turnover => PlayStart.Turnover,
+        PlayStart.SideOut or PlayStart.AwardedBall => PlayStart.SideOut,
+        _ => throw new ArgumentOutOfRangeException(nameof(start), start, "A play start needs an indicator, or the reference level"),
+    };
 
-    public static readonly Feature<NbaState> AfterPeriodStart =
-        new(nameof(AfterPeriodStart), s => s.Start == PlayStart.PeriodStart ? 1 : 0);
+    private static Feature<NbaState> After(PlayStart indicator) =>
+        Indicator($"After{indicator}", nameof(NbaState.Start), Enum.GetValues<PlayStart>().Where(p => IndicatorOf(p) == indicator).Cast<object>());
+
+    private static Feature<NbaState> LastAwardedIn(string name, int[] categories) =>
+        Indicator(name, nameof(NbaState.LastAwarded), categories.Cast<object>());
+
+    private static Feature<NbaState> Indicator(string name, string property, IEnumerable<object> values)
+    {
+        var state = Expression.Parameter(typeof(NbaState), "s");
+        var value = Expression.Property(state, property);
+        var any = values
+            .Select(v => (Expression)Expression.Equal(value, Expression.Constant(v, value.Type)))
+            .Aggregate(Expression.OrElse);
+
+        return new(name, Expression.Lambda<Func<NbaState, double>>(Expression.Condition(any, Expression.Constant(1.0), Expression.Constant(0.0)), state));
+    }
 }

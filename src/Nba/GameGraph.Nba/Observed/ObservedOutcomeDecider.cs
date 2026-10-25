@@ -146,7 +146,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
             awarded.SelectMany(f => new[]
             {
-                new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => f.Team == inPossession ? AwardedFreeThrows.Offence : AwardedFreeThrows.Defence, inPossession, possession.Period),
+                new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => AwardedFreeThrows.CategoryOf(f.Kind, f.Team != inPossession) ?? throw new RulesDisagreeWithDataException($"The rules have no category for a {f.Kind} free throw to the {(f.Team != inPossession ? "defence" : "offence")}"), inPossession, possession.Period),
                 new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period),
             });
 

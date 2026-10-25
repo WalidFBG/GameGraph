@@ -36,6 +36,10 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homeScoring
 
     public int AwardedTeam { get; set; }
 
+    public int LastAwarded { get; set; } = AwardedFreeThrows.None;
+
+    public bool BallAwardedToDefence { get; set; }
+
     public Miss LastMiss { get; set; }
 
     public bool PeriodClockBinds => PeriodClock < ShotClock + Graph.ShotClock.Slack;
