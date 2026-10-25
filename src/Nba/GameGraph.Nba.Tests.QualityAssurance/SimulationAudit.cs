@@ -1,17 +1,17 @@
-using GameGraph.Nba.Audit.Domain;
+using GameGraph.Nba.Tests.QualityAssurance.Domain;
 using GameGraph.Nba.Augmentation;
-using GameGraph.Nba.Audit.Infrastructure;
+using GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 using GameGraph.Nba.Graph;
 using Xunit;
 
-namespace GameGraph.Nba.Audit;
+namespace GameGraph.Nba.Tests.QualityAssurance;
 
 public sealed class SimulationAudit(ITestOutputHelper output)
 {
     [Fact(Explicit = true)]
     public async Task WritesEverySimulatedDecisionAndGame()
     {
-        var directory = AuditDirectories.NewRun("simulation");
+        var directory = DataDirectories.NewRun("simulation");
         var fitted = FittedModelReader.ReadGame();
         var games = GeneratedGames.InOrder(ValidatedDataReader.ReadAll()).ToArray();
 
@@ -35,6 +35,6 @@ public sealed class SimulationAudit(ITestOutputHelper output)
         await GameComparisonWriter.Write(gamesPath, comparisons);
 
         output.WriteLine($"{comparisons.Length} games, each simulated once, written to {gamesPath}");
-        output.WriteLine($"Run complete: {AuditDirectories.Complete(directory)}");
+        output.WriteLine($"Run complete: {DataDirectories.Complete(directory)}");
     }
 }

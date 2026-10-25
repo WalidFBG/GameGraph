@@ -1,12 +1,11 @@
-using GameGraph.Engine;
-using GameGraph.Nba.Audit.Definitions;
 using GameGraph.Nba.Augmentation;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using GameGraph.Simulation;
 using GameGraph.TrainingDataGeneration;
 
-namespace GameGraph.Nba.Audit.Domain;
+namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class SeasonSimulation
 {
@@ -26,23 +25,9 @@ internal static class SeasonSimulation
             decisions.BeginGame(game.Id, game.StartUtc);
             Simulator.Run(fitted, [seeds[g]], _ => new NbaState(score, context.HomeScoringRate, context.AwayScoringRate), decisions);
 
-            comparisons[g] = new GameComparison(game.Id, RealTotals(game, context), score.Totals());
+            comparisons[g] = new GameComparison(game.Id, ObservedTotals.Of(game, context), score.Totals());
         }
 
         return (decisions, comparisons);
-    }
-
-    private static GameTotals RealTotals(ObservedGame game, GameContext context)
-    {
-        var score = new GameScore();
-
-        ObservedWalk.Walk(game, new NbaState(score, context.HomeScoringRate, context.AwayScoringRate), new EmptyDecisionCollector<NbaState>());
-
-        var totals = score.Totals();
-
-        if (totals.HomePoints != game.Points(Sides.Home) || totals.AwayPoints != game.Points(Sides.Away))
-            throw new InvalidDataException($"Game {game.Id}: walking it scores {totals.HomePoints}-{totals.AwayPoints}, the data {game.Points(Sides.Home)}-{game.Points(Sides.Away)}");
-
-        return totals;
     }
 }

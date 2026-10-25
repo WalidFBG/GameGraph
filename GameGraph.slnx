@@ -13,7 +13,6 @@
   <Folder Name="/src/Nba/">
     <Project Path="src/Nba/GameGraph.Nba/GameGraph.Nba.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Augmentation/GameGraph.Nba.Augmentation.csproj" />
-    <Project Path="src/Nba/GameGraph.Nba.Audit/GameGraph.Nba.Audit.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Tests.QualityAssurance/GameGraph.Nba.Tests.QualityAssurance.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Sportradar/GameGraph.Nba.Sportradar.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.TrainingDataGeneration/GameGraph.Nba.TrainingDataGeneration.csproj" />

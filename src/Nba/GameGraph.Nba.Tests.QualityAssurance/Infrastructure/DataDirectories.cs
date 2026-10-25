@@ -1,18 +1,25 @@
 using System.Globalization;
 
-namespace GameGraph.Nba.Audit.Infrastructure;
+namespace GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 
-internal static class AuditDirectories
+internal static class DataDirectories
 {
     public const string ValidatedData = @"C:\Data\Basketball\ValidatedData\PlayByPlay";
 
     private const string Root = @"C:\Data\GameGraph\nba";
+    private const string Partial = ".partial";
 
     public static string TrainingData(string node) => Path.Combine(Root, "training-data", node);
 
     public static string FittedModel(string node) => Path.Combine(Root, "fitted-models", $"{node}.json");
 
-    private const string Partial = ".partial";
+    public static string QualityAssurance(string test)
+    {
+        var directory = Path.Combine(Root, "quality-assurance", test);
+        Directory.CreateDirectory(directory);
+
+        return directory;
+    }
 
     public static string NewRun(string audit)
     {

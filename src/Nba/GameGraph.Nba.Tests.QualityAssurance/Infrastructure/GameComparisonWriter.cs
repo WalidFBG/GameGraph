@@ -1,8 +1,8 @@
-using GameGraph.Nba.Audit.Definitions;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using Parquet;
 using Parquet.Schema;
 
-namespace GameGraph.Nba.Audit.Infrastructure;
+namespace GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 
 internal static class GameComparisonWriter
 {

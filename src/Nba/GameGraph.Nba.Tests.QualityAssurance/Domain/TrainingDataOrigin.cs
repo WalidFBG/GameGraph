@@ -1,6 +1,6 @@
 using GameGraph.Nba.Observed;
 
-namespace GameGraph.Nba.Audit.Domain;
+namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class TrainingDataOrigin
 {

@@ -1,14 +1,14 @@
 using System.Globalization;
 using GameGraph.Models.Contract;
-using GameGraph.Nba.Audit.Definitions;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 
-namespace GameGraph.Nba.Audit.Infrastructure;
+namespace GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 
 internal static class TrainingDataReader
 {
     public static (TrainingDataManifest Manifest, ExampleTable Examples) Read(string node)
     {
-        var directory = AuditDirectories.TrainingData(node);
+        var directory = DataDirectories.TrainingData(node);
         var manifest = ContractFiles.ReadTrainingDataManifest(Path.Combine(directory, "manifest.json"));
         var games = GameRows(directory).Select(r => int.Parse(r[2], CultureInfo.InvariantCulture)).ToArray();
         var lines = Lines(Path.Combine(directory, "examples.csv"), [.. manifest.Features, "outcome"]);
@@ -35,7 +35,7 @@ internal static class TrainingDataReader
         return (manifest, new ExampleTable(manifest.Features, gameOfExample, features, outcomes));
     }
 
-    public static string[] GameIds(string node) => [.. GameRows(AuditDirectories.TrainingData(node)).Select(r => r[0])];
+    public static string[] GameIds(string node) => [.. GameRows(DataDirectories.TrainingData(node)).Select(r => r[0])];
 
     private static string[][] GameRows(string directory) =>
         [.. Lines(Path.Combine(directory, "games.csv"), ["game", "startUtc", "examples"]).Select(l => l.Split(','))];

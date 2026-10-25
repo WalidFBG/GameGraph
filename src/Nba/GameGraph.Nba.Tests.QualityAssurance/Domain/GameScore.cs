@@ -1,8 +1,8 @@
-using GameGraph.Nba.Audit.Definitions;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
 
-namespace GameGraph.Nba.Audit.Domain;
+namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal sealed class GameScore : INbaIncidentCollector
 {

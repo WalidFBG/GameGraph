@@ -29,8 +29,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `src/Nba/GameGraph.Nba.Sportradar` | Reads Sportradar ValidatedData into observed games |
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
-| `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests: simulate real games, compare, write CSVs |
-| `src/Nba/GameGraph.Nba.Audit` | The audits (`docs/plan.md`), as explicit xUnit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game |
+| `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests (simulate real games, compare, write CSVs) and the audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
 | `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
 | `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game) and `GameGraph.Models.Tests.Unit` (the forward pass and the contract) |
 | `src/GameGraph.Host` | Command line: generates the training data |
@@ -62,9 +61,9 @@ uv run gamegraph-train <training data> <fitted models>
 The audits run only when asked for by name; each analysis reads its audit's latest run:
 
 ```
-src/Nba/GameGraph.Nba.Audit/bin/Debug/net10.0/GameGraph.Nba.Audit.exe -class GameGraph.Nba.Audit.CalibrationAudit -explicit only
+src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Debug/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.CalibrationAudit -explicit only
 uv run gamegraph-calibration <calibration audits> <training data>
-src/Nba/GameGraph.Nba.Audit/bin/Debug/net10.0/GameGraph.Nba.Audit.exe -class GameGraph.Nba.Audit.SimulationAudit -explicit only
+src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Debug/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.SimulationAudit -explicit only
 uv run gamegraph-simulation <simulation audits> <training data>
 ```
 

@@ -1,7 +1,7 @@
 using GameGraph.Models;
 using GameGraph.Models.Contract;
 
-namespace GameGraph.Nba.Audit.Domain;
+namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class CalibrationModel
 {

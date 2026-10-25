@@ -1,7 +1,7 @@
 using GameGraph.Models;
-using GameGraph.Nba.Audit.Definitions;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 
-namespace GameGraph.Nba.Audit.Domain;
+namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 
 internal static class ExampleScorer
 {
