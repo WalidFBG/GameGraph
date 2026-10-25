@@ -5,6 +5,8 @@ namespace GameGraph.Nba.Graph;
 
 public static class NbaFeatures
 {
+    public const int LateSeconds = 120;
+
     public static readonly Feature<NbaState> ScoreMargin =
         new(nameof(ScoreMargin), s => s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)]);
 
@@ -63,19 +65,19 @@ public static class NbaFeatures
         new(nameof(PeriodClockBinds), s => s.PeriodClockBinds ? 1 : 0);
 
     public static readonly Feature<NbaState> LateInGame =
-        new(nameof(LateInGame), s => s.LateInGame ? 1 : 0);
+        new(nameof(LateInGame), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? 1 : 0);
 
     public static readonly Feature<NbaState> LateMargin =
-        new(nameof(LateMargin), s => s.LateInGame ? s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] : 0);
+        new(nameof(LateMargin), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] : 0);
 
     public static readonly Feature<NbaState> LatePeriodClock =
-        new(nameof(LatePeriodClock), s => s.LateInGame ? s.PeriodClock : 0);
+        new(nameof(LatePeriodClock), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? s.PeriodClock : 0);
 
     public static readonly Feature<NbaState> LateClockBinds =
-        new(nameof(LateClockBinds), s => s.LateInGame && s.PeriodClockBinds ? 1 : 0);
+        new(nameof(LateClockBinds), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.PeriodClockBinds ? 1 : 0);
 
     public static readonly Feature<NbaState> LateFoul =
-        new(nameof(LateFoul), s => s.LateInGame && s.Action == ActionType.NonShootingFoul ? 1 : 0);
+        new(nameof(LateFoul), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.Action == ActionType.NonShootingFoul ? 1 : 0);
 
     private static readonly (string Name, int Lowest, int Highest)[] LateMargins =
     [
@@ -142,7 +144,7 @@ public static class NbaFeatures
     private static Feature<NbaState> LateCell(string margin, int lowestMargin, int highestMargin, int lowestClock, int highestClock) =>
         new(
             $"Late{margin}Clock{lowestClock}To{highestClock}",
-            s => s.LateInGame
+            s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds
                 && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] >= lowestMargin
                 && s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)] <= highestMargin
                 && s.PeriodClock >= lowestClock

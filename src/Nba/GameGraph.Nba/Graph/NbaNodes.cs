@@ -34,7 +34,7 @@ public static class NbaNodes
             FeatureTerm.Linear(NbaFeatures.Period),
             FeatureTerm.Linear(NbaFeatures.AfterMiss),
             .. LateSituation(),
-            .. NbaFeatures.LateMarginByClock((0, 0), (1, 6), (7, 12), (13, 24), (25, Periods.LastTwoMinutes)).Select(FeatureTerm.Linear),
+            .. NbaFeatures.LateMarginByClock((0, 0), (1, 6), (7, 12), (13, 24), (25, NbaFeatures.LateSeconds)).Select(FeatureTerm.Linear),
         ],
         NbaTransitions.PeriodRunsOut);
 
@@ -46,7 +46,7 @@ public static class NbaNodes
             .. LateSituation(),
             FeatureTerm.Spline(NbaFeatures.LatePeriodClock, 6),
             FeatureTerm.Linear(NbaFeatures.LateClockBinds),
-            .. NbaFeatures.LateMarginByClock((1, 12), (13, 24), (25, 36), (37, 48), (49, 60), (61, 90), (91, Periods.LastTwoMinutes)).Select(FeatureTerm.Linear),
+            .. NbaFeatures.LateMarginByClock((1, 12), (13, 24), (25, 36), (37, 48), (49, 60), (61, 90), (91, NbaFeatures.LateSeconds)).Select(FeatureTerm.Linear),
         ],
         NbaTransitions.ActionType);
 

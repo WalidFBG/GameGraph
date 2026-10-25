@@ -46,7 +46,5 @@ public sealed class NbaState(INbaIncidentCollector incidents, double homePointsP
 
     public bool PeriodClockBinds => PeriodClock < ShotClock + Graph.ShotClock.Slack;
 
-    public bool LateInGame => Period >= Periods.Regulation - 1 && PeriodClock <= Periods.LastTwoMinutes;
-
     public int Bound => Math.Min(ShotClock + Graph.ShotClock.Slack, PeriodClock);
 }
