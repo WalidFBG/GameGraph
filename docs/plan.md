@@ -65,9 +65,9 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 
 1. Step 1 above (team level, one Bernoulli node): done.
 2. The tree without the clock, on the real schedule: action types, shots, fouls, free throws and rebounds (the Categorical family; rules with their own state). Whether a non-shooting foul gives free throws is a Bernoulli node (`InBonus`) rather than the bonus rule, because the tree does not generate every team foul. Fouls come now because about one possession in eight has free throws: most are a fouled missed shot, which the data records as a shooting foul and free throws, with no shot.
-3. The tree's clock: `ClockCheck`, `PeriodRunsOut`, `ActionTime`, `PeriodEnds` and the clock features (the truncated Count family); removes the schedule leak. It also removes a stopgap of step 2: without a clock, a possession the period ends in the middle of (a buzzer scramble, about one period in two) cannot be walked, so the reader drops it and counts it (`PossessionsCutByPeriodEnd`); with the clock it is kept.
-4. Compilation: once these families exist, so the compiler is built for real variety (see below).
-5. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
+3. The tree's clock: `ClockCheck`, `PeriodRunsOut`, `ActionTime`, `PeriodEnds` and the clock features (the truncated Count family); removes the schedule leak. It also removes a stopgap of step 2: without a clock, a possession the period ends in the middle of (a buzzer scramble, about one period in two) cannot be walked, so the reader drops it and counts it (`PossessionsCutByPeriodEnd`); with the clock it is kept. Done as step 13 in `models.md`: `PeriodRunsOut` ends periods, `JumpBall` starts the game and every overtime, the action time is a discrete Johnson SU, and free throws outside the play keep the score right.
+4. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), with substitutions so that the five on court come from the simulation, not the real game.
+5. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
 
 Until compilation, two habits keep it cheap: rules stay static methods, and the game state stays plain arrays and numbers.
 
@@ -111,7 +111,5 @@ What the C# models are today; items 1 to 4 are built. `models.md` replaces this:
 
 ## Open questions
 
-- Regularisation (required, a vital part of training): which penalty (L2 first, L1 if sparsity is wanted), which feature scale it applies to (scaled or raw, since the fit is no longer scale-invariant once penalised), and its strength chosen on the validation set. Needed before player-level models.
 - Whether games outside the regular season should feed the history (they do not yet): a team's last 20 games currently skip its playoff games.
-- Optimiser: plain gradient descent converges slowly on some nodes (`InBonus` hits the step cap). Training moves to Python, where L-BFGS and Adam come with PyTorch.
 - Licence for the public repository.
