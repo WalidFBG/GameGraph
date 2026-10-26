@@ -11,10 +11,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     private readonly AcceptedGame _game;
     private readonly Dictionary<NodeSpec<NbaState>, Func<NbaState, int>> _readers;
-    private int _possession;
-    private int _action = -1;
-    private int _freeThrow;
-    private bool _reboundRead;
+    private ObservedActionCursor? _action;
     private bool _afterRead;
     private bool _nextBeforeRead;
     private ObservedStoppage? _stoppage;
@@ -38,26 +35,26 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             [NbaNodes.AwardedFouler] = s => Chosen(NbaNodes.AwardedFouler, s, [Awarded().Fouler ?? throw Disagree("The rules ask for the fouler of an awarded free throw that has none")]),
             [NbaNodes.AwardedFreeThrowMade] = _ => Number(Awarded().Made),
             [NbaNodes.PeriodRunsOut] = PeriodRunsOut,
-            [NbaNodes.ActionType] = s => ActionTypes.Category(NextAction(s).Type),
-            [NbaNodes.ActionTime] = s => ActionTime(s, Current<ObservedAction>().Clock),
-            [NbaNodes.Shooter] = s => Chosen(NbaNodes.Shooter, s, [Current<ObservedShot>().Shooter]),
-            [NbaNodes.FouledOnShot] = _ => Number(Current<ObservedShot>().Fouled),
+            [NbaNodes.ActionType] = s => ActionTypes.Category(NextAction(s).Action.Type),
+            [NbaNodes.ActionTime] = s => ActionTime(s, Action.Action.Clock),
+            [NbaNodes.Shooter] = s => Chosen(NbaNodes.Shooter, s, [Action.As<ObservedShot>().Shooter]),
+            [NbaNodes.FouledOnShot] = _ => Number(Action.As<ObservedShot>().Fouled),
             [NbaNodes.Fouler] = s => Chosen(NbaNodes.Fouler, s, [Fouler()]),
-            [NbaNodes.ShotMade] = _ => Number(Current<ObservedShot>().Made),
-            [NbaNodes.Assisted] = _ => Number(Current<ObservedShot>().Assister is not null),
-            [NbaNodes.Assister] = s => Chosen(NbaNodes.Assister, s, [Current<ObservedShot>().Assister ?? throw Disagree("The rules ask for the assister of an unassisted shot")]),
-            [NbaNodes.Blocked] = _ => Number(Current<ObservedShot>().Blocker is not null),
-            [NbaNodes.Blocker] = s => Chosen(NbaNodes.Blocker, s, [Current<ObservedShot>().Blocker ?? throw Disagree("The rules ask for the blocker of an unblocked shot")]),
-            [NbaNodes.FouledPlayer] = s => Chosen(NbaNodes.FouledPlayer, s, [Current<ObservedFoul>().FouledPlayer]),
-            [NbaNodes.InBonus] = _ => Number(Current<ObservedFoul>().InBonus),
+            [NbaNodes.ShotMade] = _ => Number(Action.As<ObservedShot>().Made),
+            [NbaNodes.Assisted] = _ => Number(Action.As<ObservedShot>().Assister is not null),
+            [NbaNodes.Assister] = s => Chosen(NbaNodes.Assister, s, [Action.As<ObservedShot>().Assister ?? throw Disagree("The rules ask for the assister of an unassisted shot")]),
+            [NbaNodes.Blocked] = _ => Number(Action.As<ObservedShot>().Blocker is not null),
+            [NbaNodes.Blocker] = s => Chosen(NbaNodes.Blocker, s, [Action.As<ObservedShot>().Blocker ?? throw Disagree("The rules ask for the blocker of an unblocked shot")]),
+            [NbaNodes.FouledPlayer] = s => Chosen(NbaNodes.FouledPlayer, s, [Action.As<ObservedFoul>().FouledPlayer]),
+            [NbaNodes.InBonus] = _ => Number(Action.As<ObservedFoul>().InBonus),
             [NbaNodes.FreeThrowMade] = _ => FreeThrowMade(),
-            [NbaNodes.OffensiveRebound] = _ => Number(ReadRebound().Offensive),
-            [NbaNodes.TeamRebound] = _ => Number(Rebound().ByTeam),
-            [NbaNodes.Rebounder] = s => Chosen(NbaNodes.Rebounder, s, [Rebound().Rebounder ?? throw Disagree("The rules ask for the rebounder of a team rebound")]),
-            [NbaNodes.TurnoverKind] = _ => Current<ObservedTurnover>().Kind,
-            [NbaNodes.TurnedOverBy] = s => Chosen(NbaNodes.TurnedOverBy, s, [Current<ObservedTurnover>().Player ?? throw Disagree("The rules ask for the player of a turnover that has none")]),
-            [NbaNodes.Stolen] = _ => Number(Current<ObservedTurnover>().Stolen),
-            [NbaNodes.Stealer] = s => Chosen(NbaNodes.Stealer, s, [Current<ObservedTurnover>().Stealer ?? throw Disagree("The rules ask for the stealer of a turnover that was not stolen")]),
+            [NbaNodes.OffensiveRebound] = _ => Number(Action.ReadRebound().Offensive),
+            [NbaNodes.TeamRebound] = _ => Number(Action.Rebound.ByTeam),
+            [NbaNodes.Rebounder] = s => Chosen(NbaNodes.Rebounder, s, [Action.Rebound.Rebounder ?? throw Disagree("The rules ask for the rebounder of a team rebound")]),
+            [NbaNodes.TurnoverKind] = _ => Action.As<ObservedTurnover>().Kind,
+            [NbaNodes.TurnedOverBy] = s => Chosen(NbaNodes.TurnedOverBy, s, [Action.As<ObservedTurnover>().Player ?? throw Disagree("The rules ask for the player of a turnover that has none")]),
+            [NbaNodes.Stolen] = _ => Number(Action.As<ObservedTurnover>().Stolen),
+            [NbaNodes.Stealer] = s => Chosen(NbaNodes.Stealer, s, [Action.As<ObservedTurnover>().Stealer ?? throw Disagree("The rules ask for the stealer of a turnover that was not stolen")]),
         };
 
         var unread = NbaGameSpec.Instance.Nodes.Where(n => !_readers.ContainsKey(n)).Select(n => n.Name).ToArray();
@@ -69,6 +66,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     public int ActionTimes { get; private set; }
 
     public int ClampedActionTimes { get; private set; }
+
+    private ObservedActionCursor Action => _action ?? throw Disagree("The rules ask about an action before the game's first");
 
     public static bool Follows(AcceptedGame game)
     {
@@ -100,26 +99,22 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         if (Next() is { } next)
             throw Disagree($"The game ended before action {next.Action} of possession {next.Possession}");
 
-        if (_action >= 0)
-            RequireActionRead();
+        if (_action is { IsRead: false })
+            throw Disagree("The game ended before its last action's free throws or rebound");
 
-        if (!_afterRead && HasAfter(_game.Possessions[_possession]))
+        if (_action is { } last && !_afterRead && HasAfter(_game.Possessions[last.Possession]))
             throw Disagree("The game ended before the stoppage after its last possession");
     }
 
-    private ObservedAction CurrentAction =>
-        _action >= 0 ? _game.Possessions[_possession].Actions[_action] : throw Disagree("The rules ask about an action before the game's first");
-
-    private T Current<T>()
-        where T : ObservedAction =>
-        CurrentAction as T ?? throw Disagree($"The rules ask about a {typeof(T).Name}, the data has a {CurrentAction.GetType().Name}");
-
     private (int Possession, int Action)? Next()
     {
-        if (_action + 1 < _game.Possessions[_possession].Actions.Length)
-            return (_possession, _action + 1);
+        if (_action is not { } current)
+            return _game.Possessions.Length > 0 ? (0, 0) : null;
 
-        return _possession + 1 < _game.Possessions.Length ? (_possession + 1, 0) : null;
+        if (current.Index + 1 < _game.Possessions[current.Possession].Actions.Length)
+            return (current.Possession, current.Index + 1);
+
+        return current.Possession + 1 < _game.Possessions.Length ? (current.Possession + 1, 0) : null;
     }
 
     private Possession NextPossession(NbaState state)
@@ -132,15 +127,15 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             : throw Disagree($"The rules ask for a possession in period {state.Period}, the data's next is in period {possession.Period}");
     }
 
-    private ObservedAction NextAction(NbaState state)
+    private ObservedActionCursor NextAction(NbaState state)
     {
         var next = Next() ?? throw Disagree("The rules ask for an action after the game's last");
         var possession = _game.Possessions[next.Possession];
 
-        if (_action >= 0)
-            RequireActionRead();
+        if (_action is { IsRead: false })
+            throw Disagree("The rules left an action's free throws or rebound unread");
 
-        if (next.Possession != _possession && !_afterRead && HasAfter(_game.Possessions[_possession]))
+        if (_action is { } current && next.Possession != current.Possession && !_afterRead && HasAfter(_game.Possessions[current.Possession]))
             throw Disagree("The rules move to the next possession before the stoppage after this one");
 
         if (!_nextBeforeRead)
@@ -149,49 +144,30 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         if (possession.TeamInPossession != state.TeamInPossession || possession.Period != state.Period)
             throw Disagree($"The data's next action is {Sides.Name(possession.TeamInPossession)}'s in period {possession.Period}, the rules ask for {Sides.Name(state.TeamInPossession)}'s in period {state.Period}");
 
-        if (next.Possession != _possession)
+        if (_action is null || next.Possession != _action.Possession)
             _afterRead = false;
 
-        (_possession, _action) = next;
-        _freeThrow = 0;
-        _reboundRead = false;
+        _action = new ObservedActionCursor(next.Possession, next.Action, possession.Actions[next.Action]);
         _nextBeforeRead = false;
 
-        return CurrentAction;
+        return _action;
     }
-
-    private void RequireActionRead()
-    {
-        if (!IsActionRead())
-            throw Disagree("The rules left an action's free throws or rebound unread");
-    }
-
-    private bool IsActionRead() => _freeThrow == FreeThrowsOf(CurrentAction).Length && (_reboundRead || ReboundOf(CurrentAction) is null);
 
     private ObservedStoppage Stoppage(NbaState state) =>
         _stoppage ??= state.Moment switch
         {
-            Moment.FreeThrow => FreeThrowStoppage(),
+            Moment.FreeThrow => new ObservedStoppage(Action.BeforeNextFreeThrow(), []),
             Moment.Play => PlayStoppage(state),
             _ => throw new InvalidOperationException($"A stoppage is asked about outside one: {state.Moment}"),
         };
 
-    private ObservedStoppage FreeThrowStoppage()
-    {
-        var throws = FreeThrowsOf(CurrentAction);
-
-        return _freeThrow < throws.Length
-            ? new ObservedStoppage(throws[_freeThrow].Before, [])
-            : throw Disagree("The rules ask for a free throw the action does not have");
-    }
-
     private ObservedStoppage PlayStoppage(NbaState state)
     {
-        if (_action >= 0)
+        if (_action is { } current)
         {
-            var possession = _game.Possessions[_possession];
+            var possession = _game.Possessions[current.Possession];
 
-            if (_action == possession.Actions.Length - 1 && !_afterRead && HasAfter(possession))
+            if (current.Index == possession.Actions.Length - 1 && !_afterRead && HasAfter(possession))
             {
                 var last = possession.Actions[^1];
                 var team = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(possession.TeamInPossession) : possession.TeamInPossession;
@@ -204,13 +180,16 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             }
         }
 
-        if (_nextBeforeRead || (_action >= 0 && !IsActionRead()) || Next() is not { } next)
+        if (_nextBeforeRead || _action is { IsRead: false } || Next() is not { } next)
             return ObservedStoppage.Empty;
 
         var upcoming = _game.Possessions[next.Possession];
 
-        if (upcoming.Period != state.Period || upcoming.TeamInPossession != state.TeamInPossession)
+        if (upcoming.Period != state.Period)
             return ObservedStoppage.Empty;
+
+        if (upcoming.TeamInPossession != state.TeamInPossession)
+            throw Disagree($"The data's next action is {Sides.Name(upcoming.TeamInPossession)}'s, the rules are at a stoppage of {Sides.Name(state.TeamInPossession)}'s");
 
         var action = upcoming.Actions[next.Action];
 
@@ -237,13 +216,10 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     private int FreeThrowMade()
     {
-        var throws = FreeThrowsOf(CurrentAction);
-
-        if (_freeThrow >= throws.Length)
-            throw Disagree("The rules ask for a free throw the action does not have");
+        var freeThrow = Action.TakeFreeThrow();
 
         CloseStoppage();
-        return Number(throws[_freeThrow++].Made);
+        return Number(freeThrow.Made);
     }
 
     private void CloseStoppage()
@@ -259,40 +235,16 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     private int PeriodRunsOut(NbaState state)
     {
         if (state.LastMiss != Miss.NotSet)
-            return Number(ReboundOf(CurrentAction) is null);
+            return Number(!Action.HasRebound);
 
         return Number(Next() is not { } next || _game.Possessions[next.Possession].Period != state.Period);
     }
 
-    private int Fouler() => CurrentAction switch
+    private int Fouler() => Action.Action switch
     {
         ObservedShot shot => shot.Fouler ?? throw Disagree("The rules ask for the fouler of a clean shot"),
         ObservedFoul foul => foul.Fouler,
         var other => throw Disagree($"The rules ask for the fouler of a {other.GetType().Name}"),
-    };
-
-    private ObservedRebound ReadRebound()
-    {
-        var rebound = Rebound();
-
-        _reboundRead = true;
-        return rebound;
-    }
-
-    private ObservedRebound Rebound() => ReboundOf(CurrentAction) ?? throw Disagree("The rules ask for a rebound the action does not have");
-
-    private static ObservedFreeThrow[] FreeThrowsOf(ObservedAction action) => action switch
-    {
-        ObservedShot shot => shot.FreeThrows,
-        ObservedFoul foul => foul.FreeThrows,
-        _ => [],
-    };
-
-    private static ObservedRebound? ReboundOf(ObservedAction action) => action switch
-    {
-        ObservedShot shot => shot.Rebound,
-        ObservedFoul foul => foul.Rebound,
-        _ => null,
     };
 
     private static bool HasAfter(Possession possession) => possession.After.Timeouts.Length > 0 || possession.After.Substitutions.Length > 0 || possession.AwardedAfter.Length > 0;
