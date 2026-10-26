@@ -2,7 +2,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="GameGraph.Models.Tests.Unit" />
-    <InternalsVisibleTo Include="GameGraph.Simulation" />
   </ItemGroup>
 
   <ItemGroup>

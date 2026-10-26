@@ -70,7 +70,7 @@ public sealed class GoldenTests
 
         Assert.NotEmpty(golden.Cases);
 
-        return (golden, Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(directory, "fitted-model.json")), golden.Features));
+        return (golden, Model.FromFitted(ContractDocuments.ReadFittedModel(Path.Combine(directory, "fitted-model.json")), golden.Features));
     }
 
     private static void AssertClose(double expected, double actual) =>

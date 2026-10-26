@@ -1,6 +1,6 @@
 using System.Globalization;
-using GameGraph.Contract;
 using GameGraph.Contract.Files;
+using GameGraph.Contract;
 using Xunit;
 
 namespace GameGraph.Models.Tests.Unit;
@@ -16,10 +16,10 @@ public sealed class ParityTests
     public void CSharpReproducesTheLikelihoodsPythonReported(string set)
     {
         var parity = Parity(set);
-        var data = TrainingDataFiles.Read(parity);
+        var data = TrainingDataDirectory.Read(parity);
         var examples = Examples(data);
-        var report = ContractFiles.ReadTrainingReport(Path.Combine(parity, "Golden.training.json"));
-        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
+        var report = ContractDocuments.ReadTrainingReport(Path.Combine(parity, "Golden.training.json"));
+        var model = Model.FromFitted(ContractDocuments.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
         var training = data.ExamplesIn(report["trainingGames"]!.GetValue<int>());
 
         Assert.Equal((training, examples.Length - training), (report["examples"]!["training"]!.GetValue<int>(), report["examples"]!["validation"]!.GetValue<int>()));
@@ -34,8 +34,8 @@ public sealed class ParityTests
     public void TheFittedModelCarriesItsManifestsDeclaration(string set)
     {
         var parity = Parity(set);
-        var manifest = ContractFiles.ReadTrainingDataManifest(Path.Combine(parity, "manifest.json"));
-        var fitted = ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json"));
+        var manifest = ContractDocuments.ReadTrainingDataManifest(Path.Combine(parity, "manifest.json"));
+        var fitted = ContractDocuments.ReadFittedModel(Path.Combine(parity, "Golden.json"));
 
         Assert.Equal(manifest.Model, fitted.Model);
     }
@@ -45,9 +45,9 @@ public sealed class ParityTests
     public void CSharpDrawsTheSamplesPythonDrew(string set)
     {
         var parity = Parity(set);
-        var data = TrainingDataFiles.Read(parity);
+        var data = TrainingDataDirectory.Read(parity);
         var examples = Examples(data);
-        var model = Model.FromFitted(ContractFiles.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
+        var model = Model.FromFitted(ContractDocuments.ReadFittedModel(Path.Combine(parity, "Golden.json")), data.Manifest.Features);
         var lines = File.ReadAllLines(Path.Combine(parity, "samples.csv"));
 
         Assert.Equal("uniform,sample", lines[0]);

@@ -1,6 +1,7 @@
 using System.Linq.Expressions;
-using GameGraph.Contract;
+using System.Reflection;
 using GameGraph.Contract.Distributions;
+using GameGraph.Contract;
 using GameGraph.Models.Distributions;
 using GameGraph.Models.Predictors;
 
@@ -8,6 +9,8 @@ namespace GameGraph.Models;
 
 public sealed class Model
 {
+    private static readonly MethodInfo SampleFromMethod = typeof(Model).GetMethod(nameof(SampleFrom), BindingFlags.Instance | BindingFlags.NonPublic)!;
+
     private readonly IDistribution _distribution;
     private readonly KnotLookup[] _lookups;
     private readonly Predictor[] _predictors;
@@ -54,7 +57,7 @@ public sealed class Model
         }
     }
 
-    internal Expression WriteParametersExpression(IReadOnlyList<Expression> row, Expression parameters, Expression at)
+    public Expression WriteParametersExpression(IReadOnlyList<Expression> row, Expression parameters, Expression at)
     {
         if (row.Count != _features)
             throw new ArgumentException($"A row has {_features} features, given {row.Count}", nameof(row));
@@ -78,7 +81,8 @@ public sealed class Model
         return Expression.Block([.. segments, .. located], steps);
     }
 
-    internal int SampleFrom(double[] parameters, int count, double uniform) => _distribution.Sample(parameters.AsSpan(0, count), uniform);
+    public Expression SampleExpression(Expression parameters, Expression count, Expression uniform) =>
+        Expression.Call(Expression.Constant(this), SampleFromMethod, parameters, count, uniform);
 
     public double LogProbability(ReadOnlySpan<double> features, int outcome)
     {
@@ -120,7 +124,9 @@ public sealed class Model
         _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration.GetType().Name, "Not a distribution"),
     };
 
-    internal int ParametersPerRow => _predictors.Length + _givenColumns.Length;
+    public int ParametersPerRow => _predictors.Length + _givenColumns.Length;
+
+    private int SampleFrom(double[] parameters, int count, double uniform) => _distribution.Sample(parameters.AsSpan(0, count), uniform);
 
     private int ParameterValueCount(ReadOnlySpan<double> features) => Rows(features) * ParametersPerRow;
 

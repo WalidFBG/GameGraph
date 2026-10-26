@@ -1,5 +1,5 @@
-using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json;
 using GameGraph.Contract.Files;
 using GameGraph.Nba.Graph;
 using GameGraph.Simulation;
@@ -19,8 +19,8 @@ public static class SimulationFixture
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
     };
 
-    public static FittedGame<NbaState> Fitted() =>
-        new(NbaGameSpec.Instance, [.. NbaGameSpec.Instance.Nodes.Select(n => ContractFiles.ReadFittedModel(FittedModelPath(n.Name)))]);
+    public static FittedGraph<NbaState> Fitted() =>
+        new(NbaGraph.Instance, [.. NbaGraph.Instance.Nodes.Select(n => ContractDocuments.ReadFittedModel(FittedModelPath(n.Name)))]);
 
     public static GameContext Context() =>
         JsonSerializer.Deserialize<GameContext>(File.ReadAllText(ContextPath), Strict)
@@ -30,7 +30,7 @@ public static class SimulationFixture
     {
         Directory.CreateDirectory(FittedModels);
 
-        foreach (var node in NbaGameSpec.Instance.Nodes)
+        foreach (var node in NbaGraph.Instance.Nodes)
             File.Copy(fittedModelOf(node.Name), FittedModelPath(node.Name), overwrite: true);
 
         File.WriteAllText(ContextPath, JsonSerializer.Serialize(context, Strict) + "\n");

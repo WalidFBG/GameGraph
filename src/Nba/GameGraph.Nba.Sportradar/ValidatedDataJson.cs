@@ -1,6 +1,6 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
+using System.Text.Json.Serialization;
+using System.Text.Json;
 using OddsFactory.Sports.Data.Contracts.SportRadar;
 
 namespace GameGraph.Nba.Sportradar;

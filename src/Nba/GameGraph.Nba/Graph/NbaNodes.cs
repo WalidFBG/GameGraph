@@ -1,10 +1,13 @@
 using GameGraph.Contract.Distributions;
+using GameGraph.Engine.Nodes;
 using GameGraph.Engine;
 
 namespace GameGraph.Nba.Graph;
 
 public static class NbaNodes
 {
+    internal static readonly GraphBuilder<NbaState> Builder = new();
+
     private static readonly (string Name, int Lowest, int Highest)[] FoulingBands =
         [("Trail3", -3, -3), ("Lead1To3", 1, 3), ("Lead4To8", 4, 8), ("Lead9To12", 9, 12)];
 
@@ -12,26 +15,28 @@ public static class NbaNodes
         [("Trail10OrMore", int.MinValue, -10), ("Trail4To9", -9, -4), ("Trail1To3", -3, -1), ("Lead1To3", 1, 3), ("Lead4To8", 4, 8), ("Lead9OrMore", 9, int.MaxValue)];
 
     public static readonly ChoiceNode<NbaState> Starters = new(
+        Builder,
         nameof(Starters),
         s => s.Active[s.LineupTeam],
         NbaFeatures.FiveStarters,
         [CandidateTerm.Spline(NbaFeatures.StartShare, 4), CandidateTerm.Spline(NbaFeatures.UsualSeconds, 4), CandidateTerm.Linear(NbaFeatures.StartedLast)],
         NbaTransitions.Starters);
 
-    public static readonly NodeSpec<NbaState> JumpBall = new VectorNode<NbaState>(
+    public static readonly Node<NbaState> JumpBall = new SingleRowNode<NbaState>(
+        Builder,
         nameof(JumpBall),
         new BernoulliDistribution(),
         new Dictionary<string, FeatureTerm<NbaState>[]> { ["probability"] = [] },
         new Dictionary<string, Feature<NbaState>>(),
         NbaTransitions.JumpBall);
 
-    public static readonly NodeSpec<NbaState> OffenceTimeout = Node(
+    public static readonly Node<NbaState> OffenceTimeout = SingleRow(
         nameof(OffenceTimeout),
         new BernoulliDistribution(),
         [.. TimeoutTerms(NbaFeatures.OffenceTimeoutsLeft, NbaFeatures.AfterPlayStart), FeatureTerm.Linear(NbaFeatures.ScoreMargin), .. LateSituation()],
         NbaTransitions.OffenceTimeout);
 
-    public static readonly NodeSpec<NbaState> DefenceTimeout = Node(
+    public static readonly Node<NbaState> DefenceTimeout = SingleRow(
         nameof(DefenceTimeout),
         new BernoulliDistribution(),
         TimeoutTerms(
@@ -39,7 +44,7 @@ public static class NbaNodes
             [.. new[] { PlayStart.PeriodStart, PlayStart.OffensiveRebound, PlayStart.MadeShot, PlayStart.MadeFreeThrow, PlayStart.DeadBallTurnover, PlayStart.SideOut, PlayStart.AwardedBall, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After)]),
         NbaTransitions.DefenceTimeout);
 
-    public static readonly NodeSpec<NbaState> Substitutions = Node(
+    public static readonly Node<NbaState> Substitutions = SingleRow(
         nameof(Substitutions),
         new CategoricalDistribution(SubstitutingTeams.Names),
         [
@@ -53,6 +58,7 @@ public static class NbaNodes
         NbaTransitions.Substitutions);
 
     public static readonly ChoiceNode<NbaState> SubstitutionCount = new(
+        Builder,
         nameof(SubstitutionCount),
         s => SubstitutingTeams.Counts(s.ForcedOff, s.Bench[s.LineupTeam].Length),
         NbaFeatures.OneCount,
@@ -63,6 +69,7 @@ public static class NbaNodes
         NbaTransitions.SubstitutionCount);
 
     public static readonly ChoiceNode<NbaState> SubstitutedOff = new(
+        Builder,
         nameof(SubstitutedOff),
         s => s.Removable,
         NbaFeatures.ChosenOff,
@@ -70,19 +77,21 @@ public static class NbaNodes
         NbaTransitions.SubstitutedOff);
 
     public static readonly ChoiceNode<NbaState> SubstitutedOn = new(
+        Builder,
         nameof(SubstitutedOn),
         s => s.Bench[s.LineupTeam],
         NbaFeatures.ChangeSize,
         PlayerTerms(),
         NbaTransitions.SubstitutedOn);
 
-    public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
+    public static readonly Node<NbaState> AwardedFreeThrow = SingleRow(
         nameof(AwardedFreeThrow),
         new CategoricalDistribution(AwardedFreeThrows.Names),
         [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame, NbaFeatures.AtHome, .. NbaFeatures.PreviousAwarded],
         NbaTransitions.AwardedFreeThrow);
 
     public static readonly ChoiceNode<NbaState> AwardedShooter = new(
+        Builder,
         nameof(AwardedShooter),
         s => s.AwardedShooters,
         NbaFeatures.OnePlayer,
@@ -90,19 +99,20 @@ public static class NbaNodes
         NbaTransitions.AwardedShooter);
 
     public static readonly ChoiceNode<NbaState> AwardedFouler = new(
+        Builder,
         nameof(AwardedFouler),
         s => s.AwardedFoulers,
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.FoulShare, 4), CandidateTerm.Linear(NbaFeatures.InFoulTrouble), CandidateTerm.Linear(NbaFeatures.OnCourtNow)],
         NbaTransitions.AwardedFouler);
 
-    public static readonly NodeSpec<NbaState> AwardedFreeThrowMade = Node(
+    public static readonly Node<NbaState> AwardedFreeThrowMade = SingleRow(
         nameof(AwardedFreeThrowMade),
         new BernoulliDistribution(),
         [.. new[] { NbaFeatures.ShooterMargin, NbaFeatures.ShooterPointsPerPossession, NbaFeatures.ShooterAtHome }.Concat(NbaFeatures.KindAwarded).Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.AwardedShooterFreeThrowRate, 4)],
         NbaTransitions.AwardedFreeThrowMade);
 
-    public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
+    public static readonly Node<NbaState> PeriodRunsOut = SingleRow(
         nameof(PeriodRunsOut),
         new BernoulliDistribution(),
         [
@@ -114,7 +124,7 @@ public static class NbaNodes
         ],
         NbaTransitions.PeriodRunsOut);
 
-    public static readonly NodeSpec<NbaState> ActionType = Node(
+    public static readonly Node<NbaState> ActionType = SingleRow(
         nameof(ActionType),
         new CategoricalDistribution(ActionTypes.Names),
         [
@@ -130,7 +140,8 @@ public static class NbaNodes
         ],
         NbaTransitions.ActionType);
 
-    public static readonly NodeSpec<NbaState> ActionTime = new VectorNode<NbaState>(
+    public static readonly Node<NbaState> ActionTime = new SingleRowNode<NbaState>(
+        Builder,
         nameof(ActionTime),
         new DiscreteJohnsonSuDistribution(),
         new Dictionary<string, FeatureTerm<NbaState>[]>
@@ -143,20 +154,21 @@ public static class NbaNodes
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
 
-    public static readonly NodeSpec<NbaState> TurnoverKind = Node(
+    public static readonly Node<NbaState> TurnoverKind = SingleRow(
         nameof(TurnoverKind),
         new CategoricalDistribution(TurnoverKinds.Names),
         [FeatureTerm.Spline(NbaFeatures.ShotClock, 24), FeatureTerm.Spline(NbaFeatures.PeriodClock, 10)],
         NbaTransitions.TurnoverKind);
 
     public static readonly ChoiceNode<NbaState> TurnedOverBy = new(
+        Builder,
         nameof(TurnedOverBy),
         s => s.OnCourt[s.TeamInPossession],
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.TurnoverShare, 4)],
         NbaTransitions.TurnedOverBy);
 
-    public static readonly NodeSpec<NbaState> Stolen = Node(
+    public static readonly Node<NbaState> Stolen = SingleRow(
         nameof(Stolen),
         new BernoulliDistribution(),
         [
@@ -169,6 +181,7 @@ public static class NbaNodes
         NbaTransitions.Stolen);
 
     public static readonly ChoiceNode<NbaState> Stealer = new(
+        Builder,
         nameof(Stealer),
         s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
         NbaFeatures.OnePlayer,
@@ -176,13 +189,21 @@ public static class NbaNodes
         NbaTransitions.Stealer);
 
     public static readonly ChoiceNode<NbaState> Shooter = new(
+        Builder,
         nameof(Shooter),
         s => s.OnCourt[s.TeamInPossession],
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.ShotShare, 4)],
         NbaTransitions.Shooter);
 
+    public static readonly Node<NbaState> FouledOnShot = SingleRow(
+        nameof(FouledOnShot),
+        new BernoulliDistribution(),
+        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterFouledRatio, 4), FeatureTerm.Spline(NbaFeatures.DefenceShootingFoulRate, 4)],
+        NbaTransitions.FouledOnShot);
+
     public static readonly ChoiceNode<NbaState> Fouler = new(
+        Builder,
         nameof(Fouler),
         s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
         NbaFeatures.OnePlayer,
@@ -190,25 +211,20 @@ public static class NbaNodes
         NbaTransitions.Fouler);
 
     public static readonly ChoiceNode<NbaState> FouledPlayer = new(
+        Builder,
         nameof(FouledPlayer),
         s => s.OnCourt[s.TeamInPossession],
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.FoulDrawnShare, 4)],
         NbaTransitions.FouledPlayer);
 
-    public static readonly NodeSpec<NbaState> FouledOnShot = Node(
-        nameof(FouledOnShot),
-        new BernoulliDistribution(),
-        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterFouledRatio, 4), FeatureTerm.Spline(NbaFeatures.DefenceShootingFoulRate, 4)],
-        NbaTransitions.FouledOnShot);
-
-    public static readonly NodeSpec<NbaState> ShotMade = Node(
+    public static readonly Node<NbaState> ShotMade = SingleRow(
         nameof(ShotMade),
         new BernoulliDistribution(),
         [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterMakeRate, 4), FeatureTerm.Spline(NbaFeatures.DefenceBlockRate, 4)],
         NbaTransitions.ShotMade);
 
-    public static readonly NodeSpec<NbaState> Assisted = Node(
+    public static readonly Node<NbaState> Assisted = SingleRow(
         nameof(Assisted),
         new BernoulliDistribution(),
         [
@@ -220,50 +236,53 @@ public static class NbaNodes
         NbaTransitions.Assisted);
 
     public static readonly ChoiceNode<NbaState> Assister = new(
+        Builder,
         nameof(Assister),
         s => s.Teammates,
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.AssistShare, 4)],
         NbaTransitions.Assister);
 
-    public static readonly NodeSpec<NbaState> Blocked = Node(
+    public static readonly Node<NbaState> Blocked = SingleRow(
         nameof(Blocked),
         new BernoulliDistribution(),
         [FeatureTerm.Linear(NbaFeatures.ShotIsThree), FeatureTerm.Spline(NbaFeatures.ShooterBlockedRate, 4), FeatureTerm.Spline(NbaFeatures.ShotClock, 8)],
         NbaTransitions.Blocked);
 
     public static readonly ChoiceNode<NbaState> Blocker = new(
+        Builder,
         nameof(Blocker),
         s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
         NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.BlockShare, 4)],
         NbaTransitions.Blocker);
 
-    public static readonly NodeSpec<NbaState> InBonus = Node(
+    public static readonly Node<NbaState> InBonus = SingleRow(
         nameof(InBonus),
         new BernoulliDistribution(),
         [NbaFeatures.DefenceInPenalty, NbaFeatures.DefenceSecondFoulInLastTwoMinutes],
         NbaTransitions.InBonus);
 
-    public static readonly NodeSpec<NbaState> FreeThrowMade = Node(
+    public static readonly Node<NbaState> FreeThrowMade = SingleRow(
         nameof(FreeThrowMade),
         new BernoulliDistribution(),
         [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.LastFreeThrow, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterFreeThrowRate, 4)],
         NbaTransitions.FreeThrowMade);
 
-    public static readonly NodeSpec<NbaState> OffensiveRebound = Node(
+    public static readonly Node<NbaState> OffensiveRebound = SingleRow(
         nameof(OffensiveRebound),
         new BernoulliDistribution(),
         [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.OffenceReboundRate, 4), FeatureTerm.Spline(NbaFeatures.DefenceReboundRate, 4)],
         NbaTransitions.OffensiveRebound);
 
-    public static readonly NodeSpec<NbaState> TeamRebound = Node(
+    public static readonly Node<NbaState> TeamRebound = SingleRow(
         nameof(TeamRebound),
         new BernoulliDistribution(),
         [NbaFeatures.ReboundToOffence, NbaFeatures.MissedFreeThrow],
         NbaTransitions.TeamRebound);
 
     public static readonly ChoiceNode<NbaState> Rebounder = new(
+        Builder,
         nameof(Rebounder),
         s => s.OnCourt[s.ReboundToOffence ? s.TeamInPossession : Sides.Opponent(s.TeamInPossession)],
         NbaFeatures.OnePlayer,
@@ -326,17 +345,17 @@ public static class NbaNodes
         FeatureTerm.Spline(NbaFeatures.LateMargin, 8),
     ];
 
-    private static NodeSpec<NbaState> Node(
+    private static Node<NbaState> SingleRow(
         string name,
         DistributionDeclaration distribution,
         Feature<NbaState>[] features,
         Transition<NbaState> transition) =>
-        Node(name, distribution, [.. features.Select(FeatureTerm.Linear)], transition);
+        SingleRow(name, distribution, [.. features.Select(FeatureTerm.Linear)], transition);
 
-    private static NodeSpec<NbaState> Node(
+    private static Node<NbaState> SingleRow(
         string name,
         DistributionDeclaration distribution,
         FeatureTerm<NbaState>[] terms,
         Transition<NbaState> transition) =>
-        new VectorNode<NbaState>(name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
+        new SingleRowNode<NbaState>(Builder, name, distribution, distribution.Predicted().ToDictionary(p => p.Name, _ => terms), new Dictionary<string, Feature<NbaState>>(), transition);
 }

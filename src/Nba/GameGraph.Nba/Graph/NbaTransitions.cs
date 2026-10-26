@@ -1,4 +1,4 @@
-using GameGraph.Engine;
+using GameGraph.Engine.Nodes;
 using GameGraph.Nba.Incidents;
 
 namespace GameGraph.Nba.Graph;

@@ -1,4 +1,5 @@
-using GameGraph.Engine;
+using GameGraph.Engine.Nodes;
+using GameGraph.Engine.Walk;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 using GameGraph.Nba.Replay;
@@ -92,7 +93,7 @@ public sealed class ObservedReplayTests
 
     private static Possession Last(int team, int clock) => new(team, FinalPeriod, [Made(team, clock)]);
 
-    private static List<int[]> OnCourtAt(AcceptedGame game, NodeSpec<NbaState> node, int team)
+    private static List<int[]> OnCourtAt(AcceptedGame game, Node<NbaState> node, int team)
     {
         var courts = new Courts(node, team);
 
@@ -101,11 +102,11 @@ public sealed class ObservedReplayTests
         return courts.Seen;
     }
 
-    private sealed class Courts(NodeSpec<NbaState> node, int team) : IDecisionCollector<NbaState>
+    private sealed class Courts(Node<NbaState> node, int team) : IDecisionCollector<NbaState>
     {
         public List<int[]> Seen { get; } = [];
 
-        public void Collect(NodeSpec<NbaState> asked, NbaState state, ReadOnlySpan<double> features, int outcome)
+        public void Collect(Node<NbaState> asked, NbaState state, ReadOnlySpan<double> features, int outcome)
         {
             if (asked == node)
                 Seen.Add([.. state.OnCourt[team]]);

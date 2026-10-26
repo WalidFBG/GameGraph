@@ -1,3 +1,6 @@
+using GameGraph.Engine.Nodes;
+using GameGraph.Engine.Walk;
+
 namespace GameGraph.Engine.Tests.Unit;
 
 internal sealed class Recorder : IOutcomeDecider<ToyState>, IDecisionCollector<ToyState>
@@ -6,12 +9,12 @@ internal sealed class Recorder : IOutcomeDecider<ToyState>, IDecisionCollector<T
 
     public List<(string Node, double[] Features, int Outcome)> Collected { get; } = [];
 
-    public int Decide(NodeSpec<ToyState> node, ToyState state, ReadOnlySpan<double> features)
+    public int Decide(Node<ToyState> node, ToyState state, ReadOnlySpan<double> features)
     {
         Decided.Add(features.ToArray());
         return state.Value % 2;
     }
 
-    public void Collect(NodeSpec<ToyState> node, ToyState state, ReadOnlySpan<double> features, int outcome) =>
+    public void Collect(Node<ToyState> node, ToyState state, ReadOnlySpan<double> features, int outcome) =>
         Collected.Add((node.Name, features.ToArray(), outcome));
 }

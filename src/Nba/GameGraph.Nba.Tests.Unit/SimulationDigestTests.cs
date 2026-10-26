@@ -1,5 +1,6 @@
-using GameGraph.Nba.Graph;
 using GameGraph.Nba.Fixture;
+using GameGraph.Nba.Graph;
+using GameGraph.Simulation.Randomness;
 using GameGraph.Simulation;
 using Xunit;
 
@@ -20,7 +21,7 @@ public sealed class SimulationDigestTests
 
         Simulator.Run(fitted, Seeds.Draw(Simulations), _ => new NbaState(digest, context), digest);
 
-        Assert.Empty(NbaGameSpec.Instance.Nodes.Where(n => digest.Decisions(n) == 0).Select(n => n.Name));
+        Assert.Empty(NbaGraph.Instance.Nodes.Where(n => digest.Decisions(n) == 0).Select(n => n.Name));
         Assert.Equal(Digest, digest.Hex());
     }
 }

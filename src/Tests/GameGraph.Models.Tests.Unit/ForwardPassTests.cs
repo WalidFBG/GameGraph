@@ -1,6 +1,6 @@
-using GameGraph.Contract;
 using GameGraph.Contract.Distributions;
 using GameGraph.Contract.Terms;
+using GameGraph.Contract;
 using GameGraph.Models.Distributions;
 using GameGraph.Models.Predictors;
 using Xunit;
