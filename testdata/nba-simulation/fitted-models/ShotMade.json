@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "node": "ShotMade",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "TeamPointsPerPossession"
+        },
+        {
+          "basis": "linear",
+          "feature": "ShotIsThree"
+        },
+        {
+          "basis": "linear",
+          "feature": "ShotFouled"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "ShooterMakeRate",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "DefenceBlockRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -0.2790414888671344,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6973735059250012,
+          "scale": 11.680397669640604,
+          "coefficients": [
+            0.00065285444433311
+          ]
+        },
+        "TeamPointsPerPossession": {
+          "centre": 1.1542353090197064,
+          "scale": 0.04397488219448812,
+          "coefficients": [
+            0.02022672994755349
+          ]
+        },
+        "ShotIsThree": {
+          "centre": 0.37490124997862556,
+          "scale": 0.4840974103866091,
+          "coefficients": [
+            -0.2286283521957938
+          ]
+        },
+        "ShotFouled": {
+          "centre": 0.10460662437372822,
+          "scale": 0.30604587648065906,
+          "coefficients": [
+            -0.37036773993384675
+          ]
+        },
+        "AtHome": {
+          "centre": 0.5000530086694824,
+          "scale": 0.49999999719009774,
+          "coefficients": [
+            0.013362886972412318
+          ]
+        },
+        "ShooterMakeRate": {
+          "knotPositions": [
+            0.173194306167923,
+            0.3791172854040761,
+            0.46349505577376165,
+            0.7523749222068891
+          ],
+          "centres": [
+            0.19500694124185863,
+            0.04846907900312855,
+            0.019903466247121276
+          ],
+          "scales": [
+            0.024473318622203016,
+            0.03644042928855475,
+            0.03534538689025607
+          ],
+          "coefficients": [
+            0.027231494677343652,
+            0.04498043629295162,
+            0.1018960369224462
+          ]
+        },
+        "DefenceBlockRate": {
+          "knotPositions": [
+            0.011975086953783671,
+            0.043502132977096146,
+            0.05549297030789538,
+            0.13032378209869855
+          ],
+          "centres": [
+            0.02915945388995026,
+            0.006078803114096619,
+            0.0037226824493402197
+          ],
+          "scales": [
+            0.004618016155246086,
+            0.005273136874645021,
+            0.007447973624982967
+          ],
+          "coefficients": [
+            -0.013850394219419462,
+            -0.013895169063500112,
+            -0.019609666395432067
+          ]
+        }
+      }
+    }
+  }
+}

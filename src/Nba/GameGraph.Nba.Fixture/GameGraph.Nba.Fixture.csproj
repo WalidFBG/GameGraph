@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\GameGraph.Contract.Files\GameGraph.Contract.Files.csproj" />
+    <ProjectReference Include="..\..\GameGraph.Simulation\GameGraph.Simulation.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
+  </ItemGroup>
+</Project>

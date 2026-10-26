@@ -68,9 +68,13 @@ GameGraph.Host
         ├── GameGraph.Nba
         └── GameGraph.Engine
 
+GameGraph.Nba.Tests.Unit, GameGraph.Nba.Benchmark
+  └── GameGraph.Nba.Fixture ──► GameGraph.Contract.Files, GameGraph.Simulation, GameGraph.Nba
+
 GameGraph.Nba.Tests.QualityAssurance
   ├── GameGraph.Nba.Sportradar
   ├── GameGraph.Nba.Augmentation
+  ├── GameGraph.Nba.Fixture
   ├── GameGraph.Contract.Files
   ├── GameGraph.Simulation
   ├── GameGraph.Models
@@ -82,13 +86,16 @@ GameGraph.Nba.Tests.QualityAssurance
 - **Contract.Files** reads and writes the contract's files: the manifest and fitted model as JSON validated against the schemas (the polymorphic records get their discriminators here, not from attributes), the training data as CSV, and the training report, which only the parity tests read. It is the only C# that knows the formats.
 - **Models** knows nothing about sports, games, the engine or files (see `models.md`): the forward pass, a fitted model's parameter values, log-probability and samples, from the node's features.
 - **Engine** owns the walk and the outcome-decider and decision-collector interfaces, and the recording decision collector (a decision collector that records each node's examples, game by game, as it is handed them, in either mode). Each node declares its model over the sport's features (a distribution, the terms of each predicted parameter, each a feature with its basis, and the feature of each given parameter) and takes its features from it, so the two cannot disagree. A game numbers its nodes, and a node belongs to one game. It knows nothing about any sport, nothing about files and nothing about how training works.
-- **Simulation** binds the fitted models to a game once (`FittedGame`) and simulates it many times: each simulation gets its own seed and a fresh state, every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
+- **Simulation** binds the fitted models to a game once (`FittedGame`) and simulates it many times: each simulation gets its own seed (drawn from one root seed through SplitMix64) and a fresh state, its random numbers come from xoshiro256** (`SeededRandom`, seeded through SplitMix64), every decision is sampled from its node's fitted model, decisions are discarded, and incidents go to the incident collector the caller puts in each simulation's state. It fails if a fitted model was declared differently from its node; it reads no files.
 - **Training** is Python: it reads each node's training data and writes its fitted model and training report (`uv run gamegraph-train`).
 - **Nba** is the sport: its state, rules, features, and what an observed game looks like (possessions by side and period, each action with its clock, and the free throws outside the play). Its incidents are the possession and the awarded free throw; the tree is `possession-tree.html`. It knows no data source and no training data.
 - **Nba.Sportradar** reads Sportradar's ValidatedData into observed games. It is the only project that knows Sportradar.
 - **Nba.Augmentation** keeps each team's history from observed games, taken in start-time order, and gives each game its context.
 - **Nba.TrainingDataGeneration** walks the observed games: context, then the engine's walk with the observed outcome decider, then the history advances.
-- **Nba.Tests.QualityAssurance** holds the audits (explicit facts that write Parquet to `audit`, see `plan.md`): entry points at its root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain`.
+- **Nba.Fixture** reads and writes the simulation fixture (`testdata/nba-simulation`): the latest game's context as JSON and a copy of each node's fitted model, so the digest test and the benchmark need nothing outside the repository and do not move when the models are retrained.
+- **Nba.Tests.Unit** holds the digest test: 1,000 simulations of the fixture game, every decision (node, features, outcome) and incident hashed with SHA-256 and compared with a pinned digest. Any change to what a simulation does changes it; an exact optimisation keeps it.
+- **Nba.Benchmark** times runs of 10,000 simulations of the fixture game on all threads (three to warm up, then ten), printing each run's time and the median; it refuses to run a build that is not optimised.
+- **Nba.Tests.QualityAssurance** holds the audits (explicit facts that write Parquet to `audit`, see `plan.md`) and the fixture's refresh: entry points at its root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain`.
 - **Host** wires them together: it walks the season, then gives each node's examples their manifest (the node's features and declared model) and writes them.
 
 The engine and training never meet: they share only files. What guarantees that what is trained is what runs is the parity tests: C# recomputes the training report's likelihoods from the same files and fitted models, and draws the same samples, to 1e-12.

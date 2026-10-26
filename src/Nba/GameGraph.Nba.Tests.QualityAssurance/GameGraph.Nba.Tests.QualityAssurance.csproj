@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\GameGraph.Simulation\GameGraph.Simulation.csproj" />
     <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Augmentation\GameGraph.Nba.Augmentation.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba.Fixture\GameGraph.Nba.Fixture.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Sportradar\GameGraph.Nba.Sportradar.csproj" />
   </ItemGroup>
 </Project>

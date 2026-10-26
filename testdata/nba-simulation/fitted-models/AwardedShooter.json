@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "node": "AwardedShooter",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "AwardedShare",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "TookPreviousAwarded"
+        },
+        {
+          "basis": "linear",
+          "feature": "OnCourtNow"
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "AwardedShare": {
+          "knotPositions": [
+            -3.5553480614894135,
+            -1.4271163556401458,
+            -0.6359887667199967,
+            -0.1466034741918754
+          ],
+          "centres": [
+            1.5856126733842668,
+            0.13727541337516372,
+            0.013284798905407694
+          ],
+          "scales": [
+            0.4937682177494802,
+            0.2606321118090155,
+            0.05480966194339493
+          ],
+          "coefficients": [
+            0.4435431039099944,
+            0.6817117157424614,
+            0.03650952136276616
+          ]
+        },
+        "TookPreviousAwarded": {
+          "centre": 0.023025893430344533,
+          "scale": 0.14998567152261394,
+          "coefficients": [
+            0.9040458170222201
+          ]
+        },
+        "OnCourtNow": {
+          "centre": 0.9358014123689279,
+          "scale": 0.24510636258006482,
+          "coefficients": [
+            0.12593422236549282
+          ]
+        }
+      }
+    }
+  }
+}

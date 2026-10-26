@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "node": "TurnedOverBy",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "TurnoverShare",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "TurnoverShare": {
+          "knotPositions": [
+            -4.356708826689592,
+            -1.6894806201076367,
+            -1.1597667118214403,
+            -0.3285040669720361
+          ],
+          "centres": [
+            2.4684641186578418,
+            0.15805729710776809,
+            0.019259460679026043
+          ],
+          "scales": [
+            0.3057601388846768,
+            0.20094631781570035,
+            0.06978658102827137
+          ],
+          "coefficients": [
+            0.17213146592638964,
+            0.24008920499865372,
+            0.07876726086074906
+          ]
+        }
+      }
+    }
+  }
+}

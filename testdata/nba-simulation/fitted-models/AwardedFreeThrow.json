@@ -1,0 +1,843 @@
+{
+  "schemaVersion": 1,
+  "node": "AwardedFreeThrow",
+  "model": {
+    "distribution": {
+      "name": "categorical",
+      "categories": [
+        "None",
+        "TechnicalOffence",
+        "TechnicalDefence",
+        "FlagrantOffence",
+        "FlagrantDefence",
+        "ClearPathOffence",
+        "TakeFoulOffence",
+        "TakeFoulDefence"
+      ]
+    },
+    "terms": {
+      "TechnicalOffence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "TechnicalDefence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "FlagrantOffence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "FlagrantDefence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "ClearPathOffence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "TakeFoulOffence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ],
+      "TakeFoulDefence": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTechnicalDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousFlagrantDefence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousClearPathOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "PreviousTakeFoulDefence"
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "TechnicalOffence": {
+      "intercept": -5.857782912182548,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            -0.0011139751649935877
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            -0.11202722207915049
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            -0.008602287167785735
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            0.12576858809795505
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            -0.029232888572362323
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            -0.03113528179107081
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.010531803544657638
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.009736185546750058
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            0.03351974311400455
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.02029804411055718
+          ]
+        }
+      }
+    },
+    "TechnicalDefence": {
+      "intercept": -6.690016199105201,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            -0.14216511773913454
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            -0.008838789162495309
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            0.02117976970364961
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            -0.029937553956129192
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            0.12918589079405957
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            0.024253298447876572
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.006555711316387893
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.005813252719055027
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.02264368976007166
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.012805181921997552
+          ]
+        }
+      }
+    },
+    "FlagrantOffence": {
+      "intercept": -7.746622985904227,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            0.06273842763200752
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            0.003191442488176329
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            0.000550602905823702
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            0.11901267165484093
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            0.11731873851051536
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            0.24405954140714572
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.0029145283486300493
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.002331567042735518
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.010456539826047061
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.00586157506884846
+          ]
+        }
+      }
+    },
+    "FlagrantDefence": {
+      "intercept": -9.860291497710447,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            0.0067943753695010435
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            -0.006791668481478845
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            0.03083551657456644
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            0.03199243533792149
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            -0.0021616081368948993
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            -0.0007571188990971105
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            0.05928962697768686
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.0002621601093834569
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.0014571126557387268
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.0008229345244064898
+          ]
+        }
+      }
+    },
+    "ClearPathOffence": {
+      "intercept": -9.515945417822795,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            0.006177283559531143
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            0.05280607882720611
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            -0.0038580700652463638
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            0.03145441494225038
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            -0.0020050284669595312
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            -0.00013243032736005405
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.00033286316758818885
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            0.08860184103307986
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.0013928809213432892
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.0007791495825837291
+          ]
+        }
+      }
+    },
+    "TakeFoulOffence": {
+      "intercept": -7.5314592447286435,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            -0.011808352979862121
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            0.03732006350261791
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            0.02350257846638313
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            0.04369636190804766
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            -0.019284450131893865
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            -0.009182739816485335
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.003618555068608362
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.0030915724185299237
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.012790392204527847
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.0071615944447342645
+          ]
+        }
+      }
+    },
+    "TakeFoulDefence": {
+      "intercept": -8.698568053336242,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6216139544954953,
+          "scale": 11.729353816085231,
+          "coefficients": [
+            -0.0020029755464255677
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.04878810885778266,
+          "scale": 0.21542476480626394,
+          "coefficients": [
+            -0.04018107819775918
+          ]
+        },
+        "AtHome": {
+          "centre": 0.49996985004508787,
+          "scale": 0.4999999990909645,
+          "coefficients": [
+            0.008804521585394668
+          ]
+        },
+        "PreviousTechnicalOffence": {
+          "centre": 0.002912211554010903,
+          "scale": 0.05388627448502108,
+          "coefficients": [
+            -0.011303797082256447
+          ]
+        },
+        "PreviousTechnicalDefence": {
+          "centre": 0.0012937071562288437,
+          "scale": 0.03594486719996059,
+          "coefficients": [
+            -0.007360423541836123
+          ]
+        },
+        "PreviousFlagrantOffence": {
+          "centre": 0.0009469826747395455,
+          "scale": 0.0307585093681882,
+          "coefficients": [
+            -0.0032180011958782536
+          ]
+        },
+        "PreviousFlagrantDefence": {
+          "centre": 5.344764734420011e-05,
+          "scale": 0.007310594414490152,
+          "coefficients": [
+            -0.0013633165880044035
+          ]
+        },
+        "PreviousClearPathOffence": {
+          "centre": 8.770895974432838e-05,
+          "scale": 0.00936489545497951,
+          "coefficients": [
+            -0.0010559914329989798
+          ]
+        },
+        "PreviousTakeFoulOffence": {
+          "centre": 0.0005331060209459959,
+          "scale": 0.02308293349894536,
+          "coefficients": [
+            -0.0048993075413927825
+          ]
+        },
+        "PreviousTakeFoulDefence": {
+          "centre": 0.00016582475201662084,
+          "scale": 0.012876228258625368,
+          "coefficients": [
+            -0.002773750394926935
+          ]
+        }
+      }
+    }
+  }
+}

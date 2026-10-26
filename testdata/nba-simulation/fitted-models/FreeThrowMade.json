@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "node": "FreeThrowMade",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "TeamPointsPerPossession"
+        },
+        {
+          "basis": "linear",
+          "feature": "LastFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "ShooterFreeThrowRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": 1.312378883979324,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.5158717988038645,
+          "scale": 11.854001873435056,
+          "coefficients": [
+            0.0064162024167793924
+          ]
+        },
+        "TeamPointsPerPossession": {
+          "centre": 1.154579352825343,
+          "scale": 0.04358146703326565,
+          "coefficients": [
+            0.001451842018442776
+          ]
+        },
+        "LastFreeThrow": {
+          "centre": 0.5500690078208864,
+          "scale": 0.49748677817188414,
+          "coefficients": [
+            0.10140845121074943
+          ]
+        },
+        "AtHome": {
+          "centre": 0.5051832541021316,
+          "scale": 0.4999731331551603,
+          "coefficients": [
+            0.009019548595896744
+          ]
+        },
+        "ShooterFreeThrowRate": {
+          "knotPositions": [
+            0.4615806874968452,
+            0.7579941156629564,
+            0.8122633952574808,
+            0.9385844331517567
+          ],
+          "centres": [
+            0.27966072098375805,
+            0.029107405805098963,
+            0.014262092950751173
+          ],
+          "scales": [
+            0.03559300076271922,
+            0.023950610582518937,
+            0.024465019567985604
+          ],
+          "coefficients": [
+            0.16927105879057505,
+            0.10799438390255837,
+            0.17302783671145236
+          ]
+        }
+      }
+    }
+  }
+}

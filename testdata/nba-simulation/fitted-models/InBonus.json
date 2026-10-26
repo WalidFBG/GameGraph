@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "node": "InBonus",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "DefenceInPenalty"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceSecondFoulInLastTwoMinutes"
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -1.9880370950463588,
+      "terms": {
+        "DefenceInPenalty": {
+          "centre": 0.21700542628529385,
+          "scale": 0.4122063454727372,
+          "coefficients": [
+            4.644742919363859
+          ]
+        },
+        "DefenceSecondFoulInLastTwoMinutes": {
+          "centre": 0.08222201784236181,
+          "scale": 0.2747026713090379,
+          "coefficients": [
+            2.8537813472564975
+          ]
+        }
+      }
+    }
+  }
+}

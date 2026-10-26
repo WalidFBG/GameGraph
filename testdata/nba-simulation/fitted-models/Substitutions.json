@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "node": "Substitutions",
+  "model": {
+    "distribution": {
+      "name": "categorical",
+      "categories": [
+        "None",
+        "Offence",
+        "Defence",
+        "Both"
+      ]
+    },
+    "terms": {
+      "Offence": [
+        {
+          "basis": "linear",
+          "feature": "BeforeFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "BetweenFreeThrows"
+        },
+        {
+          "basis": "linear",
+          "feature": "TimeoutCalledHere"
+        },
+        {
+          "basis": "linear",
+          "feature": "Period"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "OffenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceInFoulTrouble"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterPeriodStart"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeShot"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterDeadBallTurnover"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSideOut"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamDefensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamOffensiveRebound"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "PeriodClock",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogOffenceLongestStint",
+          "knots": 6
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogDefenceLongestStint",
+          "knots": 6
+        }
+      ],
+      "Defence": [
+        {
+          "basis": "linear",
+          "feature": "BeforeFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "BetweenFreeThrows"
+        },
+        {
+          "basis": "linear",
+          "feature": "TimeoutCalledHere"
+        },
+        {
+          "basis": "linear",
+          "feature": "Period"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "OffenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceInFoulTrouble"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterPeriodStart"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeShot"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterDeadBallTurnover"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSideOut"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamDefensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamOffensiveRebound"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "PeriodClock",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogOffenceLongestStint",
+          "knots": 6
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogDefenceLongestStint",
+          "knots": 6
+        }
+      ],
+      "Both": [
+        {
+          "basis": "linear",
+          "feature": "BeforeFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "BetweenFreeThrows"
+        },
+        {
+          "basis": "linear",
+          "feature": "TimeoutCalledHere"
+        },
+        {
+          "basis": "linear",
+          "feature": "Period"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "OffenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceMustChange"
+        },
+        {
+          "basis": "linear",
+          "feature": "DefenceInFoulTrouble"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterPeriodStart"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeShot"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterDeadBallTurnover"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSideOut"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamDefensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamOffensiveRebound"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "PeriodClock",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogOffenceLongestStint",
+          "knots": 6
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LogDefenceLongestStint",
+          "knots": 6
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "Offence": {
+      "intercept": -4.305146785698754,
+      "terms": {
+        "BeforeFreeThrow": {
+          "centre": 0.15240735135842606,
+          "scale": 0.35941528989523447,
+          "coefficients": [
+            0.1114555789238657
+          ]
+        },
+        "BetweenFreeThrows": {
+          "centre": 0.06863823178491422,
+          "scale": 0.2528379420147823,
+          "coefficients": [
+            0.5641954748995267
+          ]
+        },
+        "TimeoutCalledHere": {
+          "centre": 0.03789032326671988,
+          "scale": 0.19093099976037298,
+          "coefficients": [
+            0.7867895037086206
+          ]
+        },
+        "Period": {
+          "centre": 1.5284148209780386,
+          "scale": 1.130099719514579,
+          "coefficients": [
+            -0.05053389843773425
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.05499846330572737,
+          "scale": 0.22797726276916083,
+          "coefficients": [
+            -0.06794874104017634
+          ]
+        },
+        "OffenceMustChange": {
+          "centre": 3.622625281483827e-05,
+          "scale": 0.006018715849200954,
+          "coefficients": [
+            0.06705244690671293
+          ]
+        },
+        "DefenceMustChange": {
+          "centre": 0.00012503900165121597,
+          "scale": 0.011181384838170874,
+          "coefficients": [
+            -0.006300285552106457
+          ]
+        },
+        "DefenceInFoulTrouble": {
+          "centre": 0.08942158360142707,
+          "scale": 0.30284256600922693,
+          "coefficients": [
+            -0.023793788625326672
+          ]
+        },
+        "AfterPeriodStart": {
+          "centre": 0.015989800556949423,
+          "scale": 0.1254357478357057,
+          "coefficients": [
+            0.7666665083601196
+          ]
+        },
+        "AfterMadeShot": {
+          "centre": 0.32992884462793887,
+          "scale": 0.4701869863259736,
+          "coefficients": [
+            0.18959397499889755
+          ]
+        },
+        "AfterDeadBallTurnover": {
+          "centre": 0.051720571720384745,
+          "scale": 0.22146230871475922,
+          "coefficients": [
+            0.5086242524654181
+          ]
+        },
+        "AfterSideOut": {
+          "centre": 0.0450444239032502,
+          "scale": 0.20740160023130835,
+          "coefficients": [
+            0.5423751908723523
+          ]
+        },
+        "AfterTeamDefensiveRebound": {
+          "centre": 0.01936117924633034,
+          "scale": 0.13779087046872432,
+          "coefficients": [
+            0.24563321824505657
+          ]
+        },
+        "AfterTeamOffensiveRebound": {
+          "centre": 0.023059762799845278,
+          "scale": 0.15009333809162395,
+          "coefficients": [
+            0.2603873601625915
+          ]
+        },
+        "PeriodClock": {
+          "knotPositions": [
+            0.0,
+            240.0,
+            480.0,
+            720.0
+          ],
+          "centres": [
+            194.44833844201403,
+            115.19928762826723,
+            37.93315321484622
+          ],
+          "scales": [
+            74.63672890809184,
+            106.26129111768302,
+            67.95057858426169
+          ],
+          "coefficients": [
+            0.13587736425498817,
+            -0.0365962587101486,
+            -0.4802680619065014
+          ]
+        },
+        "LogOffenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.173786103901937,
+            6.8658910748834385,
+            7.271008538280992,
+            7.56164174558878,
+            7.965198290612176
+          ],
+          "centres": [
+            5.892228188548493,
+            0.19165203362406283,
+            0.01152108353090138,
+            0.000807930400117052,
+            0.00013958066773339718
+          ],
+          "scales": [
+            0.6039913594661723,
+            0.24665044564453872,
+            0.050376903193186245,
+            0.013260297675503064,
+            0.005505724063227196
+          ],
+          "coefficients": [
+            0.9852794289544018,
+            -0.05437550264475225,
+            0.07215507313688337,
+            -0.067426342301828,
+            0.0019329195306456897
+          ]
+        },
+        "LogDefenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.171700597410915,
+            6.863803391452954,
+            7.268920128193722,
+            7.5595594960077,
+            7.9658927350845286
+          ],
+          "centres": [
+            5.8911674063831345,
+            0.19241844236700642,
+            0.01163464948035555,
+            0.0008237492572728555,
+            0.00013808873555003575
+          ],
+          "scales": [
+            0.6019106083061092,
+            0.24692807740451359,
+            0.05066464243217652,
+            0.013408869926526604,
+            0.005429601011222786
+          ],
+          "coefficients": [
+            0.100350965612193,
+            -0.1592415080710564,
+            0.06370446030554339,
+            -0.01929308226552658,
+            -0.0002178510861337461
+          ]
+        }
+      }
+    },
+    "Defence": {
+      "intercept": -4.188325097075315,
+      "terms": {
+        "BeforeFreeThrow": {
+          "centre": 0.15240735135842606,
+          "scale": 0.35941528989523447,
+          "coefficients": [
+            0.3165912499881067
+          ]
+        },
+        "BetweenFreeThrows": {
+          "centre": 0.06863823178491422,
+          "scale": 0.2528379420147823,
+          "coefficients": [
+            0.4755856077036357
+          ]
+        },
+        "TimeoutCalledHere": {
+          "centre": 0.03789032326671988,
+          "scale": 0.19093099976037298,
+          "coefficients": [
+            0.6482469891458473
+          ]
+        },
+        "Period": {
+          "centre": 1.5284148209780386,
+          "scale": 1.130099719514579,
+          "coefficients": [
+            -0.15647438882137277
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.05499846330572737,
+          "scale": 0.22797726276916083,
+          "coefficients": [
+            -0.056282138402359405
+          ]
+        },
+        "OffenceMustChange": {
+          "centre": 3.622625281483827e-05,
+          "scale": 0.006018715849200954,
+          "coefficients": [
+            0.0002486893628290924
+          ]
+        },
+        "DefenceMustChange": {
+          "centre": 0.00012503900165121597,
+          "scale": 0.011181384838170874,
+          "coefficients": [
+            0.08812518106582634
+          ]
+        },
+        "DefenceInFoulTrouble": {
+          "centre": 0.08942158360142707,
+          "scale": 0.30284256600922693,
+          "coefficients": [
+            0.2278453544038214
+          ]
+        },
+        "AfterPeriodStart": {
+          "centre": 0.015989800556949423,
+          "scale": 0.1254357478357057,
+          "coefficients": [
+            0.7330751795363988
+          ]
+        },
+        "AfterMadeShot": {
+          "centre": 0.32992884462793887,
+          "scale": 0.4701869863259736,
+          "coefficients": [
+            -0.11319943770073643
+          ]
+        },
+        "AfterDeadBallTurnover": {
+          "centre": 0.051720571720384745,
+          "scale": 0.22146230871475922,
+          "coefficients": [
+            0.4982977088921518
+          ]
+        },
+        "AfterSideOut": {
+          "centre": 0.0450444239032502,
+          "scale": 0.20740160023130835,
+          "coefficients": [
+            0.5657134510409696
+          ]
+        },
+        "AfterTeamDefensiveRebound": {
+          "centre": 0.01936117924633034,
+          "scale": 0.13779087046872432,
+          "coefficients": [
+            0.22571567449804125
+          ]
+        },
+        "AfterTeamOffensiveRebound": {
+          "centre": 0.023059762799845278,
+          "scale": 0.15009333809162395,
+          "coefficients": [
+            0.242476752425051
+          ]
+        },
+        "PeriodClock": {
+          "knotPositions": [
+            0.0,
+            240.0,
+            480.0,
+            720.0
+          ],
+          "centres": [
+            194.44833844201403,
+            115.19928762826723,
+            37.93315321484622
+          ],
+          "scales": [
+            74.63672890809184,
+            106.26129111768302,
+            67.95057858426169
+          ],
+          "coefficients": [
+            0.19525269553633734,
+            -0.007394389189448862,
+            -0.48591835945521566
+          ]
+        },
+        "LogOffenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.173786103901937,
+            6.8658910748834385,
+            7.271008538280992,
+            7.56164174558878,
+            7.965198290612176
+          ],
+          "centres": [
+            5.892228188548493,
+            0.19165203362406283,
+            0.01152108353090138,
+            0.000807930400117052,
+            0.00013958066773339718
+          ],
+          "scales": [
+            0.6039913594661723,
+            0.24665044564453872,
+            0.050376903193186245,
+            0.013260297675503064,
+            0.005505724063227196
+          ],
+          "coefficients": [
+            -0.009390606506302081,
+            -0.10260336406500195,
+            0.04263885663308411,
+            -0.01804280638270685,
+            -0.00914090004616287
+          ]
+        },
+        "LogDefenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.171700597410915,
+            6.863803391452954,
+            7.268920128193722,
+            7.5595594960077,
+            7.9658927350845286
+          ],
+          "centres": [
+            5.8911674063831345,
+            0.19241844236700642,
+            0.01163464948035555,
+            0.0008237492572728555,
+            0.00013808873555003575
+          ],
+          "scales": [
+            0.6019106083061092,
+            0.24692807740451359,
+            0.05066464243217652,
+            0.013408869926526604,
+            0.005429601011222786
+          ],
+          "coefficients": [
+            0.9995816285149347,
+            -0.029389701789661955,
+            0.06178576680900022,
+            -0.05049072374167591,
+            0.001405723315604612
+          ]
+        }
+      }
+    },
+    "Both": {
+      "intercept": -4.966827445677766,
+      "terms": {
+        "BeforeFreeThrow": {
+          "centre": 0.15240735135842606,
+          "scale": 0.35941528989523447,
+          "coefficients": [
+            0.12241181189407419
+          ]
+        },
+        "BetweenFreeThrows": {
+          "centre": 0.06863823178491422,
+          "scale": 0.2528379420147823,
+          "coefficients": [
+            0.5922031595194979
+          ]
+        },
+        "TimeoutCalledHere": {
+          "centre": 0.03789032326671988,
+          "scale": 0.19093099976037298,
+          "coefficients": [
+            0.8334790157711247
+          ]
+        },
+        "Period": {
+          "centre": 1.5284148209780386,
+          "scale": 1.130099719514579,
+          "coefficients": [
+            -0.4505147145052728
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.05499846330572737,
+          "scale": 0.22797726276916083,
+          "coefficients": [
+            -0.005572798257210236
+          ]
+        },
+        "OffenceMustChange": {
+          "centre": 3.622625281483827e-05,
+          "scale": 0.006018715849200954,
+          "coefficients": [
+            0.06562166306506202
+          ]
+        },
+        "DefenceMustChange": {
+          "centre": 0.00012503900165121597,
+          "scale": 0.011181384838170874,
+          "coefficients": [
+            0.07537229940399412
+          ]
+        },
+        "DefenceInFoulTrouble": {
+          "centre": 0.08942158360142707,
+          "scale": 0.30284256600922693,
+          "coefficients": [
+            0.10985142881207469
+          ]
+        },
+        "AfterPeriodStart": {
+          "centre": 0.015989800556949423,
+          "scale": 0.1254357478357057,
+          "coefficients": [
+            1.1216816356805919
+          ]
+        },
+        "AfterMadeShot": {
+          "centre": 0.32992884462793887,
+          "scale": 0.4701869863259736,
+          "coefficients": [
+            0.05762660923329471
+          ]
+        },
+        "AfterDeadBallTurnover": {
+          "centre": 0.051720571720384745,
+          "scale": 0.22146230871475922,
+          "coefficients": [
+            0.4640791660952074
+          ]
+        },
+        "AfterSideOut": {
+          "centre": 0.0450444239032502,
+          "scale": 0.20740160023130835,
+          "coefficients": [
+            0.5657106455673696
+          ]
+        },
+        "AfterTeamDefensiveRebound": {
+          "centre": 0.01936117924633034,
+          "scale": 0.13779087046872432,
+          "coefficients": [
+            0.21186871561952664
+          ]
+        },
+        "AfterTeamOffensiveRebound": {
+          "centre": 0.023059762799845278,
+          "scale": 0.15009333809162395,
+          "coefficients": [
+            0.23954106568969893
+          ]
+        },
+        "PeriodClock": {
+          "knotPositions": [
+            0.0,
+            240.0,
+            480.0,
+            720.0
+          ],
+          "centres": [
+            194.44833844201403,
+            115.19928762826723,
+            37.93315321484622
+          ],
+          "scales": [
+            74.63672890809184,
+            106.26129111768302,
+            67.95057858426169
+          ],
+          "coefficients": [
+            0.3352980550483428,
+            -0.0803254383849064,
+            -0.8247788070880671
+          ]
+        },
+        "LogOffenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.173786103901937,
+            6.8658910748834385,
+            7.271008538280992,
+            7.56164174558878,
+            7.965198290612176
+          ],
+          "centres": [
+            5.892228188548493,
+            0.19165203362406283,
+            0.01152108353090138,
+            0.000807930400117052,
+            0.00013958066773339718
+          ],
+          "scales": [
+            0.6039913594661723,
+            0.24665044564453872,
+            0.050376903193186245,
+            0.013260297675503064,
+            0.005505724063227196
+          ],
+          "coefficients": [
+            1.1522607501803128,
+            -0.04636741651946645,
+            0.12325670494759547,
+            -0.10197036351706534,
+            0.010339371276416208
+          ]
+        },
+        "LogDefenceLongestStint": {
+          "knotPositions": [
+            0.0,
+            6.171700597410915,
+            6.863803391452954,
+            7.268920128193722,
+            7.5595594960077,
+            7.9658927350845286
+          ],
+          "centres": [
+            5.8911674063831345,
+            0.19241844236700642,
+            0.01163464948035555,
+            0.0008237492572728555,
+            0.00013808873555003575
+          ],
+          "scales": [
+            0.6019106083061092,
+            0.24692807740451359,
+            0.05066464243217652,
+            0.013408869926526604,
+            0.005429601011222786
+          ],
+          "coefficients": [
+            1.1506511291845467,
+            -0.07059662931850746,
+            0.13853971485392166,
+            -0.10391512712460592,
+            0.009719270867301621
+          ]
+        }
+      }
+    }
+  }
+}

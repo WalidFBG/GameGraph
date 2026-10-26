@@ -6,7 +6,7 @@ public static class Simulator
 {
     public static void Run<TState>(
         FittedGame<TState> game,
-        IReadOnlyList<int> seeds,
+        IReadOnlyList<ulong> seeds,
         Func<int, TState> createState,
         IDecisionCollector<TState> decisionCollector)
     {

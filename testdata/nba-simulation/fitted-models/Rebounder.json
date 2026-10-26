@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "node": "Rebounder",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "ReboundShare",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "ReboundsOwnMiss"
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "ReboundShare": {
+          "knotPositions": [
+            -5.0238805208462765,
+            -1.7749523509116738,
+            -1.2729656758128873,
+            -0.3321338350226148
+          ],
+          "centres": [
+            3.0907781682081605,
+            0.1747022109887125,
+            0.04264619696127781
+          ],
+          "scales": [
+            0.271397222523965,
+            0.20565827077319399,
+            0.11637249454501904
+          ],
+          "coefficients": [
+            0.19711121435795864,
+            0.22048683758393606,
+            0.1391666380314931
+          ]
+        },
+        "ReboundsOwnMiss": {
+          "centre": 0.04927304053441345,
+          "scale": 0.2164375383591728,
+          "coefficients": [
+            0.04554879182980442
+          ]
+        }
+      }
+    }
+  }
+}
