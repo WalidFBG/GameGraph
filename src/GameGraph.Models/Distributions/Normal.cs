@@ -56,7 +56,7 @@ internal static class Normal
         7.86869131145613259100e-4, 1.84631831751005468180e-5, 1.42151175831644588870e-7, 2.04426310338993978564e-15,
     ];
 
-    public static double Cdf(double z) => Math.Exp(LogCdf(z));
+    public static double Cdf(double z) => 0.5 * ComplementaryError(-z / Math.Sqrt(2), scaled: false);
 
     public static double LogCdf(double z) =>
         z < -1
