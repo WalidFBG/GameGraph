@@ -11,6 +11,7 @@ public static class NbaTransitions
         var bench = 0;
 
         starters.CopyTo(state.OnCourt[team]);
+        state.RecountLineup(team);
 
         foreach (var player in state.Active[team])
         {
@@ -77,8 +78,7 @@ public static class NbaTransitions
 
     public static Next<NbaState> AwardedFouler(NbaState state, ReadOnlySpan<int> fouler)
     {
-        state.PersonalFouls[fouler[0]]++;
-        Report(state, fouler[0], Credit.Foul);
+        AddFoul(state, fouler[0], Sides.Opponent(state.AwardedTeam));
         return NbaNodes.AwardedFreeThrowMade;
     }
 
@@ -154,8 +154,7 @@ public static class NbaTransitions
         if (state.TurnoverKind != TurnoverKinds.OffensiveFoul)
             return NbaNodes.Stolen;
 
-        state.PersonalFouls[player[0]]++;
-        Report(state, player[0], Credit.Foul);
+        AddFoul(state, player[0], state.TeamInPossession);
         return EndOfPossession(state, PlayStart.DeadBallTurnover);
     }
 
@@ -187,8 +186,7 @@ public static class NbaTransitions
 
     public static Next<NbaState> Fouler(NbaState state, ReadOnlySpan<int> fouler)
     {
-        state.PersonalFouls[fouler[0]]++;
-        Report(state, fouler[0], Credit.Foul);
+        AddFoul(state, fouler[0], Sides.Opponent(state.TeamInPossession));
         return state.Fouled ? NbaNodes.ShotMade : NbaNodes.FouledPlayer;
     }
 
@@ -321,6 +319,8 @@ public static class NbaTransitions
 
         for (var i = 0; i < on.Length; i++)
             Swap(state, team, state.Leaving[i], on[i]);
+
+        state.RecountLineup(team);
 
         if (state.Leaving.Take(on.Length).Any(state.FouledOut))
             state.Bench[team] = [.. state.Bench[team].Where(p => !state.FouledOut(p))];
@@ -499,6 +499,13 @@ public static class NbaTransitions
         }
     }
 
+    private static void AddFoul(NbaState state, int player, int team)
+    {
+        state.PersonalFouls[player]++;
+        state.RecountFoulTrouble(team);
+        Report(state, player, Credit.Foul);
+    }
+
     private static void Report(NbaState state, int player, Credit credit) =>
         state.Incidents.Credited(new CreditIncident(player, credit));
 
@@ -508,6 +515,10 @@ public static class NbaTransitions
     private static void StartPeriod(NbaState state)
     {
         state.PeriodClock = Periods.SecondsIn(state.Period);
+
+        for (var team = 0; team < state.OnCourt.Length; team++)
+            state.RecountFoulTrouble(team);
+
         Array.Clear(state.TeamFouls);
         Array.Clear(state.TeamFoulsInLastTwoMinutes);
         Array.Clear(state.TimeoutsThisPeriod);

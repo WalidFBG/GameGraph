@@ -21,32 +21,35 @@ public sealed class PlayerHistory
 
     public const double PriorActions = 100;
 
+    public const int LeagueGamesKept = 300;
+
     private const double PriorShare = 1.0 / Lineups.Size;
 
     private static readonly PlayerEvent[] Events = Enum.GetValues<PlayerEvent>();
 
     private readonly Dictionary<long, Queue<PlayerGame>> _games = [];
+    private readonly Queue<PlayerGame> _league = new();
 
     public double[][] LogShares(AcceptedGame game) =>
         [.. Events.Select(e => e == PlayerEvent.NotSet ? [] : game.Players.Select(id => Math.Log(Share(id, e))).ToArray())];
 
     public PlayerRates Rates(AcceptedGame game) =>
         new(
-            Assisted: Rates(game, g => g.AssistedMakes, g => g.Makes, 0.63, PriorShots),
-            Blocked: Rates(game, g => g.BlockedShots, g => g.Shots, 0.055, PriorShots),
-            TwoMakes: Rates(game, g => g.TwoMakes, g => g.Events[(int)PlayerEvent.TwoPointAttempt], 0.48, PriorAttempts),
-            ThreeMakes: Rates(game, g => g.ThreeMakes, g => g.Events[(int)PlayerEvent.ThreePointAttempt], 0.36, PriorAttempts),
-            LogTwoFouledRatio: LogRatios(game, g => g.FouledTwos, g => g.Events[(int)PlayerEvent.TwoPointAttempt], 0.16, PriorAttempts),
-            LogThreeFouledRatio: LogRatios(game, g => g.FouledThrees, g => g.Events[(int)PlayerEvent.ThreePointAttempt], 0.011, PriorAttempts),
-            FreeThrows: Rates(game, g => g.FreeThrowMakes, g => g.FreeThrows, 0.78, PriorAttempts),
-            TwoAttempts: Rates(game, g => g.Events[(int)PlayerEvent.TwoPointAttempt], g => g.OffensiveActions, 0.102, PriorActions),
-            ThreeAttempts: Rates(game, g => g.Events[(int)PlayerEvent.ThreePointAttempt], g => g.OffensiveActions, 0.062, PriorActions),
-            FoulsDrawn: Rates(game, g => g.Events[(int)PlayerEvent.FoulDrawn], g => g.OffensiveActions, 0.012, PriorActions),
-            OffensiveRebounds: Rates(game, g => g.Events[(int)PlayerEvent.OffensiveRebound], g => g.OffensiveChances, 0.045, PriorChances),
-            DefensiveRebounds: Rates(game, g => g.Events[(int)PlayerEvent.DefensiveRebound], g => g.DefensiveChances, 0.135, PriorChances),
-            Steals: Rates(game, g => g.Events[(int)PlayerEvent.Steal], g => g.DefensiveActions, 0.017, PriorActions),
-            Blocks: Rates(game, g => g.Events[(int)PlayerEvent.Block], g => g.OpponentShots, 0.013, PriorActions),
-            ShootingFouls: Rates(game, g => g.ShootingFouls, g => g.OpponentShots, 0.021, PriorActions));
+            Assisted: Rates(game, g => g.AssistedMakes, g => g.Makes, PriorShots),
+            Blocked: Rates(game, g => g.BlockedShots, g => g.Shots, PriorShots),
+            TwoMakes: Rates(game, g => g.TwoMakes, g => g.Events[(int)PlayerEvent.TwoPointAttempt], PriorAttempts),
+            ThreeMakes: Rates(game, g => g.ThreeMakes, g => g.Events[(int)PlayerEvent.ThreePointAttempt], PriorAttempts),
+            LogTwoFouledRatio: LogRatios(game, g => g.FouledTwos, g => g.Events[(int)PlayerEvent.TwoPointAttempt], PriorAttempts),
+            LogThreeFouledRatio: LogRatios(game, g => g.FouledThrees, g => g.Events[(int)PlayerEvent.ThreePointAttempt], PriorAttempts),
+            FreeThrows: Rates(game, g => g.FreeThrowMakes, g => g.FreeThrows, PriorAttempts),
+            TwoAttempts: Rates(game, g => g.Events[(int)PlayerEvent.TwoPointAttempt], g => g.OffensiveActions, PriorActions),
+            ThreeAttempts: Rates(game, g => g.Events[(int)PlayerEvent.ThreePointAttempt], g => g.OffensiveActions, PriorActions),
+            FoulsDrawn: Rates(game, g => g.Events[(int)PlayerEvent.FoulDrawn], g => g.OffensiveActions, PriorActions),
+            OffensiveRebounds: Rates(game, g => g.Events[(int)PlayerEvent.OffensiveRebound], g => g.OffensiveChances, PriorChances),
+            DefensiveRebounds: Rates(game, g => g.Events[(int)PlayerEvent.DefensiveRebound], g => g.DefensiveChances, PriorChances),
+            Steals: Rates(game, g => g.Events[(int)PlayerEvent.Steal], g => g.DefensiveActions, PriorActions),
+            Blocks: Rates(game, g => g.Events[(int)PlayerEvent.Block], g => g.OpponentShots, PriorActions),
+            ShootingFouls: Rates(game, g => g.ShootingFouls, g => g.OpponentShots, PriorActions));
 
     public double[] UsualSeconds(AcceptedGame game) => [.. game.Players.Select(id => Shrunk(id, g => g.Seconds, PriorSeconds))];
 
@@ -173,6 +176,11 @@ public sealed class PlayerHistory
                 Add(game.Players[player], games[player]);
             }
         }
+
+        _league.Enqueue(PlayerGame.Sum(games));
+
+        if (_league.Count > LeagueGamesKept)
+            _league.Dequeue();
     }
 
     private static void CreditAwarded(PlayerGame[] games, int[][] court, AwardedFreeThrow[] awarded)
@@ -248,11 +256,28 @@ public sealed class PlayerHistory
         return (events + PriorEvents * PriorShare) / (teamEvents + PriorEvents);
     }
 
-    private double[] Rates(AcceptedGame game, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double prior, double weight) =>
-        [.. game.Players.Select(id => Rate(id, events, chances, prior, weight))];
+    private double[] Rates(AcceptedGame game, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double weight)
+    {
+        var league = LeagueRate(events, chances);
 
-    private double[] LogRatios(AcceptedGame game, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double prior, double weight) =>
-        [.. game.Players.Select(id => Math.Log(Rate(id, events, chances, prior, weight) / prior))];
+        return [.. game.Players.Select(id => Rate(id, events, chances, league, weight))];
+    }
+
+    private double[] LogRatios(AcceptedGame game, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double weight)
+    {
+        var league = LeagueRate(events, chances);
+
+        return [.. game.Players.Select(id => Math.Log(Rate(id, events, chances, league, weight) / league))];
+    }
+
+    private double LeagueRate(Func<PlayerGame, int> events, Func<PlayerGame, int> chances)
+    {
+        var tries = _league.Sum(chances);
+
+        return tries > 0
+            ? (double)_league.Sum(events) / tries
+            : throw new InvalidOperationException("A league rate needs games before it");
+    }
 
     private double Rate(long player, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double prior, double weight)
     {
@@ -313,5 +338,38 @@ public sealed class PlayerHistory
         public int Seconds { get; set; }
 
         public bool Started { get; set; }
+
+        public static PlayerGame Sum(PlayerGame[] games)
+        {
+            var sum = new PlayerGame();
+
+            foreach (var game in games)
+            {
+                for (var e = 0; e < sum.Events.Length; e++)
+                {
+                    sum.Events[e] += game.Events[e];
+                    sum.TeamEvents[e] += game.TeamEvents[e];
+                }
+
+                sum.Shots += game.Shots;
+                sum.Makes += game.Makes;
+                sum.AssistedMakes += game.AssistedMakes;
+                sum.BlockedShots += game.BlockedShots;
+                sum.TwoMakes += game.TwoMakes;
+                sum.ThreeMakes += game.ThreeMakes;
+                sum.FouledTwos += game.FouledTwos;
+                sum.FouledThrees += game.FouledThrees;
+                sum.FreeThrows += game.FreeThrows;
+                sum.FreeThrowMakes += game.FreeThrowMakes;
+                sum.OffensiveChances += game.OffensiveChances;
+                sum.OffensiveActions += game.OffensiveActions;
+                sum.ShootingFouls += game.ShootingFouls;
+                sum.OpponentShots += game.OpponentShots;
+                sum.DefensiveActions += game.DefensiveActions;
+                sum.DefensiveChances += game.DefensiveChances;
+            }
+
+            return sum;
+        }
     }
 }

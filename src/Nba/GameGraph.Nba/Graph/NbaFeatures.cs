@@ -94,28 +94,28 @@ public static class NbaFeatures
         new(nameof(AwardedShooterFreeThrowRate), s => s.Rates.FreeThrows[s.AwardedShooter]);
 
     public static readonly Feature<NbaState> OffenceReboundRate =
-        new(nameof(OffenceReboundRate), s => s.OnCourt[s.TeamInPossession].Sum(p => s.Rates.OffensiveRebounds[p]));
+        new(nameof(OffenceReboundRate), s => s.LineupRates[s.TeamInPossession][LineupRate.OffensiveRebounds]);
 
     public static readonly Feature<NbaState> DefenceReboundRate =
-        new(nameof(DefenceReboundRate), s => s.OnCourt[Sides.Opponent(s.TeamInPossession)].Sum(p => s.Rates.DefensiveRebounds[p]));
+        new(nameof(DefenceReboundRate), s => s.LineupRates[Sides.Opponent(s.TeamInPossession)][LineupRate.DefensiveRebounds]);
 
     public static readonly Feature<NbaState> DefenceStealRate =
-        new(nameof(DefenceStealRate), s => s.OnCourt[Sides.Opponent(s.TeamInPossession)].Sum(p => s.Rates.Steals[p]));
+        new(nameof(DefenceStealRate), s => s.LineupRates[Sides.Opponent(s.TeamInPossession)][LineupRate.Steals]);
 
     public static readonly Feature<NbaState> OffenceTwoRate =
-        new(nameof(OffenceTwoRate), s => s.OnCourt[s.TeamInPossession].Sum(p => s.Rates.TwoAttempts[p]));
+        new(nameof(OffenceTwoRate), s => s.LineupRates[s.TeamInPossession][LineupRate.TwoAttempts]);
 
     public static readonly Feature<NbaState> OffenceThreeRate =
-        new(nameof(OffenceThreeRate), s => s.OnCourt[s.TeamInPossession].Sum(p => s.Rates.ThreeAttempts[p]));
+        new(nameof(OffenceThreeRate), s => s.LineupRates[s.TeamInPossession][LineupRate.ThreeAttempts]);
 
     public static readonly Feature<NbaState> OffenceFoulDrawnRate =
-        new(nameof(OffenceFoulDrawnRate), s => s.OnCourt[s.TeamInPossession].Sum(p => s.Rates.FoulsDrawn[p]));
+        new(nameof(OffenceFoulDrawnRate), s => s.LineupRates[s.TeamInPossession][LineupRate.FoulsDrawn]);
 
     public static readonly Feature<NbaState> DefenceShootingFoulRate =
-        new(nameof(DefenceShootingFoulRate), s => s.OnCourt[Sides.Opponent(s.TeamInPossession)].Sum(p => s.Rates.ShootingFouls[p]));
+        new(nameof(DefenceShootingFoulRate), s => s.LineupRates[Sides.Opponent(s.TeamInPossession)][LineupRate.ShootingFouls]);
 
     public static readonly Feature<NbaState> DefenceBlockRate =
-        new(nameof(DefenceBlockRate), s => s.OnCourt[Sides.Opponent(s.TeamInPossession)].Sum(p => s.Rates.Blocks[p]));
+        new(nameof(DefenceBlockRate), s => s.LineupRates[Sides.Opponent(s.TeamInPossession)][LineupRate.Blocks]);
 
     public static readonly Feature<NbaState> ShotFouled =
         new(nameof(ShotFouled), s => s.Fouled ? 1 : 0);
@@ -205,7 +205,7 @@ public static class NbaFeatures
         new(nameof(OffenceMustChange), s => s.MustChange(s.TeamInPossession) ? 1 : 0);
 
     public static readonly Feature<NbaState> DefenceInFoulTrouble =
-        new(nameof(DefenceInFoulTrouble), s => s.InFoulTrouble(Sides.Opponent(s.TeamInPossession)));
+        new(nameof(DefenceInFoulTrouble), s => s.InFoulTroubleOnCourt[Sides.Opponent(s.TeamInPossession)]);
 
     public static readonly Feature<NbaState> DefenceMustChange =
         new(nameof(DefenceMustChange), s => s.MustChange(Sides.Opponent(s.TeamInPossession)) ? 1 : 0);
