@@ -1,13 +1,8 @@
-using System.Linq.Expressions;
-using System.Reflection;
-
 namespace GameGraph.Contract.Distributions;
 
 public readonly record struct ChoiceShape
 {
     public const int MostCandidates = 31;
-
-    private static readonly MethodInfo OfMethod = typeof(ChoiceShape).GetMethod(nameof(Of), [typeof(string), typeof(int), typeof(double)])!;
 
     private ChoiceShape(int candidates, int size)
     {
@@ -40,9 +35,6 @@ public readonly record struct ChoiceShape
 
         return shape;
     }
-
-    public static Expression OfExpression(string choice, Expression candidates, Expression size) =>
-        Expression.Call(OfMethod, Expression.Constant(choice), candidates, size);
 
     public void RequireOutcome(string choice, int outcome)
     {

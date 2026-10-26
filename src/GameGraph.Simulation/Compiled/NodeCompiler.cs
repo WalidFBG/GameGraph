@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using System.Reflection;
 using GameGraph.Contract.Distributions;
 using GameGraph.Engine.Nodes;
 using GameGraph.Models;
@@ -7,6 +8,8 @@ namespace GameGraph.Simulation.Compiled;
 
 public static class NodeCompiler<TState>
 {
+    private static readonly MethodInfo ShapeOf = ((Func<string, int, double, ChoiceShape>)ChoiceShape.Of).Method;
+
     public static Expression<Func<TState, double[], int>> Parameters(Node<TState> node, Model model)
     {
         var state = Expression.Parameter(typeof(TState), "state");
@@ -82,7 +85,7 @@ public static class NodeCompiler<TState>
             [candidates, size, row],
             Expression.Assign(candidates, node.CandidatesInline(state)),
             Expression.Assign(size, node.Size.Inline(state)),
-            ChoiceShape.OfExpression(node.Name, count, size),
+            Expression.Call(ShapeOf, Expression.Constant(node.Name), count, size),
             Expression.Assign(row, Expression.Constant(0)),
             eachCandidate,
             Expression.Multiply(count, perRow));
