@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using GameGraph.Contract.Files;
 using GameGraph.Nba.Graph;
 using GameGraph.Simulation;
@@ -11,11 +12,18 @@ public static class SimulationFixture
     private static readonly string ContextPath = Path.Combine(Root, "context.json");
     private static readonly string FittedModels = Path.Combine(Root, "fitted-models");
 
+    private static readonly JsonSerializerOptions Strict = new(JsonSerializerDefaults.Web)
+    {
+        RespectRequiredConstructorParameters = true,
+        RespectNullableAnnotations = true,
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+    };
+
     public static FittedGame<NbaState> Fitted() =>
         new(NbaGameSpec.Instance, [.. NbaGameSpec.Instance.Nodes.Select(n => ContractFiles.ReadFittedModel(FittedModelPath(n.Name)))]);
 
     public static GameContext Context() =>
-        JsonSerializer.Deserialize<GameContext>(File.ReadAllText(ContextPath), JsonSerializerOptions.Web)
+        JsonSerializer.Deserialize<GameContext>(File.ReadAllText(ContextPath), Strict)
             ?? throw new InvalidDataException($"{ContextPath} has no game context");
 
     public static void Write(GameContext context, Func<string, string> fittedModelOf)
@@ -25,7 +33,7 @@ public static class SimulationFixture
         foreach (var node in NbaGameSpec.Instance.Nodes)
             File.Copy(fittedModelOf(node.Name), FittedModelPath(node.Name), overwrite: true);
 
-        File.WriteAllText(ContextPath, JsonSerializer.Serialize(context, JsonSerializerOptions.Web) + "\n");
+        File.WriteAllText(ContextPath, JsonSerializer.Serialize(context, Strict) + "\n");
     }
 
     private static string FittedModelPath(string node) => Path.Combine(FittedModels, $"{node}.json");
