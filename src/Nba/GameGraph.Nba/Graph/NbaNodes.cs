@@ -125,6 +125,19 @@ public static class NbaNodes
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
 
+    public static readonly NodeSpec<NbaState> TeamTurnover = Node(
+        nameof(TeamTurnover),
+        new BernoulliDistribution(),
+        [FeatureTerm.Spline(NbaFeatures.ShotClock, 24), FeatureTerm.Spline(NbaFeatures.PeriodClock, 10)],
+        NbaTransitions.TeamTurnover);
+
+    public static readonly ChoiceNode<NbaState> TurnedOverBy = new(
+        nameof(TurnedOverBy),
+        s => s.OnCourt[s.TeamInPossession],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.TurnoverShare, 4)],
+        NbaTransitions.TurnedOverBy);
+
     public static readonly NodeSpec<NbaState> Stolen = Node(
         nameof(Stolen),
         new BernoulliDistribution(),
@@ -140,9 +153,23 @@ public static class NbaNodes
     public static readonly ChoiceNode<NbaState> Shooter = new(
         nameof(Shooter),
         s => s.OnCourt[s.TeamInPossession],
-        NbaFeatures.Shooters,
+        NbaFeatures.OnePlayer,
         [CandidateTerm.Spline(NbaFeatures.ShotShare, 4)],
         NbaTransitions.Shooter);
+
+    public static readonly ChoiceNode<NbaState> Fouler = new(
+        nameof(Fouler),
+        s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.FoulShare, 4), CandidateTerm.Linear(NbaFeatures.PersonalFouls), CandidateTerm.Linear(NbaFeatures.InFoulTrouble)],
+        NbaTransitions.Fouler);
+
+    public static readonly ChoiceNode<NbaState> FouledPlayer = new(
+        nameof(FouledPlayer),
+        s => s.OnCourt[s.TeamInPossession],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.FoulDrawnShare, 4)],
+        NbaTransitions.FouledPlayer);
 
     public static readonly NodeSpec<NbaState> FouledOnShot = Node(
         nameof(FouledOnShot),
@@ -179,6 +206,13 @@ public static class NbaNodes
         new BernoulliDistribution(),
         [NbaFeatures.ReboundToOffence, NbaFeatures.MissedFreeThrow],
         NbaTransitions.TeamRebound);
+
+    public static readonly ChoiceNode<NbaState> Rebounder = new(
+        nameof(Rebounder),
+        s => s.OnCourt[s.ReboundToOffence ? s.TeamInPossession : Sides.Opponent(s.TeamInPossession)],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.ReboundShare, 4), CandidateTerm.Linear(NbaFeatures.ReboundsOwnMiss)],
+        NbaTransitions.Rebounder);
 
     private static CandidateTerm<NbaState>[] PlayerTerms() =>
     [

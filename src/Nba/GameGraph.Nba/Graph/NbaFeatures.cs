@@ -30,11 +30,32 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShotIsThree =
         new(nameof(ShotIsThree), s => s.ShotPoints == 3 ? 1 : 0);
 
-    public static readonly Feature<NbaState> Shooters =
-        new(nameof(Shooters), _ => 1);
+    public static readonly Feature<NbaState> OnePlayer =
+        new(nameof(OnePlayer), _ => 1);
 
     public static readonly CandidateFeature<NbaState> ShotShare =
-        new(nameof(ShotShare), (s, player) => s.ShotPoints == 3 ? s.LogThreeShares[player] : s.LogTwoShares[player]);
+        new(nameof(ShotShare), (s, player) => s.ShotPoints == 3 ? s.LogShares[(int)PlayerEvent.ThreePointAttempt][player] : s.LogShares[(int)PlayerEvent.TwoPointAttempt][player]);
+
+    public static readonly CandidateFeature<NbaState> ReboundShare =
+        new(nameof(ReboundShare), (s, player) => s.ReboundToOffence ? s.LogShares[(int)PlayerEvent.OffensiveRebound][player] : s.LogShares[(int)PlayerEvent.DefensiveRebound][player]);
+
+    public static readonly CandidateFeature<NbaState> ReboundsOwnMiss =
+        new(nameof(ReboundsOwnMiss), (s, player) => s.ReboundToOffence && player == s.Shooter ? 1 : 0);
+
+    public static readonly CandidateFeature<NbaState> TurnoverShare =
+        new(nameof(TurnoverShare), (s, player) => s.LogShares[(int)PlayerEvent.Turnover][player]);
+
+    public static readonly CandidateFeature<NbaState> FoulShare =
+        new(nameof(FoulShare), (s, player) => s.LogShares[(int)PlayerEvent.Foul][player]);
+
+    public static readonly CandidateFeature<NbaState> PersonalFouls =
+        new(nameof(PersonalFouls), (s, player) => s.PersonalFouls[player]);
+
+    public static readonly CandidateFeature<NbaState> InFoulTrouble =
+        new(nameof(InFoulTrouble), (s, player) => s.PersonalFouls[player] >= Math.Min(s.Period, Periods.Regulation - 1) + 2 ? 1 : 0);
+
+    public static readonly CandidateFeature<NbaState> FoulDrawnShare =
+        new(nameof(FoulDrawnShare), (s, player) => s.LogShares[(int)PlayerEvent.FoulDrawn][player]);
 
     public static readonly Feature<NbaState> ShotFouled =
         new(nameof(ShotFouled), s => s.Fouled ? 1 : 0);

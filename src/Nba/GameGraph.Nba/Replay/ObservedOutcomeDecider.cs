@@ -41,7 +41,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     {
         var decider = new ObservedOutcomeDecider(game);
         var unread = new double[game.Players.Length];
-        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unread, unread, unread, unread, unread, game.Roster.Active);
+        double[][] unreadShares = [.. Enum.GetValues<PlayerEvent>().Select(_ => unread)];
+        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unreadShares, unread, unread, unread, game.Roster.Active);
         var state = new NbaState(new EmptyIncidentCollector(), context);
 
         try
@@ -126,8 +127,12 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             switch (action)
             {
                 case ObservedShot shot:
-                    yield return new ObservedDecision(NbaNodes.Shooter, s => Chosen(NbaNodes.Shooter, s, [shot.Shooter]), team, possession.Period);
+                    yield return Player(NbaNodes.Shooter, shot.Shooter);
                     yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
+
+                    if (shot.Fouler is { } shootingFouler)
+                        yield return Player(NbaNodes.Fouler, shootingFouler);
+
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
                     foreach (var decision in shot.FreeThrows.SelectMany(FreeThrow))
@@ -141,6 +146,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
                     break;
                 case ObservedFoul foul:
+                    yield return Player(NbaNodes.Fouler, foul.Fouler);
+                    yield return Player(NbaNodes.FouledPlayer, foul.FouledPlayer);
                     yield return Decision(NbaNodes.InBonus, Number(foul.InBonus));
 
                     foreach (var decision in foul.FreeThrows.SelectMany(FreeThrow))
@@ -154,7 +161,14 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
                     break;
                 case ObservedTurnover turnover:
-                    yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
+                    yield return Decision(NbaNodes.TeamTurnover, Number(turnover.ByTeam));
+
+                    if (turnover.Player is { } player)
+                    {
+                        yield return Player(NbaNodes.TurnedOverBy, player);
+                        yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
+                    }
+
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(possession), action.GetType().Name, "Not an observed action");
@@ -171,7 +185,11 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             yield return decision;
 
         IEnumerable<ObservedDecision> Rebound(ObservedRebound rebound) =>
-            [Decision(NbaNodes.OffensiveRebound, Number(rebound.Offensive)), Decision(NbaNodes.TeamRebound, Number(rebound.ByTeam))];
+            [
+                Decision(NbaNodes.OffensiveRebound, Number(rebound.Offensive)),
+                Decision(NbaNodes.TeamRebound, Number(rebound.ByTeam)),
+                .. rebound.Rebounder is { } rebounder ? [Player(NbaNodes.Rebounder, rebounder)] : Array.Empty<ObservedDecision>(),
+            ];
 
         IEnumerable<ObservedDecision> FreeThrow(ObservedFreeThrow freeThrow) =>
             [.. Moment(freeThrow.Before, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];
@@ -209,6 +227,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
             new(node, _ => outcome, team, possession.Period);
+
+        ObservedDecision Player(ChoiceNode<NbaState> node, int player) =>
+            new(node, s => Chosen(node, s, [player]), team, possession.Period);
     }
 
     private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int[] chosen) =>
