@@ -1,10 +1,10 @@
 import numpy as np
 import polars as pl
 
-from gamegraph.audit.buckets import assign, cuts, outcome_prefixes
+from gamegraph.audit.buckets import Means, Shares, assign, comparison, cuts
 from gamegraph.audit.findings import FEWEST_EXPECTED, Z
 from gamegraph.contract import TrainingDataManifest
-from gamegraph.files.training_data_files import OUTCOME
+from gamegraph.files.training_data_directory import OUTCOME
 
 ALL = "all"
 OBSERVED = "observed"
@@ -28,8 +28,11 @@ def _table(manifest: TrainingDataManifest, bucketed: pl.DataFrame, feature: str 
     sizes = [pl.len().alias("n")]
     if feature is not None:
         sizes += [pl.col(feature).min().alias("lowest"), pl.col(feature).max().alias("highest")]
-    prefixes = outcome_prefixes(manifest.model.distribution)
-    compared = _times(bucketed) if prefixes is None else _shares(bucketed, prefixes)
+    match comparison(manifest.model.distribution):
+        case Shares(prefixes=prefixes):
+            compared = _shares(bucketed, prefixes)
+        case Means():
+            compared = _times(bucketed)
     return bucketed.group_by("bucket").agg(sizes).join(compared, on="bucket").sort("bucket").drop("bucket")
 
 

@@ -3,6 +3,7 @@ from collections.abc import Sequence
 import torch
 
 from gamegraph.contract import ChoiceDistribution, FittedModel, ModelDeclaration
+from gamegraph.models.choice_shape import ChoiceShape
 from gamegraph.models.distributions import distribution_for
 from gamegraph.models.given_column import GivenColumn
 from gamegraph.models.predictor import Predictor
@@ -37,17 +38,17 @@ class Model:
             raise ValueError(f"Features must be examples by features, got {tuple(features.shape)}")
         return tuple(p.design(features) for p in (*self.predictors, *self.given))
 
-    def parameter_values_of(self, designs: tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
+    def parameter_values_from_designs(self, designs: tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, ...]:
         return tuple(p.value_of(d) for p, d in zip((*self.predictors, *self.given), designs, strict=True))
 
-    def log_prob_of(self, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
-        return self._implementation.log_prob(self.parameter_values_of(designs), outcomes)
+    def log_prob_from_designs(self, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
+        return self._implementation.log_prob(self.parameter_values_from_designs(designs), outcomes)
 
     def parameter_values(self, features: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        return self.parameter_values_of(self.designs(features))
+        return self.parameter_values_from_designs(self.designs(features))
 
     def log_prob(self, features: torch.Tensor, outcomes: torch.Tensor) -> torch.Tensor:
-        return self.log_prob_of(self.designs(features), outcomes)
+        return self.log_prob_from_designs(self.designs(features), outcomes)
 
     def sample(self, features: torch.Tensor, uniforms: torch.Tensor) -> torch.Tensor:
         return self._implementation.sample(self.parameter_values(features), uniforms)
@@ -82,11 +83,10 @@ class Model:
     ) -> "Model":
         distribution = declaration.distribution
         starts = distribution_for(distribution).initial_parameters(outcomes)
-        rows = (
-            examples[examples[..., column_of(declaration.given[ChoiceDistribution.SIZE], features)] > 0]
-            if distribution.chooses_among_candidates()
-            else examples
-        )
+        rows = examples
+        if distribution.chooses_among_candidates():
+            sizes = examples[..., column_of(declaration.given[ChoiceDistribution.SIZE], features)]
+            rows = examples[ChoiceShape.of(sizes).candidate]
         return Model(
             declaration,
             tuple(

@@ -20,7 +20,7 @@ class Examples:
 
 
 @dataclass(frozen=True)
-class TrainingData:
+class TrainingTensors:
     manifest: TrainingDataManifest
     games: tuple[Game, ...]
     examples: Examples

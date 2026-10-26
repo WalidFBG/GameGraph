@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import numpy as np
 
 from gamegraph.contract import (
@@ -23,11 +25,24 @@ def assign(values: np.ndarray, cuts: np.ndarray) -> np.ndarray:
     return np.searchsorted(cuts, values, side="right")
 
 
-def outcome_prefixes(distribution: DistributionDeclaration) -> dict[str, int] | None:
+@dataclass(frozen=True)
+class Shares:
+    prefixes: dict[str, int]
+
+
+@dataclass(frozen=True)
+class Means:
+    pass
+
+
+type Comparison = Shares | Means
+
+
+def comparison(distribution: DistributionDeclaration) -> Comparison:
     match distribution:
         case BernoulliDistribution() | ChoiceDistribution():
-            return {"": 1}
+            return Shares({"": 1})
         case CategoricalDistribution(categories=categories):
-            return {f"{c} ": k for k, c in enumerate(categories)}
+            return Shares({f"{c} ": k for k, c in enumerate(categories)})
         case DiscreteJohnsonSuDistribution():
-            return None
+            return Means()

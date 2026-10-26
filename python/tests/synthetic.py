@@ -14,7 +14,7 @@ from gamegraph.contract import (
     TrainingDataManifest,
 )
 from gamegraph.models.distributions import Choice, DiscreteJohnsonSu
-from gamegraph.training.training_data import Examples, Game, TrainingData
+from gamegraph.training_tensors import Examples, Game, TrainingTensors
 
 START = datetime(2024, 1, 1, tzinfo=UTC)
 
@@ -75,7 +75,7 @@ def choice_utility(share: np.ndarray, indicator: np.ndarray) -> np.ndarray:
     return 1.2 * np.minimum(share, -1.5) + 0.3 * np.maximum(share + 1.5, 0) + 0.6 * indicator
 
 
-def bernoulli(node: str, games: int, rows_per_game: int, seed: int) -> TrainingData:
+def bernoulli(node: str, games: int, rows_per_game: int, seed: int) -> TrainingTensors:
     generator = np.random.default_rng(seed)
     rows = games * rows_per_game
     gaussian = generator.normal(3, 2, rows)
@@ -86,7 +86,7 @@ def bernoulli(node: str, games: int, rows_per_game: int, seed: int) -> TrainingD
     return _training_data(manifest, rows_per_game, np.column_stack([gaussian, indicator, uniform]), outcomes)
 
 
-def categorical(node: str, games: int, rows_per_game: int, seed: int) -> TrainingData:
+def categorical(node: str, games: int, rows_per_game: int, seed: int) -> TrainingTensors:
     generator = np.random.default_rng(seed)
     rows = games * rows_per_game
     gaussian = generator.normal(3, 2, rows)
@@ -98,7 +98,7 @@ def categorical(node: str, games: int, rows_per_game: int, seed: int) -> Trainin
     return _training_data(manifest, rows_per_game, np.column_stack([gaussian, uniform]), outcomes)
 
 
-def choice(node: str, games: int, decisions_per_game: int, seed: int) -> TrainingData:
+def choice(node: str, games: int, decisions_per_game: int, seed: int) -> TrainingTensors:
     generator = np.random.default_rng(seed)
     decisions, widest = games * decisions_per_game, CANDIDATES[1]
     candidates = generator.integers(CANDIDATES[0], widest + 1, decisions)
@@ -114,14 +114,14 @@ def choice(node: str, games: int, decisions_per_game: int, seed: int) -> Trainin
     return _training_data(manifest, decisions_per_game, features, outcomes.numpy())
 
 
-def intercept_only(node: str, games: int, rows_per_game: int, seed: int, probability: float) -> TrainingData:
+def intercept_only(node: str, games: int, rows_per_game: int, seed: int, probability: float) -> TrainingTensors:
     rows = games * rows_per_game
     outcomes = np.random.default_rng(seed).binomial(1, probability, rows)
     manifest = TrainingDataManifest(node, "synthetic", START, (), rows, INTERCEPT_ONLY_DECLARATION)
     return _training_data(manifest, rows_per_game, np.zeros((rows, 0)), outcomes)
 
 
-def johnson_su(node: str, games: int, rows_per_game: int, seed: int) -> TrainingData:
+def johnson_su(node: str, games: int, rows_per_game: int, seed: int) -> TrainingTensors:
     generator = np.random.default_rng(seed)
     rows = games * rows_per_game
     gaussian = generator.normal(0, 1, rows)
@@ -135,9 +135,9 @@ def johnson_su(node: str, games: int, rows_per_game: int, seed: int) -> Training
 
 def _training_data(
     manifest: TrainingDataManifest, rows_per_game: int, features: np.ndarray, outcomes: np.ndarray
-) -> TrainingData:
+) -> TrainingTensors:
     games = manifest.examples // rows_per_game
-    return TrainingData(
+    return TrainingTensors(
         manifest,
         tuple(Game(f"g{i}", START + timedelta(days=i), rows_per_game) for i in range(games)),
         Examples(torch.tensor(features, dtype=torch.float64), torch.tensor(outcomes, dtype=torch.int64)),
