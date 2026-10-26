@@ -4,10 +4,11 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedTurnover : ObservedAction
 {
-    public ObservedTurnover(int clock)
-        : base(clock)
-    {
-    }
+    public ObservedTurnover(int clock, bool stolen)
+        : base(clock) =>
+        Stolen = stolen;
+
+    public bool Stolen { get; }
 
     public override ActionType Type => ActionType.Turnover;
 

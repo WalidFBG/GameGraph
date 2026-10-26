@@ -24,14 +24,14 @@ public abstract record ObservedAction
 
     public abstract bool EndsPossession { get; }
 
-    protected void CheckRebound(bool endedInMiss, bool? offensiveRebound)
+    protected void CheckRebound(bool endedInMiss, ObservedRebound? rebound)
     {
-        if (!endedInMiss && offensiveRebound.HasValue)
-            throw new ArgumentException("Only an action that ends in a miss has a rebound", nameof(offensiveRebound));
+        if (!endedInMiss && rebound.HasValue)
+            throw new ArgumentException("Only an action that ends in a miss has a rebound", nameof(rebound));
 
-        PeriodEndedBeforeRebound = endedInMiss && !offensiveRebound.HasValue;
+        PeriodEndedBeforeRebound = endedInMiss && !rebound.HasValue;
 
         if (PeriodEndedBeforeRebound && Clock > 0)
-            throw new ArgumentException("A miss with time left needs its rebound", nameof(offensiveRebound));
+            throw new ArgumentException("A miss with time left needs its rebound", nameof(rebound));
     }
 }

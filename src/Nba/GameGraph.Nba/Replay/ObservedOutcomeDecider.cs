@@ -126,8 +126,11 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
                     foreach (var decision in shot.FreeThrows.SelectMany(FreeThrow))
                         yield return decision;
 
-                    if (shot.OffensiveRebound is { } shotRebound)
-                        yield return Decision(NbaNodes.OffensiveRebound, Number(shotRebound));
+                    if (shot.Rebound is { } shotRebound)
+                    {
+                        foreach (var decision in Rebound(shotRebound))
+                            yield return decision;
+                    }
 
                     break;
                 case ObservedFoul foul:
@@ -136,11 +139,15 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
                     foreach (var decision in foul.FreeThrows.SelectMany(FreeThrow))
                         yield return decision;
 
-                    if (foul.OffensiveRebound is { } foulRebound)
-                        yield return Decision(NbaNodes.OffensiveRebound, Number(foulRebound));
+                    if (foul.Rebound is { } foulRebound)
+                    {
+                        foreach (var decision in Rebound(foulRebound))
+                            yield return decision;
+                    }
 
                     break;
-                case ObservedTurnover:
+                case ObservedTurnover turnover:
+                    yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(possession), action.GetType().Name, "Not an observed action");
@@ -155,6 +162,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         foreach (var decision in Awarded(possession.AwardedAfter, after))
             yield return decision;
+
+        IEnumerable<ObservedDecision> Rebound(ObservedRebound rebound) =>
+            [Decision(NbaNodes.OffensiveRebound, Number(rebound.Offensive)), Decision(NbaNodes.TeamRebound, Number(rebound.ByTeam))];
 
         IEnumerable<ObservedDecision> FreeThrow(ObservedFreeThrow freeThrow) =>
             [.. Timeouts(freeThrow.TimeoutsBefore, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];

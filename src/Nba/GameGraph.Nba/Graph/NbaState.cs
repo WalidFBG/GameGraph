@@ -62,6 +62,8 @@ public sealed class NbaState
 
     public Miss LastMiss { get; set; }
 
+    public bool ReboundToOffence { get; set; }
+
     public bool AfterTimeout { get; set; }
 
     public TimeoutMoment TimeoutMoment { get; set; }

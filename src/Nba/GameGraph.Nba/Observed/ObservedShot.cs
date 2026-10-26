@@ -4,7 +4,7 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedShot : ObservedAction
 {
-    public ObservedShot(int clock, int shooter, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, bool? offensiveRebound)
+    public ObservedShot(int clock, int shooter, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, ObservedRebound? rebound)
         : base(clock)
     {
         if (points is not (2 or 3))
@@ -15,14 +15,14 @@ public sealed record ObservedShot : ObservedAction
         if (freeThrows.Length != expected)
             throw new ArgumentException($"A {(fouled ? "fouled" : "clean")} {(made ? "made" : "missed")} {points} has {expected} free throws, got {freeThrows.Length}", nameof(freeThrows));
 
-        CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1].Made : !made, offensiveRebound);
+        CheckRebound(freeThrows.Length > 0 ? !freeThrows[^1].Made : !made, rebound);
 
         Shooter = shooter;
         Points = points;
         Fouled = fouled;
         Made = made;
         FreeThrows = freeThrows;
-        OffensiveRebound = offensiveRebound;
+        Rebound = rebound;
     }
 
     public int Shooter { get; }
@@ -35,9 +35,9 @@ public sealed record ObservedShot : ObservedAction
 
     public ObservedFreeThrow[] FreeThrows { get; }
 
-    public bool? OffensiveRebound { get; }
+    public ObservedRebound? Rebound { get; }
 
     public override ActionType Type => Points == 2 ? ActionType.TwoPointAttempt : ActionType.ThreePointAttempt;
 
-    public override bool EndsPossession => OffensiveRebound != true;
+    public override bool EndsPossession => Rebound?.Offensive != true;
 }
