@@ -8,6 +8,7 @@ public enum PlayerEvent
     OffensiveRebound = 3,
     DefensiveRebound = 4,
     Turnover = 5,
-    Foul = 6,
-    FoulDrawn = 7,
+    OffensiveFoul = 6,
+    Foul = 7,
+    FoulDrawn = 8,
 }

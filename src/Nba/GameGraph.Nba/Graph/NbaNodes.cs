@@ -125,11 +125,11 @@ public static class NbaNodes
         new Dictionary<string, Feature<NbaState>> { ["maximum"] = NbaFeatures.Bound },
         NbaTransitions.ActionTime);
 
-    public static readonly NodeSpec<NbaState> TeamTurnover = Node(
-        nameof(TeamTurnover),
-        new BernoulliDistribution(),
+    public static readonly NodeSpec<NbaState> TurnoverKind = Node(
+        nameof(TurnoverKind),
+        new CategoricalDistribution(TurnoverKinds.Names),
         [FeatureTerm.Spline(NbaFeatures.ShotClock, 24), FeatureTerm.Spline(NbaFeatures.PeriodClock, 10)],
-        NbaTransitions.TeamTurnover);
+        NbaTransitions.TurnoverKind);
 
     public static readonly ChoiceNode<NbaState> TurnedOverBy = new(
         nameof(TurnedOverBy),
@@ -143,10 +143,9 @@ public static class NbaNodes
         new BernoulliDistribution(),
         [
             FeatureTerm.Spline(NbaFeatures.ShotClock, 8),
-            FeatureTerm.Linear(NbaFeatures.ShotClockExpired),
             FeatureTerm.Linear(NbaFeatures.ScoreMargin),
             FeatureTerm.Linear(NbaFeatures.LateInGame),
-            .. new[] { PlayStart.PeriodStart, PlayStart.OffensiveRebound, PlayStart.MadeShot, PlayStart.SideOut, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
+            .. new[] { PlayStart.MadeShot, PlayStart.SideOut, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
         ],
         NbaTransitions.Stolen);
 

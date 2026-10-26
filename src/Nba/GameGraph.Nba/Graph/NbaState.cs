@@ -57,6 +57,8 @@ public sealed class NbaState
 
     public int Shooter { get; set; }
 
+    public int TurnoverKind { get; set; }
+
     public int LineupTeam { get; set; } = Sides.Home;
 
     public int SubstitutingTeams { get; set; }

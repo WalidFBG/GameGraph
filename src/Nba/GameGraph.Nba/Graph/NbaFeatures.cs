@@ -43,7 +43,7 @@ public static class NbaFeatures
         new(nameof(ReboundsOwnMiss), (s, player) => s.ReboundToOffence && player == s.Shooter ? 1 : 0);
 
     public static readonly CandidateFeature<NbaState> TurnoverShare =
-        new(nameof(TurnoverShare), (s, player) => s.LogShares[(int)PlayerEvent.Turnover][player]);
+        new(nameof(TurnoverShare), (s, player) => s.TurnoverKind == TurnoverKinds.OffensiveFoul ? s.LogShares[(int)PlayerEvent.OffensiveFoul][player] : s.LogShares[(int)PlayerEvent.Turnover][player]);
 
     public static readonly CandidateFeature<NbaState> FoulShare =
         new(nameof(FoulShare), (s, player) => s.LogShares[(int)PlayerEvent.Foul][player]);
@@ -83,9 +83,6 @@ public static class NbaFeatures
 
     public static readonly Feature<NbaState> ShotClock =
         new(nameof(ShotClock), s => s.ShotClock);
-
-    public static readonly Feature<NbaState> ShotClockExpired =
-        new(nameof(ShotClockExpired), s => s.ShotClock <= 0 ? 1 : 0);
 
     public static readonly Feature<NbaState> PeriodClock =
         new(nameof(PeriodClock), s => s.PeriodClock);

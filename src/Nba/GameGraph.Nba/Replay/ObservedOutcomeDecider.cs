@@ -161,13 +161,13 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
                     break;
                 case ObservedTurnover turnover:
-                    yield return Decision(NbaNodes.TeamTurnover, Number(turnover.ByTeam));
+                    yield return Decision(NbaNodes.TurnoverKind, turnover.Kind);
 
                     if (turnover.Player is { } player)
-                    {
                         yield return Player(NbaNodes.TurnedOverBy, player);
+
+                    if (turnover.Kind == TurnoverKinds.Other)
                         yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
-                    }
 
                     break;
                 default:

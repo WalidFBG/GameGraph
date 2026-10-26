@@ -19,7 +19,7 @@ public static class NbaGameSpec
             NbaNodes.PeriodRunsOut,
             NbaNodes.ActionType,
             NbaNodes.ActionTime,
-            NbaNodes.TeamTurnover,
+            NbaNodes.TurnoverKind,
             NbaNodes.TurnedOverBy,
             NbaNodes.Stolen,
             NbaNodes.Shooter,

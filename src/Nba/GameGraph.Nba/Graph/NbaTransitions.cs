@@ -107,7 +107,7 @@ public static class NbaTransitions
                 state.ShotPoints = 3;
                 return NbaNodes.Shooter;
             case Graph.ActionType.Turnover:
-                return NbaNodes.TeamTurnover;
+                return NbaNodes.TurnoverKind;
             case Graph.ActionType.NonShootingFoul:
                 DefenceFouls(state);
                 return NbaNodes.Fouler;
@@ -116,13 +116,24 @@ public static class NbaTransitions
         }
     }
 
-    public static Next<NbaState> TeamTurnover(NbaState state, int byTeam) =>
-        Yes(byTeam) ? EndOfPossession(state, PlayStart.DeadBallTurnover) : NbaNodes.TurnedOverBy;
+    public static Next<NbaState> TurnoverKind(NbaState state, int kind)
+    {
+        if (kind is < TurnoverKinds.Other or > TurnoverKinds.OffensiveFoul)
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "A turnover is another kind, a team's or an offensive foul");
+
+        state.TurnoverKind = kind;
+        return kind == TurnoverKinds.Team ? EndOfPossession(state, PlayStart.DeadBallTurnover) : NbaNodes.TurnedOverBy;
+    }
 
     public static Next<NbaState> TurnedOverBy(NbaState state, ReadOnlySpan<int> player)
     {
         state.Turnovers[player[0]]++;
-        return NbaNodes.Stolen;
+
+        if (state.TurnoverKind != TurnoverKinds.OffensiveFoul)
+            return NbaNodes.Stolen;
+
+        state.PersonalFouls[player[0]]++;
+        return EndOfPossession(state, PlayStart.DeadBallTurnover);
     }
 
     public static Next<NbaState> Stolen(NbaState state, int stolen) =>

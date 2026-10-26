@@ -51,7 +51,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
                 CloseAndOneWindow();
                 RequireNoOpenAction();
                 StartAction(TurnoverTeam(turnover));
-                _actions.Add(new ObservedTurnover(ActionClock(turnover), TurnoverPlayer(turnover), Stolen(turnover)) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
+                _actions.Add(new ObservedTurnover(ActionClock(turnover), TurnoverPlayer(turnover), turnover.TurnoverType == TurnoverType.OffensiveFoul, Stolen(turnover)) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
                 break;
             case Foul foul:
                 Foul(foul);

@@ -55,8 +55,8 @@ public sealed class PlayerHistory
                         Credit(games, court[defence], foul.Fouler, PlayerEvent.Foul);
                         Credit(games, court[offence], foul.FouledPlayer, PlayerEvent.FoulDrawn);
                         break;
-                    case ObservedTurnover { Player: { } player }:
-                        Credit(games, court[offence], player, PlayerEvent.Turnover);
+                    case ObservedTurnover { Player: { } player } turnover:
+                        Credit(games, court[offence], player, turnover.Kind == TurnoverKinds.OffensiveFoul ? PlayerEvent.OffensiveFoul : PlayerEvent.Turnover);
                         break;
                 }
 
