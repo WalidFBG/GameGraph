@@ -8,8 +8,8 @@ from pathlib import Path
 
 import torch
 
-from gamegraph.files.contract_files import write_training_result
-from gamegraph.files.training_data_files import EXAMPLES, GAMES, MANIFEST, read_training_data
+from gamegraph.files.contract_documents import write_training_result
+from gamegraph.files.training_data_directory import EXAMPLES, GAMES, MANIFEST, read_training_data
 from gamegraph.training.training import train
 
 DIGEST = ".digest"

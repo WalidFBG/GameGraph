@@ -1,7 +1,7 @@
-using GameGraph.Nba.Tests.QualityAssurance.Domain;
 using GameGraph.Nba.Augmentation;
-using GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 using GameGraph.Nba.Graph;
+using GameGraph.Nba.Tests.QualityAssurance.Domain;
+using GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 using Xunit;
 
 namespace GameGraph.Nba.Tests.QualityAssurance;
@@ -15,14 +15,14 @@ public sealed class SimulationAudit(ITestOutputHelper output)
         var fitted = FittedModelReader.ReadGame();
         var games = GeneratedGames.InOrder(ValidatedDataReader.ReadAll()).ToArray();
 
-        foreach (var node in NbaGameSpec.Instance.Nodes)
+        foreach (var node in NbaGraph.Instance.Nodes)
             TrainingDataOrigin.Require(node.Name, TrainingDataReader.GameIds(node.Name), games.Select(g => g.Game));
 
-        var (decisions, comparisons) = SeasonSimulation.SimulateEachOnce(fitted, games);
+        var (recorder, comparisons) = SeasonSimulation.SimulateEachOnce(fitted, games);
 
-        foreach (var node in NbaGameSpec.Instance.Nodes)
+        foreach (var node in NbaGraph.Instance.Nodes)
         {
-            var examples = CollectedExamples.Table(node.FeatureNames, decisions.GamesFor(node));
+            var examples = CollectedExamples.Table(node.FeatureNames, recorder.GamesFor(node));
             var scored = ExampleScorer.Score(examples, fitted.ModelOf(node), node.Model.Distribution);
             var path = Path.Combine(directory, $"{node.Name}.parquet");
 

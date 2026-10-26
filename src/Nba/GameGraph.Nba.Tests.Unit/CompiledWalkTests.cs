@@ -1,7 +1,8 @@
-using GameGraph.Engine;
 using GameGraph.Nba.Fixture;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
+using GameGraph.Simulation.Compiled;
+using GameGraph.Simulation.Randomness;
 using GameGraph.Simulation;
 using Xunit;
 
@@ -11,8 +12,8 @@ public sealed class CompiledWalkTests
 {
     private const int Simulations = 1_000;
 
-    private static readonly FittedGame<NbaState> Fitted = SimulationFixture.Fitted();
-    private static readonly CompiledGame<NbaState> Compiled = new(Fitted);
+    private static readonly FittedGraph<NbaState> Fitted = SimulationFixture.Fitted();
+    private static readonly CompiledGraph<NbaState> Compiled = new(Fitted);
     private static readonly GameContext Context = SimulationFixture.Context();
 
     [Fact]
@@ -36,7 +37,7 @@ public sealed class CompiledWalkTests
         Simulator.Run(Fitted, seeds, _ => new NbaState(plain, Context), new PlainOutcomes(plain));
         Simulator.Run(Compiled, seeds, _ => new NbaState(compiled, Context), new CompiledOutcomes(compiled));
 
-        Assert.Empty(NbaGameSpec.Instance.Nodes.Where(n => compiled.Decisions(n) == 0).Select(n => n.Name));
+        Assert.Empty(NbaGraph.Instance.Nodes.Where(n => compiled.Decisions(n) == 0).Select(n => n.Name));
         Assert.Equal(plain.Hex(), compiled.Hex());
     }
 

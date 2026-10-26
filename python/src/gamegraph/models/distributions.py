@@ -10,6 +10,7 @@ from gamegraph.contract import (
     DistributionDeclaration,
 )
 from gamegraph.models import normal
+from gamegraph.models.choice_shape import ChoiceShape
 
 NARROW_OUTCOME = 1e-3
 NARROW_RANGE = 1e-8
@@ -122,17 +123,16 @@ class DiscreteJohnsonSu:
 
 class Choice:
     def log_prob(self, parameters: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> torch.Tensor:
-        utility, candidate, size = self._decisions(parameters)
-        chosen = (outcomes.unsqueeze(1) >> torch.arange(utility.shape[1])) & 1 == 1
-        if (outcomes < 0).any() or (outcomes >> utility.shape[1] != 0).any() or (chosen & ~candidate).any():
-            raise ValueError("A choice's outcome is a set of its candidates' rows")
-        if not torch.equal(chosen.sum(dim=1), size):
-            raise ValueError("A choice chooses as many candidates as its size")
-        safe = torch.where(candidate, utility, 0.0)
-        return torch.where(chosen, safe, 0.0).sum(dim=1) - _log_sets(safe, candidate, size)
+        utility, sizes = parameters
+        shape = ChoiceShape.of(sizes)
+        shape.require_outcomes(outcomes)
+        safe = torch.where(shape.candidate, utility, 0.0)
+        return torch.where(shape.chosen(outcomes), safe, 0.0).sum(dim=1) - _log_sets(safe, shape.candidate, shape.size)
 
     def sample(self, parameters: tuple[torch.Tensor, ...], uniforms: torch.Tensor) -> torch.Tensor:
-        utility, candidate, size = self._decisions(parameters)
+        utility, sizes = parameters
+        shape = ChoiceShape.of(sizes)
+        candidate, size = shape.candidate, shape.size
         _require_uniforms(uniforms)
         safe = torch.where(candidate, utility, 0.0)
         suffixes = _log_suffix_sets(safe, candidate, int(size.max()))
@@ -152,24 +152,6 @@ class Choice:
 
     def initial_parameters(self, outcomes: torch.Tensor) -> dict[str, float]:
         return {}
-
-    @staticmethod
-    def _decisions(parameters: tuple[torch.Tensor, ...]) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        utility, size = parameters
-        if utility.shape[1] > ChoiceDistribution.MOST_CANDIDATES:
-            raise ValueError(
-                f"A choice has at most {ChoiceDistribution.MOST_CANDIDATES} candidates, got {utility.shape[1]}"
-            )
-        candidate = size > 0
-        sizes = torch.where(candidate, size, 0.0).amax(dim=1)
-        if not (
-            candidate.any(dim=1).all()
-            and (torch.where(candidate, size, sizes.unsqueeze(1)) == sizes.unsqueeze(1)).all()
-        ):
-            raise ValueError("Every candidate of a choice has the same size, and padding rows have size 0")
-        if not (torch.equal(sizes, torch.round(sizes)) and (sizes <= candidate.sum(dim=1)).all()):
-            raise ValueError("A choice's size is a whole number of its candidates")
-        return utility, candidate, sizes.to(torch.int64)
 
 
 type Distribution = Bernoulli | Categorical | DiscreteJohnsonSu | Choice

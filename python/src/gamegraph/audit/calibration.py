@@ -4,10 +4,10 @@ from pathlib import Path
 import polars as pl
 
 from gamegraph.audit import findings, predicted
-from gamegraph.audit.findings import Failure
+from gamegraph.audit.findings import Finding
 from gamegraph.audit.runs import BUCKETS, csv_name, latest
-from gamegraph.files.contract_files import read_training_data_manifest
-from gamegraph.files.training_data_files import MANIFEST
+from gamegraph.files.contract_documents import read_training_data_manifest
+from gamegraph.files.training_data_directory import MANIFEST
 
 CHECK = "calibration"
 
@@ -16,13 +16,13 @@ def audit(run: Path, training_data: Path) -> None:
     files = sorted(run.glob("*.parquet"))
     if not files:
         raise ValueError(f"No calibration files under {run}")
-    found: list[Failure] = []
+    found: list[Finding] = []
     for file in files:
         manifest = read_training_data_manifest(training_data / file.stem / MANIFEST)
         output = run / BUCKETS / manifest.node
         output.mkdir(parents=True, exist_ok=True)
         tables = predicted.tables(manifest, pl.read_parquet(file))
-        node_found: list[Failure] = []
+        node_found: list[Finding] = []
         for name, table in tables.items():
             table.write_csv(output / csv_name(run, manifest.node, name))
             node_found += findings.failures(CHECK, manifest.node, name, table, predicted.PREDICTED, predicted.OBSERVED)

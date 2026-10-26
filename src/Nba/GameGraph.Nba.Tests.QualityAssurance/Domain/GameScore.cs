@@ -1,6 +1,6 @@
-using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
+using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 

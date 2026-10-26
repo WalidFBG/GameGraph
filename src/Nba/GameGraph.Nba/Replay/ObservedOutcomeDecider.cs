@@ -1,4 +1,5 @@
-using GameGraph.Engine;
+using GameGraph.Engine.Nodes;
+using GameGraph.Engine.Walk;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
 using GameGraph.Nba.Observed;
@@ -10,7 +11,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     private const double UnreadPointsPerPossession = 0;
 
     private readonly AcceptedGame _game;
-    private readonly Dictionary<NodeSpec<NbaState>, Func<NbaState, int>> _readers;
+    private readonly Dictionary<Node<NbaState>, Func<NbaState, int>> _readers;
     private ObservedActionCursor? _action;
     private bool _afterRead;
     private bool _nextBeforeRead;
@@ -57,7 +58,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             [NbaNodes.Stealer] = s => Chosen(NbaNodes.Stealer, s, [Action.As<ObservedTurnover>().Stealer ?? throw Disagree("The rules ask for the stealer of a turnover that was not stolen")]),
         };
 
-        var unread = NbaGameSpec.Instance.Nodes.Where(n => !_readers.ContainsKey(n)).Select(n => n.Name).ToArray();
+        var unread = NbaGraph.Instance.Nodes.Where(n => !_readers.ContainsKey(n)).Select(n => n.Name).ToArray();
 
         if (unread.Length > 0)
             throw new InvalidOperationException($"The replay reads no fact for {string.Join(", ", unread)}");
@@ -79,7 +80,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         try
         {
-            GameWalker.Walk(NbaGameSpec.Instance, state, decider, new EmptyDecisionCollector<NbaState>());
+            GameWalker.Walk(NbaGraph.Instance, state, decider, new NoDecisionCollector<NbaState>());
             decider.EnsureAllUsed();
             return true;
         }
@@ -89,7 +90,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         }
     }
 
-    public int Decide(NodeSpec<NbaState> node, NbaState state, ReadOnlySpan<double> features) => _readers[node](state);
+    public int Decide(Node<NbaState> node, NbaState state, ReadOnlySpan<double> features) => _readers[node](state);
 
     public void EnsureAllUsed()
     {

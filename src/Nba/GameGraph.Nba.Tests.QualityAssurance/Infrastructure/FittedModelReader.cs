@@ -1,5 +1,5 @@
-using GameGraph.Contract;
 using GameGraph.Contract.Files;
+using GameGraph.Contract;
 using GameGraph.Nba.Graph;
 using GameGraph.Simulation;
 
@@ -7,7 +7,7 @@ namespace GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 
 internal static class FittedModelReader
 {
-    public static FittedModel Read(string node) => ContractFiles.ReadFittedModel(DataDirectories.FittedModel(node));
+    public static FittedModel Read(string node) => ContractDocuments.ReadFittedModel(DataDirectories.FittedModel(node));
 
-    public static FittedGame<NbaState> ReadGame() => new(NbaGameSpec.Instance, [.. NbaGameSpec.Instance.Nodes.Select(n => Read(n.Name))]);
+    public static FittedGraph<NbaState> ReadGame() => new(NbaGraph.Instance, [.. NbaGraph.Instance.Nodes.Select(n => Read(n.Name))]);
 }

@@ -6,8 +6,8 @@ from synthetic import bernoulli, categorical
 
 import gamegraph
 from gamegraph import train_nodes as train_nodes_module
-from gamegraph.files.contract_files import read_fitted_model, read_training_report
-from gamegraph.files.training_data_files import MANIFEST, write_training_data
+from gamegraph.files.contract_documents import read_fitted_model, read_training_report
+from gamegraph.files.training_data_directory import MANIFEST, write_training_data
 from gamegraph.train_nodes import train_nodes, trainer_sources
 
 
@@ -83,7 +83,12 @@ def test_the_trainer_digest_covers_every_module_outside_the_audit() -> None:
     package = Path(gamegraph.__file__).parent
     modules = {p.relative_to(package).as_posix() for p in package.rglob("*.py")}
     assert set(trainer_sources()) == {m for m in modules if not m.startswith("audit/")}
-    assert {"contract.py", "files/training_data_files.py", "models/model.py", "training/training.py"} <= modules
+    assert {
+        "contract/fitted_model.py",
+        "files/training_data_directory.py",
+        "models/model.py",
+        "training/training.py",
+    } <= modules
 
 
 def test_retraining_all_ignores_the_recorded_digests(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

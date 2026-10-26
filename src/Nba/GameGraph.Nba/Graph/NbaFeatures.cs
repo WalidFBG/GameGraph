@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using GameGraph.Engine;
+using GameGraph.Engine.Nodes;
 
 namespace GameGraph.Nba.Graph;
 

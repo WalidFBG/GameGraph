@@ -6,14 +6,14 @@ import torch
 
 from gamegraph.contract import (
     Attempt,
-    Failure,
+    FailedAttempt,
     FittedModel,
     Route,
     TrainingAndValidation,
     TrainingReport,
 )
 from gamegraph.models.model import Model
-from gamegraph.training.training_data import TrainingData
+from gamegraph.training_tensors import TrainingTensors
 
 VALIDATION_FRACTION = 0.2
 RIDGE_PATH = (1e-2, 1e-3, 1e-4, 1e-5, 0.0)
@@ -28,7 +28,7 @@ class NotConverged(RuntimeError):
     pass
 
 
-def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
+def train(data: TrainingTensors) -> tuple[FittedModel, TrainingReport]:
     training_games = len(data.games) - round(len(data.games) * VALIDATION_FRACTION)
     split = data.split(training_games)
     manifest = data.manifest
@@ -36,7 +36,7 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
     start = Model.initial(manifest.model, manifest.features, training.features, training.outcomes)
     designs, validation_designs = start.designs(training.features), start.designs(validation.features)
     attempts: list[Attempt] = []
-    failures: list[Failure] = []
+    failures: list[FailedAttempt] = []
     fits: list[FittedModel] = []
     for route, ridges in ROUTES:
         model = deepcopy(start)
@@ -44,7 +44,7 @@ def train(data: TrainingData) -> tuple[FittedModel, TrainingReport]:
             try:
                 iterations = fit(manifest.node, model, designs, training.outcomes, ridge)
             except NotConverged as failure:
-                failures.append(Failure(route, ridge, str(failure)))
+                failures.append(FailedAttempt(route, ridge, str(failure)))
                 break
             likelihood = TrainingAndValidation[float](
                 _negative_log_likelihood(model, designs, training.outcomes),
@@ -121,7 +121,7 @@ def fit(node: str, model: Model, designs: tuple[torch.Tensor, ...], outcomes: to
 
 def _loss(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor, ridge: float) -> torch.Tensor:
     squared = sum(((p.coefficients**2).sum() for p in model.predictors), torch.zeros((), dtype=torch.float64))
-    return -model.log_prob_of(designs, outcomes).mean() + ridge * squared
+    return -model.log_prob_from_designs(designs, outcomes).mean() + ridge * squared
 
 
 def _training(attempt: Attempt) -> float:
@@ -130,4 +130,4 @@ def _training(attempt: Attempt) -> float:
 
 def _negative_log_likelihood(model: Model, designs: tuple[torch.Tensor, ...], outcomes: torch.Tensor) -> float:
     with torch.no_grad():
-        return float(-model.log_prob_of(designs, outcomes).mean())
+        return float(-model.log_prob_from_designs(designs, outcomes).mean())

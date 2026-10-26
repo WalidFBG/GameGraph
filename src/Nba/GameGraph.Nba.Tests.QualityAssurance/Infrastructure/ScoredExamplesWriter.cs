@@ -1,6 +1,6 @@
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
-using Parquet;
 using Parquet.Schema;
+using Parquet;
 
 namespace GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
 

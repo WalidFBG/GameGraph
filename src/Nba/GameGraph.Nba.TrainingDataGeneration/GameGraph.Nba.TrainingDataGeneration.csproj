@@ -1,8 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
   <ItemGroup>
+    <ProjectReference Include="..\..\GameGraph.Contract.Files\GameGraph.Contract.Files.csproj" />
     <ProjectReference Include="..\..\GameGraph.Engine\GameGraph.Engine.csproj" />
     <ProjectReference Include="..\GameGraph.Nba\GameGraph.Nba.csproj" />
     <ProjectReference Include="..\GameGraph.Nba.Augmentation\GameGraph.Nba.Augmentation.csproj" />
+    <ProjectReference Include="..\GameGraph.Nba.Sportradar\GameGraph.Nba.Sportradar.csproj" />
   </ItemGroup>
 </Project>

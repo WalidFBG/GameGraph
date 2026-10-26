@@ -1,7 +1,7 @@
 using System.Linq.Expressions;
-using GameGraph.Contract;
 using GameGraph.Contract.Distributions;
 using GameGraph.Contract.Terms;
+using GameGraph.Contract;
 
 namespace GameGraph.Models.Predictors;
 

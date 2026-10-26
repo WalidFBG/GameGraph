@@ -12,7 +12,7 @@ Z = "z"
 
 
 @dataclass(frozen=True)
-class Failure:
+class Finding:
     check: str
     node: str
     table: str
@@ -28,13 +28,13 @@ def z_scores(table: pl.DataFrame) -> int:
     return table.select(pl.col(f"^.*{Z}$").is_not_null().sum()).sum_horizontal().item()
 
 
-def failures(check: str, node: str, name: str, table: pl.DataFrame, expected: str, actual: str) -> list[Failure]:
-    found: list[Failure] = []
+def failures(check: str, node: str, name: str, table: pl.DataFrame, expected: str, actual: str) -> list[Finding]:
+    found: list[Finding] = []
     for column in (c for c in table.columns if c.endswith(Z)):
         prefix = column[: -len(Z)]
         for row in table.filter(pl.col(column).abs() > LARGE_Z).iter_rows(named=True):
             found.append(
-                Failure(
+                Finding(
                     check,
                     node,
                     name,
@@ -49,7 +49,7 @@ def failures(check: str, node: str, name: str, table: pl.DataFrame, expected: st
     return found
 
 
-def summarise(name: str, checked: int, found: list[Failure], expected: str, actual: str) -> None:
+def summarise(name: str, checked: int, found: list[Finding], expected: str, actual: str) -> None:
     print(f"{name}: {checked} z-scores, |z| > {LARGE_Z:g}: {len(found)} ({checked * CHANCE_OF_LARGE_Z:.1f} by chance)")
     for f in sorted(found, key=lambda f: -abs(f.z))[:WORST_SHOWN]:
         print(
@@ -58,8 +58,8 @@ def summarise(name: str, checked: int, found: list[Failure], expected: str, actu
         )
 
 
-def write(path: Path, found: list[Failure]) -> None:
-    table = pl.DataFrame([astuple(f) for f in found], schema=[f.name for f in fields(Failure)], orient="row")
+def write(path: Path, found: list[Finding]) -> None:
+    table = pl.DataFrame([astuple(f) for f in found], schema=[f.name for f in fields(Finding)], orient="row")
     table.sort(pl.col(Z).abs(), descending=True).write_csv(path)
 
 

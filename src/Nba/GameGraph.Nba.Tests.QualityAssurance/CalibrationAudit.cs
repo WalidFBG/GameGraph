@@ -1,6 +1,6 @@
+using GameGraph.Nba.Graph;
 using GameGraph.Nba.Tests.QualityAssurance.Domain;
 using GameGraph.Nba.Tests.QualityAssurance.Infrastructure;
-using GameGraph.Nba.Graph;
 using Xunit;
 
 namespace GameGraph.Nba.Tests.QualityAssurance;
@@ -12,7 +12,7 @@ public sealed class CalibrationAudit(ITestOutputHelper output)
     {
         var directory = DataDirectories.NewRun("calibration");
 
-        foreach (var node in NbaGameSpec.Instance.Nodes)
+        foreach (var node in NbaGraph.Instance.Nodes)
         {
             var (manifest, examples) = TrainingDataReader.Read(node.Name);
             var scored = ExampleScorer.Score(examples, CalibrationModel.For(node.Name, manifest, FittedModelReader.Read(node.Name)), manifest.Model.Distribution);

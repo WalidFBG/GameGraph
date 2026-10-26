@@ -1,5 +1,5 @@
-using GameGraph.Contract;
 using GameGraph.Contract.Files;
+using GameGraph.Contract;
 using GameGraph.Nba.Tests.QualityAssurance.Definitions;
 using GameGraph.Nba.Tests.QualityAssurance.Domain;
 
@@ -9,10 +9,10 @@ internal static class TrainingDataReader
 {
     public static (TrainingDataManifest Manifest, ExampleTable Examples) Read(string node)
     {
-        var data = TrainingDataFiles.Read(DataDirectories.TrainingData(node));
+        var data = TrainingDataDirectory.Read(DataDirectories.TrainingData(node));
 
         return (data.Manifest, CollectedExamples.Table(data.Manifest.Features, data.Games));
     }
 
-    public static string[] GameIds(string node) => TrainingDataFiles.GameIds(DataDirectories.TrainingData(node));
+    public static string[] GameIds(string node) => TrainingDataDirectory.GameIds(DataDirectories.TrainingData(node));
 }

@@ -14,7 +14,7 @@ from gamegraph.contract import (
     CategoricalDistribution,
     ChoiceDistribution,
     DiscreteJohnsonSuDistribution,
-    Failure,
+    FailedAttempt,
     FittedModel,
     LinearFit,
     LinearSplineFit,
@@ -27,7 +27,7 @@ from gamegraph.contract import (
     TrainingDataManifest,
     TrainingReport,
 )
-from gamegraph.files.contract_files import (
+from gamegraph.files.contract_documents import (
     read_fitted_model,
     read_training_data_manifest,
     read_training_report,
@@ -72,7 +72,7 @@ REPORT = TrainingReport(
         Attempt(Route.DIRECT, 0.0, TrainingAndValidation[float](0.6709, 0.6738), 30),
         Attempt(Route.RIDGE_PATH, 1e-4, TrainingAndValidation[float](0.6712, 0.6731), 21),
     ),
-    (Failure(Route.RIDGE_PATH, 1e-5, "Example did not converge at ridge 1e-05"),),
+    (FailedAttempt(Route.RIDGE_PATH, 1e-5, "Example did not converge at ridge 1e-05"),),
 )
 
 

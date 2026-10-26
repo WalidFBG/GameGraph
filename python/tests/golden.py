@@ -21,13 +21,13 @@ from gamegraph.contract import (
     ModelDeclaration,
     PredictorFit,
 )
-from gamegraph.files.contract_files import write_fitted_model, write_training_result
+from gamegraph.files.contract_documents import write_fitted_model, write_training_result
 from gamegraph.files.paths import REPOSITORY
-from gamegraph.files.training_data_files import write_training_data
+from gamegraph.files.training_data_directory import write_training_data
 from gamegraph.models import normal
 from gamegraph.models.model import Model
 from gamegraph.training.training import train
-from gamegraph.training.training_data import TrainingData
+from gamegraph.training_tensors import TrainingTensors
 
 TESTDATA = REPOSITORY / "testdata"
 
@@ -299,7 +299,7 @@ def write_normal(directory: Path) -> None:
     (directory / "cases.json").write_text(text, encoding="utf-8", newline="\n")
 
 
-def parity_sets() -> dict[str, TrainingData]:
+def parity_sets() -> dict[str, TrainingTensors]:
     return {
         "bernoulli-training": bernoulli("Golden", games=40, rows_per_game=50, seed=11),
         "categorical-training": categorical("Golden", games=40, rows_per_game=50, seed=13),
@@ -312,7 +312,7 @@ def parity_uniforms(rows: int) -> torch.Tensor:
     return torch.tensor(np.random.default_rng(12).random(rows), dtype=torch.float64)
 
 
-def write_parity(directory: Path, data: TrainingData) -> None:
+def write_parity(directory: Path, data: TrainingTensors) -> None:
     write_training_data(directory, data)
     fitted, report = train(data)
     write_training_result(directory, fitted, replace(report, created_utc=START))

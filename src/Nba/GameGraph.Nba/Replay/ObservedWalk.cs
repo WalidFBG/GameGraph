@@ -1,4 +1,4 @@
-using GameGraph.Engine;
+using GameGraph.Engine.Walk;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Observed;
 
@@ -10,7 +10,7 @@ public static class ObservedWalk
     {
         var decider = new ObservedOutcomeDecider(game);
 
-        GameWalker.Walk(NbaGameSpec.Instance, state, decider, decisions);
+        GameWalker.Walk(NbaGraph.Instance, state, decider, decisions);
         decider.EnsureAllUsed();
 
         return decider;

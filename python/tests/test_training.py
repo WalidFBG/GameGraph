@@ -20,8 +20,8 @@ from synthetic import (
 )
 
 from gamegraph.contract import Attempt, Route, TrainingAndValidation
-from gamegraph.files.contract_files import read_fitted_model, read_training_report, write_training_result
-from gamegraph.files.training_data_files import read_training_data, write_training_data
+from gamegraph.files.contract_documents import read_fitted_model, read_training_report, write_training_result
+from gamegraph.files.training_data_directory import read_training_data, write_training_data
 from gamegraph.models.distributions import DiscreteJohnsonSu
 from gamegraph.models.model import Model
 from gamegraph.training import training
@@ -32,10 +32,10 @@ from gamegraph.training.training import (
     require_converged,
     train,
 )
-from gamegraph.training.training_data import Examples, TrainingData
+from gamegraph.training_tensors import Examples, TrainingTensors
 
 
-def synthetic(games: int = 1000) -> TrainingData:
+def synthetic(games: int = 1000) -> TrainingTensors:
     return bernoulli("Synthetic", games, rows_per_game=200, seed=7)
 
 
@@ -190,7 +190,7 @@ def test_the_fitted_model_carries_its_manifest_s_declaration() -> None:
     assert fitted.model == data.manifest.model
 
 
-def test_a_training_result_is_written_as_contract_files(tmp_path: Path) -> None:
+def test_a_training_result_is_written_as_contract_documents(tmp_path: Path) -> None:
     fitted, report = train(synthetic(games=50))
     write_training_result(tmp_path, fitted, report)
     assert read_fitted_model(tmp_path / "Synthetic.json") == fitted
@@ -264,7 +264,7 @@ def test_reading_fewer_examples_than_the_manifest_says_fails(tmp_path: Path) -> 
 def test_games_out_of_start_time_order_fail() -> None:
     data = synthetic(games=3)
     with pytest.raises(ValueError, match="start-time order"):
-        TrainingData(data.manifest, tuple(reversed(data.games)), data.examples)
+        TrainingTensors(data.manifest, tuple(reversed(data.games)), data.examples)
 
 
 def test_a_feature_constant_in_training_fails() -> None:
@@ -272,11 +272,11 @@ def test_a_feature_constant_in_training_fails() -> None:
     features = data.examples.features.clone()
     features[:, 1] = 1.0
     with pytest.raises(ValueError, match="Indicator is constant"):
-        train(TrainingData(data.manifest, data.games, Examples(features, data.examples.outcomes)))
+        train(TrainingTensors(data.manifest, data.games, Examples(features, data.examples.outcomes)))
 
 
 def test_outcomes_that_are_all_the_same_fail() -> None:
     data = synthetic(games=10)
     outcomes = torch.ones_like(data.examples.outcomes)
     with pytest.raises(ValueError, match="nothing to fit"):
-        train(TrainingData(data.manifest, data.games, Examples(data.examples.features, outcomes)))
+        train(TrainingTensors(data.manifest, data.games, Examples(data.examples.features, outcomes)))

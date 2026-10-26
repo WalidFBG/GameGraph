@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using System.Globalization;
 using System.Reflection;
-using GameGraph.Engine;
+using GameGraph.Engine.Walk;
 using GameGraph.Nba.Fixture;
 using GameGraph.Nba.Graph;
 using GameGraph.Nba.Incidents;
+using GameGraph.Simulation.Compiled;
+using GameGraph.Simulation.Randomness;
 using GameGraph.Simulation;
 
 namespace GameGraph.Nba.Benchmark;
@@ -22,11 +24,11 @@ public static class Program
 
         var fitted = SimulationFixture.Fitted();
         var compiling = Stopwatch.StartNew();
-        var compiled = new CompiledGame<NbaState>(fitted);
+        var compiled = new CompiledGraph<NbaState>(fitted);
         var context = SimulationFixture.Context();
         var seeds = Seeds.Draw(Simulations);
         var incidents = new EmptyIncidentCollector();
-        var decisions = new EmptyDecisionCollector<NbaState>();
+        var decisions = new NoDecisionCollector<NbaState>();
 
         Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Compiled the game in {compiling.Elapsed.TotalSeconds:F2} s"));
         Console.WriteLine($"{Simulations:N0} simulations of the fixture game a run, on {Environment.ProcessorCount} threads, after {WarmUpRuns} runs to warm up");
