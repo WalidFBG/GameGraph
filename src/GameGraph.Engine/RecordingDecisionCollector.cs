@@ -20,6 +20,9 @@ public sealed class RecordingDecisionCollector<TState>(GameSpec<TState> spec) : 
         if (games.Count == 0)
             throw new InvalidOperationException($"{nameof(BeginGame)} must be called before the walk");
 
+        if (node.HasOneOutcome(state))
+            return;
+
         games[^1].Examples.Add(new TrainingExample(features.ToArray(), outcome));
     }
 

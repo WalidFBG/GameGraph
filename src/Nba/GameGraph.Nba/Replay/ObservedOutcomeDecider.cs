@@ -10,15 +10,12 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     private const double UnreadPointsPerPossession = 0;
 
     private readonly ObservedDecision[] _decisions;
-    private readonly Roster _roster;
     private int _next;
 
     public ObservedOutcomeDecider(AcceptedGame game)
     {
         var possessions = game.Possessions;
         var decisions = new List<ObservedDecision>();
-
-        _roster = game.Roster;
 
         foreach (var starters in game.Roster.Starters)
             decisions.Add(new ObservedDecision(NbaNodes.Starters, s => Chosen(NbaNodes.Starters, s, starters), Sides.Home, 0));
@@ -194,17 +191,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
             foreach (var change in offence.Concat(defence))
             {
-                var bench = _roster.Active[change.Team].Length - Lineups.Size;
-                var count = change.Off.Length;
-
-                if (bench > 1)
-                    yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [count]), inPossession, possession.Period);
-
-                if (count < Lineups.Size)
-                    yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, change.Off), inPossession, possession.Period);
-
-                if (count < bench)
-                    yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [change.Off.Length]), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, change.Off), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
             }
         }
 

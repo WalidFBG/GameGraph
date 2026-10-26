@@ -5,7 +5,7 @@ using OddsFactory.Sports.Data.Contracts.SportRadar;
 
 namespace GameGraph.Nba.Sportradar;
 
-internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Dictionary<long, int> slots, LineupParser lineups)
+internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Dictionary<long, int> slots, int[][] active)
 {
     private const int TakeFoulFreeThrows = 1;
 
@@ -19,6 +19,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
     private ObservedRebound? _reboundAtZero;
     private readonly List<AwardedFreeThrow> _awarded = [];
     private readonly List<int> _timeouts = [];
+    private readonly LineupParser _lineups = new(teams, slots, active);
 
     public int PossessionsCutByPeriodEnd { get; private set; }
 
@@ -59,11 +60,14 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
                 Rebound(rebound);
                 break;
         }
+
+        _lineups.Read(e);
     }
+
+    public Roster BuildRoster() => _lineups.Build();
 
     public Possession[] Build()
     {
-        lineups.Take();
         EndPeriod();
         return _possessions.ToArray();
     }
@@ -89,7 +93,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         if (_awarded.Count > 0)
             _possessions[^1] = LastPossessionOfThePeriod(RejectionReason.UnmatchedFreeThrow) with { AwardedAfter = TakeAwarded() };
 
-        if (_timeouts.Count > 0 || lineups.HasChanges)
+        if (_timeouts.Count > 0 || _lineups.HasChanges)
             _possessions[^1] = LastPossessionOfThePeriod(RejectionReason.UnmatchedMoment) with { After = TakeMoment() };
     }
 
@@ -313,7 +317,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
     {
         var timeouts = _timeouts.ToArray();
         _timeouts.Clear();
-        return new ObservedMoment(timeouts, lineups.Take());
+        return new ObservedMoment(timeouts, _lineups.Take());
     }
 
     private AwardedFreeThrow[] TakeAwarded()

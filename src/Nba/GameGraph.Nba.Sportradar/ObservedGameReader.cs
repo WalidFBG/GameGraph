@@ -26,17 +26,13 @@ public static class ObservedGameReader
 
         try
         {
-            var lineups = new LineupParser(TeamsByPlayer(game), slots, active);
-            var parser = new PossessionParser(TeamsByPlayer(game), slots, lineups);
+            var parser = new PossessionParser(TeamsByPlayer(game), slots, active);
 
             foreach (var e in game.Events)
-            {
                 parser.Read(e);
-                lineups.Read(e);
-            }
 
             possessions = parser.Build();
-            roster = lineups.Build();
+            roster = parser.BuildRoster();
             cut = parser.PossessionsCutByPeriodEnd;
         }
         catch (RejectedGameException rejected)

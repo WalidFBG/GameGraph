@@ -207,25 +207,22 @@ public static class NbaTransitions
         return NextChange(state);
     }
 
-    public static Next<NbaState> SubstitutionCount(NbaState state, ReadOnlySpan<int> count) => Count(state, count[0]);
+    public static Next<NbaState> SubstitutionCount(NbaState state, ReadOnlySpan<int> count)
+    {
+        state.ChangeSize = count[0];
+        return NbaNodes.SubstitutedOff;
+    }
 
     public static Next<NbaState> SubstitutedOff(NbaState state, ReadOnlySpan<int> off)
     {
         off.CopyTo(state.Leaving);
-
-        var bench = state.Bench[state.LineupTeam];
-
-        return state.ChangeSize < bench.Length ? NbaNodes.SubstitutedOn : SubstitutedOn(state, bench);
+        return NbaNodes.SubstitutedOn;
     }
 
     public static Next<NbaState> SubstitutedOn(NbaState state, ReadOnlySpan<int> on)
     {
-        Span<int> joining = stackalloc int[state.ChangeSize];
-
-        on.CopyTo(joining);
-
-        for (var i = 0; i < joining.Length; i++)
-            Swap(state, state.LineupTeam, state.Leaving[i], joining[i]);
+        for (var i = 0; i < on.Length; i++)
+            Swap(state, state.LineupTeam, state.Leaving[i], on[i]);
 
         return NextChange(state);
     }
@@ -281,13 +278,7 @@ public static class NbaTransitions
     {
         state.SubstitutingTeams &= ~side;
         state.LineupTeam = team;
-        return state.Bench[team].Length > 1 ? NbaNodes.SubstitutionCount : Count(state, 1);
-    }
-
-    private static Next<NbaState> Count(NbaState state, int count)
-    {
-        state.ChangeSize = count;
-        return count < Lineups.Size ? NbaNodes.SubstitutedOff : SubstitutedOff(state, state.OnCourt[state.LineupTeam]);
+        return NbaNodes.SubstitutionCount;
     }
 
     private static void Swap(NbaState state, int team, int off, int on)
