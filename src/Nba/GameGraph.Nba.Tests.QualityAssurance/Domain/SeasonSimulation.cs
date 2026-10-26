@@ -22,7 +22,7 @@ internal static class SeasonSimulation
             var score = new GameScore();
 
             decisions.BeginGame(game.Id, game.StartUtc);
-            Simulator.Run(fitted, [seeds[g]], _ => new NbaState(score, context, game.Rotation), decisions);
+            Simulator.Run(fitted, [seeds[g]], _ => new NbaState(score, context), decisions);
 
             comparisons[g] = new GameComparison(game.Id, ObservedTotals.Of(game, context), score.Totals());
         }

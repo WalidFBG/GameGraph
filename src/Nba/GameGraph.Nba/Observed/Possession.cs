@@ -28,7 +28,7 @@ public sealed record Possession
 
     public bool BallAwardedAfter { get; init; }
 
-    public int[] TimeoutsAfter { get; init; } = [];
+    public ObservedMoment After { get; init; } = ObservedMoment.Quiet;
 
     public bool CutByPeriodEnd => !Actions[^1].EndsPossession && !BallAwardedAfter;
 

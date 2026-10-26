@@ -5,6 +5,31 @@ namespace GameGraph.Nba.Graph;
 
 public static class NbaTransitions
 {
+    public static Next<NbaState> Starters(NbaState state, ReadOnlySpan<int> starters)
+    {
+        var team = state.LineupTeam;
+        var bench = 0;
+
+        starters.CopyTo(state.OnCourt[team]);
+
+        foreach (var player in state.Active[team])
+        {
+            var starts = starters.Contains(player);
+
+            state.Started[player] = starts;
+            state.IsOnCourt[player] = starts;
+
+            if (!starts)
+                state.Bench[team][bench++] = player;
+        }
+
+        if (team != Sides.Home)
+            return NbaNodes.JumpBall;
+
+        state.LineupTeam = Sides.Away;
+        return NbaNodes.Starters;
+    }
+
     public static Next<NbaState> JumpBall(NbaState state, int homeWon)
     {
         state.TeamInPossession = Yes(homeWon) ? Sides.Home : Sides.Away;
@@ -72,7 +97,6 @@ public static class NbaTransitions
 
         state.PeriodClock -= seconds;
         state.ShotClock -= seconds;
-        state.Rotation.FillOnCourt(state.OnCourt, state.Period, state.PeriodClock);
 
         switch (state.Action)
         {
@@ -115,7 +139,7 @@ public static class NbaTransitions
         if (state.Fouled)
         {
             state.FreeThrowsLeft = Yes(made) ? 1 : state.ShotPoints;
-            return AskTimeouts(state, TimeoutMoment.FreeThrow);
+            return AskTimeouts(state, Moment.FreeThrow);
         }
 
         if (Yes(made))
@@ -130,7 +154,7 @@ public static class NbaTransitions
         if (Yes(inBonus))
         {
             state.FreeThrowsLeft = FreeThrows.Bonus;
-            return AskTimeouts(state, TimeoutMoment.FreeThrow);
+            return AskTimeouts(state, Moment.FreeThrow);
         }
 
         state.ShotClock = Math.Max(state.ShotClock, Graph.ShotClock.SideOutMinimum);
@@ -146,7 +170,10 @@ public static class NbaTransitions
         state.FreeThrowsLeft--;
 
         if (state.FreeThrowsLeft > 0)
-            return AskTimeouts(state, TimeoutMoment.FreeThrow);
+        {
+            state.BetweenFreeThrows = true;
+            return AskTimeouts(state, Moment.FreeThrow);
+        }
 
         if (Yes(made))
             return EndOfPossession(state, PlayStart.MadeFreeThrow);
@@ -171,12 +198,45 @@ public static class NbaTransitions
         return NextPlay(state);
     }
 
-    private static Next<NbaState> NextPlay(NbaState state) => AskTimeouts(state, TimeoutMoment.Play);
-
-    private static Next<NbaState> AskTimeouts(NbaState state, TimeoutMoment moment)
+    public static Next<NbaState> Substitutions(NbaState state, int teams)
     {
-        state.TimeoutMoment = moment;
+        if (teams is < SubstitutingTeams.None or > SubstitutingTeams.Both)
+            throw new ArgumentOutOfRangeException(nameof(teams), teams, "Substitutions name no team, the offence, the defence or both");
+
+        state.SubstitutingTeams = teams;
+        return NextChange(state);
+    }
+
+    public static Next<NbaState> SubstitutionCount(NbaState state, ReadOnlySpan<int> count) => Count(state, count[0]);
+
+    public static Next<NbaState> SubstitutedOff(NbaState state, ReadOnlySpan<int> off)
+    {
+        off.CopyTo(state.Leaving);
+
+        var bench = state.Bench[state.LineupTeam];
+
+        return state.ChangeSize < bench.Length ? NbaNodes.SubstitutedOn : SubstitutedOn(state, bench);
+    }
+
+    public static Next<NbaState> SubstitutedOn(NbaState state, ReadOnlySpan<int> on)
+    {
+        Span<int> joining = stackalloc int[state.ChangeSize];
+
+        on.CopyTo(joining);
+
+        for (var i = 0; i < joining.Length; i++)
+            Swap(state, state.LineupTeam, state.Leaving[i], joining[i]);
+
+        return NextChange(state);
+    }
+
+    private static Next<NbaState> NextPlay(NbaState state) => AskTimeouts(state, Moment.Play);
+
+    private static Next<NbaState> AskTimeouts(NbaState state, Moment moment)
+    {
+        state.Moment = moment;
         state.TimeoutJustCalled = false;
+        state.TimeoutCalledHere = false;
         return OffenceTimeoutOrOn(state);
     }
 
@@ -195,22 +255,65 @@ public static class NbaTransitions
             state.TimeoutsInLastThreeMinutes[team]++;
 
         state.TimeoutJustCalled = true;
-        state.AfterTimeout |= state.TimeoutMoment == TimeoutMoment.Play;
+        state.TimeoutCalledHere = true;
+        state.AfterTimeout |= state.Moment == Moment.Play;
         return OffenceTimeoutOrOn(state);
     }
 
     private static Next<NbaState> AfterTimeouts(NbaState state)
     {
-        var moment = state.TimeoutMoment;
-
-        state.TimeoutMoment = TimeoutMoment.NotSet;
         state.TimeoutJustCalled = false;
+        return NbaNodes.Substitutions;
+    }
+
+    private static Next<NbaState> NextChange(NbaState state)
+    {
+        if ((state.SubstitutingTeams & SubstitutingTeams.Offence) != 0)
+            return Change(state, SubstitutingTeams.Offence, state.TeamInPossession);
+
+        if ((state.SubstitutingTeams & SubstitutingTeams.Defence) != 0)
+            return Change(state, SubstitutingTeams.Defence, Sides.Opponent(state.TeamInPossession));
+
+        return AfterSubstitutions(state);
+    }
+
+    private static Next<NbaState> Change(NbaState state, int side, int team)
+    {
+        state.SubstitutingTeams &= ~side;
+        state.LineupTeam = team;
+        return state.Bench[team].Length > 1 ? NbaNodes.SubstitutionCount : Count(state, 1);
+    }
+
+    private static Next<NbaState> Count(NbaState state, int count)
+    {
+        state.ChangeSize = count;
+        return count < Lineups.Size ? NbaNodes.SubstitutedOff : SubstitutedOff(state, state.OnCourt[state.LineupTeam]);
+    }
+
+    private static void Swap(NbaState state, int team, int off, int on)
+    {
+        var now = state.Elapsed;
+
+        state.OnCourt[team][Array.IndexOf(state.OnCourt[team], off)] = on;
+        state.Bench[team][Array.IndexOf(state.Bench[team], on)] = off;
+        state.SecondsPlayed[off] += now - state.ChangedAt[off];
+        state.ChangedAt[off] = now;
+        state.ChangedAt[on] = now;
+        state.IsOnCourt[off] = false;
+        state.IsOnCourt[on] = true;
+    }
+
+    private static Next<NbaState> AfterSubstitutions(NbaState state)
+    {
+        var moment = state.Moment;
+
+        state.Moment = Moment.NotSet;
 
         return moment switch
         {
-            TimeoutMoment.Play => NbaNodes.AwardedFreeThrow,
-            TimeoutMoment.FreeThrow => NbaNodes.FreeThrowMade,
-            _ => throw new InvalidOperationException($"No moment to return to after timeouts: {moment}"),
+            Moment.Play => NbaNodes.AwardedFreeThrow,
+            Moment.FreeThrow => NbaNodes.FreeThrowMade,
+            _ => throw new InvalidOperationException($"No moment to return to after substitutions: {moment}"),
         };
     }
 
@@ -233,7 +336,10 @@ public static class NbaTransitions
         state.Period++;
 
         if (state.Period >= Periods.Regulation && state.Score[Sides.Home] != state.Score[Sides.Away])
+        {
+            ReportPlayers(state, Periods.Elapsed(state.Period - 1, 0));
             return Next<NbaState>.GameOver;
+        }
 
         StartPeriod(state);
 
@@ -245,6 +351,15 @@ public static class NbaTransitions
 
         state.TeamInPossession = state.Period == Periods.Regulation - 1 ? state.FirstPeriodStarter : Sides.Opponent(state.FirstPeriodStarter);
         return NextPlay(state);
+    }
+
+    private static void ReportPlayers(NbaState state, int now)
+    {
+        for (var team = 0; team < state.Active.Length; team++)
+        {
+            foreach (var player in state.Active[team])
+                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now)));
+        }
     }
 
     private static void ReportPossession(NbaState state) =>
@@ -280,6 +395,7 @@ public static class NbaTransitions
         state.FreeThrowsLeft = 0;
         state.LastMiss = Miss.NotSet;
         state.ReboundToOffence = false;
+        state.BetweenFreeThrows = false;
         state.AfterTimeout = false;
     }
 

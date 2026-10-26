@@ -5,7 +5,7 @@ using OddsFactory.Sports.Data.Contracts.SportRadar;
 
 namespace GameGraph.Nba.Sportradar;
 
-internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Dictionary<long, int> slots)
+internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Dictionary<long, int> slots, LineupParser lineups)
 {
     private const int TakeFoulFreeThrows = 1;
 
@@ -47,7 +47,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
                 CloseAndOneWindow();
                 RequireNoOpenAction();
                 StartAction(TurnoverTeam(turnover));
-                _actions.Add(new ObservedTurnover(ActionClock(turnover), Stolen(turnover)) { AwardedBefore = TakeAwarded(), TimeoutsBefore = TakeTimeouts() });
+                _actions.Add(new ObservedTurnover(ActionClock(turnover), Stolen(turnover)) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
                 break;
             case Foul foul:
                 Foul(foul);
@@ -63,6 +63,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
 
     public Possession[] Build()
     {
+        lineups.Take();
         EndPeriod();
         return _possessions.ToArray();
     }
@@ -88,8 +89,8 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         if (_awarded.Count > 0)
             _possessions[^1] = LastPossessionOfThePeriod(RejectionReason.UnmatchedFreeThrow) with { AwardedAfter = TakeAwarded() };
 
-        if (_timeouts.Count > 0)
-            _possessions[^1] = LastPossessionOfThePeriod(RejectionReason.UnmatchedTimeout) with { TimeoutsAfter = TakeTimeouts() };
+        if (_timeouts.Count > 0 || lineups.HasChanges)
+            _possessions[^1] = LastPossessionOfThePeriod(RejectionReason.UnmatchedMoment) with { After = TakeMoment() };
     }
 
     private Possession LastPossessionOfThePeriod(RejectionReason otherwise)
@@ -113,7 +114,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         };
 
         StartAction(TeamOf(shot.Participants, ParticipationType.ShotBy));
-        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeTimeouts()) { Made = shot.Made, Shooter = SlotOf(shot.Participants, ParticipationType.ShotBy) };
+        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeMoment()) { Made = shot.Made, Shooter = SlotOf(shot.Participants, ParticipationType.ShotBy) };
     }
 
     private void Foul(Foul foul)
@@ -150,7 +151,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
             throw new RejectedGameException(RejectionReason.UnexpectedFoul);
 
         StartAction(drawn);
-        _open = new OpenAction(ActionClock(foul), foul.FreeThrowsAwarded, Phase.FreeThrows, TakeAwarded(), TakeTimeouts()) { Fouled = true, Shooter = SlotOf(foul.Participants, ParticipationType.FoulDrawnBy) };
+        _open = new OpenAction(ActionClock(foul), foul.FreeThrowsAwarded, Phase.FreeThrows, TakeAwarded(), TakeMoment()) { Fouled = true, Shooter = SlotOf(foul.Participants, ParticipationType.FoulDrawnBy) };
         _open.Expect(foul.FreeThrowsAwarded);
     }
 
@@ -182,10 +183,10 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         switch (foul.FreeThrowsAwarded)
         {
             case 0:
-                _actions.Add(new ObservedFoul(ActionClock(foul), [], null) { AwardedBefore = TakeAwarded(), TimeoutsBefore = TakeTimeouts() });
+                _actions.Add(new ObservedFoul(ActionClock(foul), [], null) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
                 break;
             case FreeThrows.Bonus:
-                _open = new OpenAction(ActionClock(foul), 0, Phase.FreeThrows, TakeAwarded(), TakeTimeouts());
+                _open = new OpenAction(ActionClock(foul), 0, Phase.FreeThrows, TakeAwarded(), TakeMoment());
                 _open.Expect(FreeThrows.Bonus);
                 break;
             default:
@@ -206,7 +207,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         if (_open is not { Phase: Phase.FreeThrows } open || Side(teams.GetValueOrDefault(freeThrow.ShooterId)) != _team)
             throw new RejectedGameException(RejectionReason.UnmatchedFreeThrow);
 
-        open.FreeThrows.Add(new ObservedFreeThrow(freeThrow.Made, TakeTimeouts()));
+        open.FreeThrows.Add(new ObservedFreeThrow(freeThrow.Made, TakeMoment()));
 
         if (open.FreeThrows.Count < open.ExpectedFreeThrows)
             return;
@@ -264,8 +265,8 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         var open = _open ?? throw new InvalidOperationException("No action to finish");
 
         _actions.Add(open.Points == 0
-            ? new ObservedFoul(open.Clock, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore }
-            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, TimeoutsBefore = open.TimeoutsBefore });
+            ? new ObservedFoul(open.Clock, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, Before = open.Before }
+            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouled, open.Made, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, Before = open.Before });
         _open = null;
     }
 
@@ -308,11 +309,11 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         _team = null;
     }
 
-    private int[] TakeTimeouts()
+    private ObservedMoment TakeMoment()
     {
         var timeouts = _timeouts.ToArray();
         _timeouts.Clear();
-        return timeouts;
+        return new ObservedMoment(timeouts, lineups.Take());
     }
 
     private AwardedFreeThrow[] TakeAwarded()
@@ -380,13 +381,13 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         Rebound = 3,
     }
 
-    private sealed class OpenAction(int clock, int points, Phase phase, AwardedFreeThrow[] awardedBefore, int[] timeoutsBefore)
+    private sealed class OpenAction(int clock, int points, Phase phase, AwardedFreeThrow[] awardedBefore, ObservedMoment before)
     {
         public int Clock { get; } = clock;
 
         public AwardedFreeThrow[] AwardedBefore { get; } = awardedBefore;
 
-        public int[] TimeoutsBefore { get; } = timeoutsBefore;
+        public ObservedMoment Before { get; } = before;
 
         public int Points { get; } = points;
 

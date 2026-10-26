@@ -19,14 +19,15 @@ public static class ObservedGameReader
 
         long[] players = [.. game.TeamA.Players.Concat(game.TeamB.Players).Select(p => p.Player.Id)];
         var slots = players.Select((id, slot) => (id, slot)).ToDictionary();
+        int[][] active = [Active(game.TeamA.Players, slots), Active(game.TeamB.Players, slots)];
         Possession[] possessions;
-        Rotation rotation;
+        Roster roster;
         int cut;
 
         try
         {
-            var parser = new PossessionParser(TeamsByPlayer(game), slots);
-            var lineups = new RotationParser(TeamsByPlayer(game), slots);
+            var lineups = new LineupParser(TeamsByPlayer(game), slots, active);
+            var parser = new PossessionParser(TeamsByPlayer(game), slots, lineups);
 
             foreach (var e in game.Events)
             {
@@ -35,7 +36,7 @@ public static class ObservedGameReader
             }
 
             possessions = parser.Build();
-            rotation = lineups.Build(possessions.Max(p => p.Period) + 1);
+            roster = lineups.Build();
             cut = parser.PossessionsCutByPeriodEnd;
         }
         catch (RejectedGameException rejected)
@@ -51,7 +52,7 @@ public static class ObservedGameReader
         if (BreaksAlternation(possessions))
             return Rejected(game, RejectionReason.PeriodStartBreaksAlternation);
 
-        var accepted = new AcceptedGame(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, players, rotation, possessions, cut);
+        var accepted = new AcceptedGame(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, players, roster, possessions, cut);
 
         return ObservedOutcomeDecider.Follows(accepted) ? accepted : Rejected(game, RejectionReason.RulesDisagreeWithData);
     }
@@ -66,6 +67,9 @@ public static class ObservedGameReader
 
     private static RejectedGame Rejected(Game game, RejectionReason reason) =>
         new(game.SourceId, game.ScheduledStartTimeUtc, game.TeamA.Team.Id, game.TeamB.Team.Id, reason);
+
+    private static int[] Active(IEnumerable<GamePlayer> players, Dictionary<long, int> slots) =>
+        [.. players.Where(p => p.Involvement is GameInvolvement.Played or GameInvolvement.DidNotPlayCoachesDecision or GameInvolvement.ActiveButNotPlayed).Select(p => slots[p.Player.Id]).Order()];
 
     private static Dictionary<long, TeamType> TeamsByPlayer(Game game) =>
         game.TeamA.Players.Select(p => (p.Player.Id, TeamType.HomeOrA))

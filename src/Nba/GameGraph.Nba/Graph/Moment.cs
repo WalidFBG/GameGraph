@@ -1,6 +1,6 @@
 namespace GameGraph.Nba.Graph;
 
-public enum TimeoutMoment
+public enum Moment
 {
     NotSet = 0,
     Play = 1,

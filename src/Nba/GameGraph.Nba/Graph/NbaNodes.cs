@@ -11,6 +11,13 @@ public static class NbaNodes
     private static readonly (string Name, int Lowest, int Highest)[] RunningOutBands =
         [("Trail10OrMore", int.MinValue, -10), ("Trail4To9", -9, -4), ("Trail1To3", -3, -1), ("Lead1To3", 1, 3), ("Lead4To8", 4, 8), ("Lead9OrMore", 9, int.MaxValue)];
 
+    public static readonly ChoiceNode<NbaState> Starters = new(
+        nameof(Starters),
+        s => s.Active[s.LineupTeam],
+        NbaFeatures.FiveStarters,
+        [CandidateTerm.Spline(NbaFeatures.StartShare, 4), CandidateTerm.Spline(NbaFeatures.UsualSeconds, 4), CandidateTerm.Linear(NbaFeatures.StartedLast)],
+        NbaTransitions.Starters);
+
     public static readonly NodeSpec<NbaState> JumpBall = new VectorNode<NbaState>(
         nameof(JumpBall),
         new BernoulliDistribution(),
@@ -31,6 +38,43 @@ public static class NbaNodes
             NbaFeatures.DefenceTimeoutsLeft,
             [.. new[] { PlayStart.PeriodStart, PlayStart.OffensiveRebound, PlayStart.MadeShot, PlayStart.MadeFreeThrow, PlayStart.DeadBallTurnover, PlayStart.SideOut, PlayStart.AwardedBall, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After)]),
         NbaTransitions.DefenceTimeout);
+
+    public static readonly NodeSpec<NbaState> Substitutions = Node(
+        nameof(Substitutions),
+        new CategoricalDistribution(SubstitutingTeams.Names),
+        [
+            .. new[] { NbaFeatures.BeforeFreeThrow, NbaFeatures.BetweenFreeThrows, NbaFeatures.TimeoutCalledHere, NbaFeatures.Period, NbaFeatures.LateInGame }
+                .Concat(new[] { PlayStart.PeriodStart, PlayStart.MadeShot, PlayStart.DeadBallTurnover, PlayStart.SideOut, PlayStart.TeamDefensiveRebound, PlayStart.TeamOffensiveRebound }.Select(NbaFeatures.After))
+                .Select(FeatureTerm.Linear),
+            FeatureTerm.Spline(NbaFeatures.PeriodClock, 4),
+            FeatureTerm.Spline(NbaFeatures.LogOffenceLongestStint, 6),
+            FeatureTerm.Spline(NbaFeatures.LogDefenceLongestStint, 6),
+        ],
+        NbaTransitions.Substitutions);
+
+    public static readonly ChoiceNode<NbaState> SubstitutionCount = new(
+        nameof(SubstitutionCount),
+        s => SubstitutingTeams.Counts(s.Bench[s.LineupTeam].Length),
+        NbaFeatures.OneCount,
+        [
+            .. NbaFeatures.CountIs.Select(CandidateTerm.Linear),
+            .. new[] { NbaFeatures.CountAfterTimeout, NbaFeatures.CountAtPeriodStart, NbaFeatures.CountBeforeFreeThrow }.Select(CandidateTerm.Linear),
+        ],
+        NbaTransitions.SubstitutionCount);
+
+    public static readonly ChoiceNode<NbaState> SubstitutedOff = new(
+        nameof(SubstitutedOff),
+        s => s.OnCourt[s.LineupTeam],
+        NbaFeatures.ChangeSize,
+        [.. PlayerTerms(), CandidateTerm.Linear(NbaFeatures.StartedLate)],
+        NbaTransitions.SubstitutedOff);
+
+    public static readonly ChoiceNode<NbaState> SubstitutedOn = new(
+        nameof(SubstitutedOn),
+        s => s.Bench[s.LineupTeam],
+        NbaFeatures.ChangeSize,
+        PlayerTerms(),
+        NbaTransitions.SubstitutedOn);
 
     public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
         nameof(AwardedFreeThrow),
@@ -135,6 +179,15 @@ public static class NbaNodes
         new BernoulliDistribution(),
         [NbaFeatures.ReboundToOffence, NbaFeatures.MissedFreeThrow],
         NbaTransitions.TeamRebound);
+
+    private static CandidateTerm<NbaState>[] PlayerTerms() =>
+    [
+        CandidateTerm.Spline(NbaFeatures.LogSinceChange, 16),
+        CandidateTerm.Spline(NbaFeatures.PlayedAgainstUsual, 8),
+        CandidateTerm.Spline(NbaFeatures.UsualSeconds, 6),
+        CandidateTerm.Linear(NbaFeatures.Started),
+        CandidateTerm.Linear(NbaFeatures.StartedAtPeriodStart),
+    ];
 
     private static FeatureTerm<NbaState>[] ActionTimeShape() =>
     [

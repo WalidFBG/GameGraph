@@ -16,11 +16,20 @@ from gamegraph.files.training_data_files import DECISION, EXAMPLES, GAMES, MANIF
 
 GAME = "game"
 GAMES_FILE = "games.parquet"
+PLAYERS_FILE = "players.parquet"
 SIDES = ("real", "simulated")
 REACHES = "reaches"
 SIMULATION = "simulation"
 SAMPLING = "sampling"
 GAMES_CHECK = "games"
+PLAYERS_CHECK = "players"
+SECONDS_WIDTH = 300
+PLAYER_GROUPS = (
+    ("starters started", 1, 1),
+    ("starters benched", 1, 0),
+    ("bench started", 0, 1),
+    ("bench benched", 0, 0),
+)
 QUARTILES = (0.25, 0.5, 0.75)
 REGULATION_PERIODS = 4
 BIN_WIDTHS = {"total points": 10, "home margin": 5}
@@ -54,7 +63,7 @@ type Sides = tuple[pl.DataFrame, pl.DataFrame]
 
 def audit(run: Path, training_data: Path) -> None:
     games = pl.read_parquet(run / GAMES_FILE)
-    files = sorted(f for f in run.glob("*.parquet") if f.name != GAMES_FILE)
+    files = sorted(f for f in run.glob("*.parquet") if f.name not in (GAMES_FILE, PLAYERS_FILE))
     if not files:
         raise ValueError(f"No simulated decisions under {run}")
     output = run / BUCKETS
@@ -77,6 +86,7 @@ def audit(run: Path, training_data: Path) -> None:
         failures += node_failures
         failures += _sampling(run, manifest, pl.read_parquet(file))
     failures += _games(run, games, manifests, examples)
+    failures += _players(run, pl.read_parquet(run / PLAYERS_FILE))
     findings.write(output / csv_name(run, "failures"), failures)
 
 
@@ -213,6 +223,38 @@ def _games(
         failures += findings.failures(GAMES_CHECK, GAMES_CHECK, name, distribution, *SIDES)
         checked += findings.z_scores(distribution)
     findings.summarise(GAMES_CHECK, checked, failures, *SIDES)
+    return failures
+
+
+def _players(run: Path, players: pl.DataFrame) -> list[Failure]:
+    rows: list[dict[str, float | str | None]] = []
+    errors: dict[str, float] = {}
+    for name, real_started, simulated_started in PLAYER_GROUPS:
+        group = players.filter(
+            (pl.col("real started") == real_started) & (pl.col("simulated started") == simulated_started)
+        )
+        real, simulated = (group[f"{side} seconds"].to_numpy() for side in SIDES)
+        rows.append(_statistic(name, real, simulated))
+        errors[name] = float(np.abs(simulated - real).mean())
+    statistics = pl.DataFrame(rows)
+    statistics.write_csv(run / BUCKETS / csv_name(run, PLAYERS_CHECK))
+    failures = [
+        Failure(
+            PLAYERS_CHECK, PLAYERS_CHECK, r["statistic"], math.nan, math.nan, "mean", r["real"], r["simulated"], r["z"]
+        )
+        for r in statistics.filter(pl.col("z").abs() > LARGE_Z).iter_rows(named=True)
+    ]
+    checked = int(statistics["z"].is_not_null().sum())
+    real_seconds, simulated_seconds = (players[f"{side} seconds"].to_numpy() for side in SIDES)
+    distribution = _distribution(real_seconds, simulated_seconds, SECONDS_WIDTH)
+    distribution.write_csv(run / BUCKETS / csv_name(run, "player-seconds"))
+    failures += findings.failures(PLAYERS_CHECK, PLAYERS_CHECK, "seconds", distribution, *SIDES)
+    checked += findings.z_scores(distribution)
+    findings.summarise(PLAYERS_CHECK, checked, failures, *SIDES)
+    for row in rows:
+        name = str(row["statistic"])
+        error = errors[name]
+        print(f"  {name}: real {row['real']:.0f}, simulated {row['simulated']:.0f}, mean absolute error {error:.0f}")
     return failures
 
 

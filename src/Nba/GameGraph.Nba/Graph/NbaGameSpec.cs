@@ -6,9 +6,14 @@ public static class NbaGameSpec
 {
     public static GameSpec<NbaState> Instance { get; } = new(
         [
+            NbaNodes.Starters,
             NbaNodes.JumpBall,
             NbaNodes.OffenceTimeout,
             NbaNodes.DefenceTimeout,
+            NbaNodes.Substitutions,
+            NbaNodes.SubstitutionCount,
+            NbaNodes.SubstitutedOff,
+            NbaNodes.SubstitutedOn,
             NbaNodes.AwardedFreeThrow,
             NbaNodes.AwardedFreeThrowMade,
             NbaNodes.PeriodRunsOut,
@@ -23,5 +28,5 @@ public static class NbaGameSpec
             NbaNodes.OffensiveRebound,
             NbaNodes.TeamRebound,
         ],
-        NbaNodes.JumpBall);
+        NbaNodes.Starters);
 }

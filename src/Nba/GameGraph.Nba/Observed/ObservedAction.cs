@@ -16,7 +16,7 @@ public abstract record ObservedAction
 
     public AwardedFreeThrow[] AwardedBefore { get; init; } = [];
 
-    public int[] TimeoutsBefore { get; init; } = [];
+    public ObservedMoment Before { get; init; } = ObservedMoment.Quiet;
 
     public bool PeriodEndedBeforeRebound { get; private set; }
 

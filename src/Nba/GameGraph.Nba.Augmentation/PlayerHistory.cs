@@ -9,32 +9,77 @@ public sealed class PlayerHistory
 
     public const double PriorAttempts = 5;
 
-    private const double PriorShare = 1.0 / Lineup.Size;
+    public const double PriorGames = 2;
+
+    public const double PriorSeconds = 600;
+
+    private const double PriorShare = 1.0 / Lineups.Size;
 
     private readonly Dictionary<long, Queue<PlayerGame>> _games = [];
 
     public double[] LogShares(AcceptedGame game, int points) => [.. game.Players.Select(id => Math.Log(Share(id, points)))];
 
+    public double[] UsualSeconds(AcceptedGame game) => [.. game.Players.Select(id => Shrunk(id, g => g.Seconds, PriorSeconds))];
+
+    public double[] StartShares(AcceptedGame game) => [.. game.Players.Select(id => Shrunk(id, g => g.Started ? 1 : 0, 0))];
+
+    public double[] StartedLastGame(AcceptedGame game) => [.. game.Players.Select(id => _games.TryGetValue(id, out var history) && history.Last().Started ? 1.0 : 0)];
+
     public void Advance(AcceptedGame game)
     {
         var games = new PlayerGame[game.Players.Length];
+        int[][] court = [.. game.Roster.Starters.Select(s => s.ToArray())];
 
         foreach (var possession in game.Possessions)
         {
-            foreach (var shot in possession.Actions.OfType<ObservedShot>())
+            foreach (var action in possession.Actions)
             {
-                foreach (var player in game.Rotation.FiveAt(possession.TeamInPossession, possession.Period, shot.Clock))
-                    games[player] = games[player].WithTeamAttempt(shot.Points);
+                Substitute(court, action.Before);
 
-                games[shot.Shooter] = games[shot.Shooter].WithAttempt(shot.Points);
+                if (action is ObservedShot shot)
+                {
+                    foreach (var player in court[possession.TeamInPossession])
+                        games[player] = games[player].WithTeamAttempt(shot.Points);
+
+                    games[shot.Shooter] = games[shot.Shooter].WithAttempt(shot.Points);
+                }
+
+                foreach (var freeThrow in FreeThrowsOf(action))
+                    Substitute(court, freeThrow.Before);
             }
+
+            Substitute(court, possession.After);
         }
 
-        for (var player = 0; player < games.Length; player++)
+        for (var team = 0; team < game.Roster.Active.Length; team++)
         {
-            if (games[player].TeamTwos + games[player].TeamThrees > 0)
-                Add(game.Players[player], games[player]);
+            foreach (var player in game.Roster.Active[team])
+                Add(game.Players[player], games[player] with { Seconds = game.Roster.SecondsPlayed[player], Started = game.Roster.Starters[team].Contains(player) });
         }
+    }
+
+    private static void Substitute(int[][] court, ObservedMoment moment)
+    {
+        foreach (var change in moment.Substitutions)
+        {
+            for (var i = 0; i < change.Off.Length; i++)
+                court[change.Team][Array.IndexOf(court[change.Team], change.Off[i])] = change.On[i];
+        }
+    }
+
+    private static ObservedFreeThrow[] FreeThrowsOf(ObservedAction action) => action switch
+    {
+        ObservedShot shot => shot.FreeThrows,
+        ObservedFoul foul => foul.FreeThrows,
+        ObservedTurnover => [],
+        _ => throw new ArgumentOutOfRangeException(nameof(action), action.GetType().Name, "Not an observed action"),
+    };
+
+    private double Shrunk(long player, Func<PlayerGame, double> value, double prior)
+    {
+        var (sum, games) = _games.TryGetValue(player, out var history) ? (history.Sum(value), history.Count) : (0.0, 0);
+
+        return (sum + PriorGames * prior) / (games + PriorGames);
     }
 
     private double Share(long player, int points)
@@ -59,7 +104,7 @@ public sealed class PlayerHistory
             history.Dequeue();
     }
 
-    private readonly record struct PlayerGame(int Twos, int TeamTwos, int Threes, int TeamThrees)
+    private readonly record struct PlayerGame(int Twos, int TeamTwos, int Threes, int TeamThrees, int Seconds, bool Started)
     {
         public PlayerGame WithAttempt(int points) => points == 3 ? this with { Threes = Threes + 1 } : this with { Twos = Twos + 1 };
 

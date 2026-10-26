@@ -31,7 +31,7 @@ public sealed class TrainingDataSeason(RecordingDecisionCollector<NbaState> deci
     {
         decisions.BeginGame(game.Id, game.StartUtc);
 
-        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context, game.Rotation), decisions);
+        var decider = ObservedWalk.Walk(game, new NbaState(_incidentCollector, context), decisions);
 
         tally.Generated();
         tally.ActionTimes(decider.ActionTimes, decider.ClampedActionTimes);

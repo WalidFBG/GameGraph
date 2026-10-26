@@ -21,5 +21,13 @@ public static class GeneratedGames
     }
 
     private static GameContext ContextFor(AcceptedGame game, TeamHistory teams, PlayerHistory players) =>
-        new(teams.PointsPerPossession(game, Sides.Home), teams.PointsPerPossession(game, Sides.Away), players.LogShares(game, 2), players.LogShares(game, 3));
+        new(
+            teams.PointsPerPossession(game, Sides.Home),
+            teams.PointsPerPossession(game, Sides.Away),
+            players.LogShares(game, 2),
+            players.LogShares(game, 3),
+            players.UsualSeconds(game),
+            players.StartShares(game),
+            players.StartedLastGame(game),
+            game.Roster.Active);
 }
