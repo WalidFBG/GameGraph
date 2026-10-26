@@ -4,49 +4,99 @@ using GameGraph.Contract.Terms;
 
 namespace GameGraph.Models.Predictors;
 
-internal sealed class Predictor : IParameterValue
+internal sealed class Predictor
 {
     private readonly Link _link;
-    private readonly ITermColumns[] _terms;
     private readonly double _intercept;
-    private readonly double[] _coefficients;
-    private readonly int _widestTerm;
+    private readonly int[] _linearColumns;
+    private readonly double[] _linearSlopes;
+    private readonly int[] _splineLookups;
+    private readonly double[][] _splineIntercepts;
+    private readonly double[][] _splineSlopes;
 
-    public Predictor(Link link, ITermColumns[] terms, double intercept, double[] coefficients)
+    private Predictor(Link link, double intercept, int[] linearColumns, double[] linearSlopes, int[] splineLookups, double[][] splineIntercepts, double[][] splineSlopes)
     {
-        var columns = terms.Sum(t => t.Count);
-
-        if (coefficients.Length != columns)
-            throw new ArgumentException($"{columns} columns need {columns} coefficients, got {coefficients.Length}", nameof(coefficients));
-
         _link = link;
-        _terms = terms;
         _intercept = intercept;
-        _coefficients = coefficients;
-        _widestTerm = terms.Length == 0 ? 0 : terms.Max(t => t.Count);
+        _linearColumns = linearColumns;
+        _linearSlopes = linearSlopes;
+        _splineLookups = splineLookups;
+        _splineIntercepts = splineIntercepts;
+        _splineSlopes = splineSlopes;
     }
 
-    public double Value(ReadOnlySpan<double> features)
+    public double Value(ReadOnlySpan<double> features, ReadOnlySpan<int> segments, ReadOnlySpan<double> located)
     {
-        Span<double> columns = stackalloc double[_widestTerm];
         var eta = _intercept;
-        var coefficient = 0;
 
-        foreach (var term in _terms)
+        for (var t = 0; t < _linearColumns.Length; t++)
+            eta += _linearSlopes[t] * features[_linearColumns[t]];
+
+        for (var t = 0; t < _splineLookups.Length; t++)
         {
-            term.Expand(features, columns);
+            var lookup = _splineLookups[t];
+            var segment = segments[lookup];
 
-            for (var c = 0; c < term.Count; c++)
-                eta += _coefficients[coefficient++] * columns[c];
+            eta += _splineIntercepts[t][segment] + _splineSlopes[t][segment] * located[lookup];
         }
 
         return Links.Inverse(_link, eta);
     }
 
-    public static Predictor FromFit(Link link, Term[] terms, PredictorFit fit, IReadOnlyList<string> features) =>
-        new(
-            link,
-            terms.Select(t => TermColumns.FromFit(t.Feature, fit.Terms[t.Feature], features)).ToArray(),
-            fit.Intercept,
-            terms.SelectMany(t => fit.Terms[t.Feature].Coefficients).ToArray());
+    public static Predictor FromFit(Link link, Term[] terms, PredictorFit fit, IReadOnlyList<string> features, List<KnotLookup> lookups)
+    {
+        var intercept = fit.Intercept;
+        var linearColumns = new List<int>();
+        var linearSlopes = new List<double>();
+        var splineLookups = new List<int>();
+        var splineIntercepts = new List<double[]>();
+        var splineSlopes = new List<double[]>();
+
+        foreach (var term in terms)
+        {
+            var column = FeatureColumns.Of(term.Feature, features);
+
+            switch (fit.Terms[term.Feature])
+            {
+                case LinearFit linear:
+                    var slope = linear.Coefficients[0] / linear.Scale;
+                    intercept -= slope * linear.Centre;
+                    linearColumns.Add(column);
+                    linearSlopes.Add(slope);
+                    break;
+                case LinearSplineFit spline:
+                    var (pieceIntercepts, pieceSlopes) = Pieces(spline);
+                    splineLookups.Add(KnotLookup.IndexIn(lookups, column, spline.KnotPositions));
+                    splineIntercepts.Add(pieceIntercepts);
+                    splineSlopes.Add(pieceSlopes);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(fit), fit.Terms[term.Feature].GetType().Name, "Not a term fit");
+            }
+        }
+
+        return new(link, intercept, [.. linearColumns], [.. linearSlopes], [.. splineLookups], [.. splineIntercepts], [.. splineSlopes]);
+    }
+
+    private static (double[] Intercepts, double[] Slopes) Pieces(LinearSplineFit spline)
+    {
+        var knots = spline.KnotPositions;
+        var segments = knots.Length - 1;
+        var intercepts = new double[segments];
+        var slopes = new double[segments];
+
+        for (var j = 0; j < segments; j++)
+        {
+            slopes[j] = spline.Coefficients[j] / spline.Scales[j];
+
+            for (var s = 0; s < segments; s++)
+            {
+                var offset = s < j ? knots[s + 1] - knots[s] : s == j ? -knots[s] : 0;
+
+                intercepts[j] += spline.Coefficients[s] * (offset - spline.Centres[s]) / spline.Scales[s];
+            }
+        }
+
+        return (intercepts, slopes);
+    }
 }

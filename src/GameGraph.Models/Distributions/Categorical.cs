@@ -21,16 +21,20 @@ internal sealed class Categorical(int categories) : IDistribution
         Uniforms.Require(uniform);
 
         var max = Max(parameters);
-        var total = Math.Exp(-max);
+        Span<double> weights = stackalloc double[categories];
+        var total = 0.0;
 
-        foreach (var logOdds in parameters)
-            total += Math.Exp(logOdds - max);
+        for (var category = 0; category < categories; category++)
+        {
+            weights[category] = Math.Exp(Score(parameters, category) - max);
+            total += weights[category];
+        }
 
         var cumulative = 0.0;
 
         for (var category = 0; category < categories - 1; category++)
         {
-            cumulative += Math.Exp(Score(parameters, category) - max) / total;
+            cumulative += weights[category] / total;
 
             if (uniform < cumulative)
                 return category;

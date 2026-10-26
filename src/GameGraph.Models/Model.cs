@@ -8,17 +8,21 @@ namespace GameGraph.Models;
 public sealed class Model
 {
     private readonly IDistribution _distribution;
-    private readonly IParameterValue[] _parameters;
+    private readonly KnotLookup[] _lookups;
+    private readonly Predictor[] _predictors;
+    private readonly int[] _givenColumns;
     private readonly int _features;
     private readonly bool _choosesAmongCandidates;
 
-    private Model(IDistribution distribution, IParameterValue[] parameters, int features, bool choosesAmongCandidates)
+    private Model(IDistribution distribution, KnotLookup[] lookups, Predictor[] predictors, int[] givenColumns, int features, bool choosesAmongCandidates)
     {
         if (choosesAmongCandidates && features == 0)
             throw new ArgumentException("A choice needs a feature to tell its candidates apart", nameof(features));
 
         _distribution = distribution;
-        _parameters = parameters;
+        _lookups = lookups;
+        _predictors = predictors;
+        _givenColumns = givenColumns;
         _features = features;
         _choosesAmongCandidates = choosesAmongCandidates;
     }
@@ -27,15 +31,25 @@ public sealed class Model
     {
         var rows = Rows(features);
 
-        if (values.Length != rows * _parameters.Length)
-            throw new ArgumentException($"Expected {rows * _parameters.Length} parameter values, got {values.Length}", nameof(values));
+        if (values.Length != rows * ParametersPerRow)
+            throw new ArgumentException($"Expected {rows * ParametersPerRow} parameter values, got {values.Length}", nameof(values));
+
+        Span<int> segments = stackalloc int[_lookups.Length];
+        Span<double> located = stackalloc double[_lookups.Length];
 
         for (var r = 0; r < rows; r++)
         {
             var row = features.Slice(r * _features, _features);
+            var at = r * ParametersPerRow;
 
-            for (var p = 0; p < _parameters.Length; p++)
-                values[r * _parameters.Length + p] = _parameters[p].Value(row);
+            for (var l = 0; l < _lookups.Length; l++)
+                _lookups[l].Locate(row, out segments[l], out located[l]);
+
+            for (var p = 0; p < _predictors.Length; p++)
+                values[at++] = _predictors[p].Value(row, segments, located);
+
+            for (var g = 0; g < _givenColumns.Length; g++)
+                values[at++] = row[_givenColumns[g]];
         }
     }
 
@@ -63,10 +77,11 @@ public sealed class Model
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
     {
         var model = fitted.Model;
-        var predictors = model.Distribution.Predicted().Select(p => Predictor.FromFit(p.Link, model.Terms[p.Name], fitted.Fit[p.Name], features));
-        var given = model.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(model.Given[n], features)));
+        var lookups = new List<KnotLookup>();
+        var predictors = model.Distribution.Predicted().Select(p => Predictor.FromFit(p.Link, model.Terms[p.Name], fitted.Fit[p.Name], features, lookups)).ToArray();
+        var given = model.Distribution.Given().Select(n => FeatureColumns.Of(model.Given[n], features)).ToArray();
 
-        return new(DistributionFor(model.Distribution), [.. predictors, .. given], features.Count, model.Distribution.ChoosesAmongCandidates());
+        return new(DistributionFor(model.Distribution), [.. lookups], predictors, given, features.Count, model.Distribution.ChoosesAmongCandidates());
     }
 
     private static IDistribution DistributionFor(DistributionDeclaration declaration) => declaration switch
@@ -78,7 +93,9 @@ public sealed class Model
         _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration.GetType().Name, "Not a distribution"),
     };
 
-    private int ParameterValueCount(ReadOnlySpan<double> features) => Rows(features) * _parameters.Length;
+    private int ParametersPerRow => _predictors.Length + _givenColumns.Length;
+
+    private int ParameterValueCount(ReadOnlySpan<double> features) => Rows(features) * ParametersPerRow;
 
     private int Rows(ReadOnlySpan<double> features)
     {

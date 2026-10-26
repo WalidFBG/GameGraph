@@ -7,7 +7,7 @@ A simple, readable prototype that runs the full flow on real NBA data: augment, 
 ## Constraints
 
 - The engine, the sports and simulation are plain .NET 10 and C#, with .NET libraries (for example MathNet) only where they genuinely help. Training is Python (see `models.md`).
-- The repository is public: no data is committed, and nothing is copied from other codebases. Findings and lessons are reused; code is written fresh.
+- The repository is public: no game data is committed (one derived fixture, see the README), and nothing is copied from other codebases. Findings and lessons are reused; code is written fresh.
 - Every line should be understandable on its own. Prefer simple and explicit over clever.
 
 ## Step 1: the thinnest full flow
@@ -151,7 +151,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
         | `ActionType`, `ShotMade` | the offence five's points per action, averaged (a lineup scoring rating) | 0.96, 100 actions | none (dropped) |
 
         `ActionType` gains 0.0059 a visit in all (1.1143 to 1.1084): the five on court now sets the twos/threes mix.
-      - **then one pull request** for the 14 that survive the three rounds (13 rates on 7 team nodes): done. The shooter's own rates and the fives' rates share the history and the context (`PlayerRates`, which also holds the assisted and blocked rates), so they went together. The priors in the tables above were fixed for the investigation; in the code each is the league's rate over its last 300 games (`PlayerHistory`), so it follows the league's drift, and only the shrinkage weights are set by hand. The fives' sums are state, recounted when the five or a player's fouls change, so a feature is one array read; the older lineup features (the longest stint, a team that must change) still compute on read, and move to state with compilation.
+      - **then one pull request** for the 14 that survive the three rounds (13 rates on 7 team nodes): done. The shooter's own rates and the fives' rates share the history and the context (`PlayerRates`, which also holds the assisted and blocked rates), so they went together. The priors in the tables above were fixed for the investigation; in the code each is the league's rate over its last 300 games (`PlayerHistory`), so it follows the league's drift, and only the shrinkage weights are set by hand. The fives' sums are state, recounted when the five or a player's fouls change, so a feature is one array read; the older lineup features (the longest stint, a team that must change) still compute on read, and move to state only if a profile points at them (`compilation.md`).
 
    The data's lineups are clean: every team has one starting lineup and no change ever takes off a player who is not on, puts on one who is, or leaves other than five. Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
 
@@ -159,7 +159,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
    - **Perspective** (one feature set built for a side given as an expression, so `ShooterMargin` and the like stop copying the team features): dropped. Players brought few mirrored features, so the substitution would cost more than the copies it removes.
    - **The observed cursor**: after compilation, in its own pull request (step 9).
 7. The digest test and the benchmark: done. The fixture (`testdata/nba-simulation`) is the latest game's context and the fitted models; the digest hashes every decision and incident of 1,000 simulations; the benchmark's baseline for the plain walk is 2.47 s for 10,000 simulations (the median of ten runs) on the 22 threads of an Ultra 9 185H. One thread alone does about 770 a second; six threads give about 4.2 times that, and the other 16 (hyperthreads and efficiency cores) add only about 30% more.
-8. Compilation (see below), now that players have brought their family, the feature row per candidate and the lineup state.
+8. Compilation (`compilation.md`), now that players have brought their family, the feature row per candidate and the lineup state.
 9. **The observed cursor**: `ObservedOutcomeDecider` flattens each possession into the graph's decision order, so the order is written twice and the two can disagree only at runtime (`RulesDisagreeWithData`). Instead, each node reads its own fact from a cursor over the observed game (`ActionType` moves to the next action, `ShotMade` reads that action and fails if it is not a shot), and the walk still ends with everything consumed. It touches only the replay that writes training data, so it does not wait on, or hold up, compilation.
 
 Each step adds its nodes, reshapes the simulator where they need it, adds a family if they need one, and then goes through training data, training, simulation and the audit.
@@ -192,19 +192,11 @@ What the C# models are today; items 1 to 4 are built. `models.md` replaces this:
    - vector: one feature set per decision; flat `double[]` of n × f plus a typed outcome array;
    - choice: one feature set per candidate (who shoots); flat `double[]` of all candidates × f, an offset per decision and the chosen rows as a bitmask (long format, one CSV row per candidate).
 7. **Splines as a second basis**: `SplineTerm(feature, knots)` expands a feature into `x, max(0, x − k₁), …` columns, and training data keeps raw features. Families, predictors and scaling do not change; the parameters file records each spline term's knots next to its coefficients.
-8. **Speed without our own codegen**: for readability, `Model` holds its family behind `IModelFamily` for now, so the family's arithmetic is an interface call and cannot be inlined. Simulation loses nothing by it, because compilation writes each node's family arithmetic out directly. Training is not compiled: its speed work makes the trainer generic over the family's struct again (`where TFamily : struct, IModelFamily`, one dispatch from the family's name to its struct, in the trainer only), together with spans of flat arrays, no allocation per example and SIMD (`System.Numerics.Tensors`).
+8. **Speed without our own codegen**: for readability, `Model` holds its family behind `IModelFamily` for now, so the family's arithmetic is an interface call and cannot be inlined. Simulation loses little by it: compilation generates the predictors and calls the families' own sampling (`compilation.md`). Training is not compiled: its speed work makes the trainer generic over the family's struct again (`where TFamily : struct, IModelFamily`, one dispatch from the family's name to its struct, in the trainer only), together with spans of flat arrays, no allocation per example and SIMD (`System.Numerics.Tensors`).
 
 ## Compilation
 
-- **Training does not walk the graph**: it is Python, reading the training-data files, so it is independent of the engine and its speed comes from PyTorch.
-- **Simulation**: a compiled node fuses its features, predictor, family sampling and transition into one method, with its parameters as constants; the plain walk stays as the reference, and a digest test proves the two identical.
-- **What keeps it possible**: rules are static methods, the state is plain arrays and numbers, families are pure functions of parameters, features and one uniform number, and features are expressions over the state (no calls into arbitrary methods) so a compiler can read them.
-- **Bases stay a closed set** (linear, spline): a compiler generates each basis's arithmetic directly, so no term may hide its logic behind an arbitrary `ITerm` implementation.
-- **Plain-walk costs to remove on the way**:
-  - nodes become integer indices into the game's node array, so the walk and the sampling decider find nodes and parameters by index: no dictionary by node, and no search of the node list at every step (an index outside the array still fails loudly): done, through `FittedGame`;
-  - the walk allocates no features array per step: done;
-  - `Categorical` allocates no small arrays per call: done, it works on spans and `Model` puts the parameters on the stack.
-- **Parallel simulations**: each simulation already has its own seed, so simulations run in parallel, one walk at a time per thread. Each simulation's state holds its own incident collector, writing into its own preallocated slot, so they need no locks. A test checks that the results do not depend on the number of threads.
+The plan and its decisions are in `compilation.md`.
 
 ## Open questions
 
