@@ -32,9 +32,18 @@ internal sealed class DiscreteJohnsonSu : IDistribution
         if (IsNarrow(width, low + width / 2, NarrowRange))
             return Floored(location + scale * Math.Sinh(start + uniform * (end - start)), maximum);
 
-        var quantile = low > 0
-            ? -Normal.InverseCdf(Normal.Cdf(-low) - uniform * (Normal.Cdf(-low) - Normal.Cdf(-high)))
-            : Normal.InverseCdf(Normal.Cdf(low) + uniform * (Normal.Cdf(high) - Normal.Cdf(low)));
+        double quantile;
+
+        if (low > 0)
+        {
+            var above = Normal.Cdf(-low);
+            quantile = -Normal.InverseCdf(above - uniform * (above - Normal.Cdf(-high)));
+        }
+        else
+        {
+            var below = Normal.Cdf(low);
+            quantile = Normal.InverseCdf(below + uniform * (Normal.Cdf(high) - below));
+        }
 
         return Floored(location + scale * Math.Sinh((quantile - skew) / tail), maximum);
     }

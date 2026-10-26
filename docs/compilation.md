@@ -8,23 +8,26 @@ Measured on the simulation fixture (`testdata/nba-simulation`), one thread, the 
 
 | Part | µs a simulation |
 |---|---|
-| Sampling the models (predictors and families together) | ~1,140 |
+| The predictors | ~980 |
+| The families | ~185 |
 | Features | ~155 |
 | The walk and the transitions | ~130 |
 
-About 80% is the models. The dearest nodes are the most frequent: `ActionTime` and `ActionType` (234 a game each, ~183 µs each), `Substitutions`, `AwardedFreeThrow` and the two timeouts (240 to 280 a game each, 70 to 130 µs each), then `Shooter`. Three costs show in the code:
+About 80% is the models, and of that 84% is the predictors: generating the families' arithmetic (order, step 4) is not needed. The dearest nodes are the most frequent: `ActionTime` and `ActionType` (234 a game each, ~183 µs each), `Substitutions`, `AwardedFreeThrow` and the two timeouts (240 to 280 a game each, 70 to 130 µs each), then `Shooter`. Three costs show in the code:
 
 - every term is an interface call (`ITermColumns.Expand`), every predictor another (`IParameterValue`);
 - a categorical node with K categories has K − 1 predictors over the same terms, so it expands the same spline columns K − 1 times;
 - `Categorical.Sample` takes `exp` of every category twice, once for the total and once for the cumulative sum.
 
-How the ~1,140 µs splits between predictors and families is not yet measured: `DiscreteJohnsonSu.Sample` alone takes four normal CDFs or inverse CDFs, an `asinh` and a `sinh`, so the families may be much of it. Of the 45 spline terms, 29 have 4 knots (3 columns); the large ones (16 to 24 knots) sit on the hottest nodes, and `ActionType` has 23 terms in each of its 3 predictors.
+Of the 45 spline terms, 29 have 4 knots (3 columns); the large ones (16 to 24 knots) sit on the hottest nodes, and `ActionType` has 23 terms in each of its 3 predictors.
 
 The benchmark's baseline for the plain walk: 2.47 s for 10,000 simulations (the median of ten runs) on the 22 threads of an Ultra 9 185H.
 
+After step 1 (the exact fixes), on the same thread and fixture: 836 µs a simulation, of which the predictors are ~520 µs and the families ~180 µs; the benchmark's median is 1.37 s, 1.8 times as fast, with the digest unchanged.
+
 ## Order
 
-1. **Exact fixes in `Model`**, one pull request, digest unchanged: a node's columns are expanded once and shared by all its predictors (the same values, summed in the same order), and `Categorical.Sample` keeps the `exp` values it takes for the total instead of taking them again. The plain walk gets faster for every use (the calibration audit too), and the compiler is later measured against a fair baseline. The same pull request measures predictors against families, and adds the split to the table above.
+1. **Exact fixes in `Model`**, digest unchanged: done. A node's distinct terms are expanded once into its design columns (`DesignColumns`), shared by all its predictors (the same values, summed in the same order); `Categorical.Sample` keeps the `exp` values it takes for the total; `DiscreteJohnsonSu.Sample` takes each normal CDF once. Terms are shared only where they are the same columns: a feature can be a spline in one predictor and linear in another (`ActionTime`'s `Bound` and `ScoreMargin`).
 2. **The form of a spline term**, decided from that measurement. A standardised linear spline is piecewise linear in its feature, so each term reduces to finding the feature's segment, then one intercept and one slope (`a[segment] + b[segment] * x`), and a categorical node's predictors share the one lookup. It changes rounding, so it goes into `Model`, in its own pull request, with the digest re-pinned once on purpose, after checking that the simulations' output does not move. Done before the compiler, the compiler generates the short form once instead of being rewritten for it.
 3. **The compiler**, one pull request: the features, the predictors in their final form, and calls to everything else. It comes with the plain-against-compiled digest, the benchmark of both, and the test that results do not depend on the number of threads.
 4. **Generating a family's arithmetic**, only if the profile after compiling shows sampling dominating, in its own pull request.
