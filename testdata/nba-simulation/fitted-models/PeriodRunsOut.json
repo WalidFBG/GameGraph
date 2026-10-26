@@ -1,0 +1,344 @@
+{
+  "schemaVersion": 1,
+  "node": "PeriodRunsOut",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linearSpline",
+          "feature": "PeriodClock",
+          "knots": 6
+        },
+        {
+          "basis": "linear",
+          "feature": "Period"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMiss"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateMargin",
+          "knots": 8
+        },
+        {
+          "basis": "linear",
+          "feature": "LateTrail10OrMore"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateTrail10OrMoreClock",
+          "knots": 3
+        },
+        {
+          "basis": "linear",
+          "feature": "LateTrail4To9"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateTrail4To9Clock",
+          "knots": 3
+        },
+        {
+          "basis": "linear",
+          "feature": "LateTrail1To3"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateTrail1To3Clock",
+          "knots": 3
+        },
+        {
+          "basis": "linear",
+          "feature": "LateLead1To3"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateLead1To3Clock",
+          "knots": 3
+        },
+        {
+          "basis": "linear",
+          "feature": "LateLead4To8"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateLead4To8Clock",
+          "knots": 3
+        },
+        {
+          "basis": "linear",
+          "feature": "LateLead9OrMore"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "LateLead9OrMoreClock",
+          "knots": 3
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -1.3403287190151185,
+      "terms": {
+        "PeriodClock": {
+          "knotPositions": [
+            0.0,
+            5.0,
+            11.0,
+            16.0,
+            22.0,
+            27.0
+          ],
+          "centres": [
+            3.3585958489563343,
+            2.6535974727643117,
+            1.468010982846683,
+            1.0687313631129876,
+            0.3587434678633639
+          ],
+          "scales": [
+            2.075772955412375,
+            2.7935395928604327,
+            2.1686794497874238,
+            2.1514914353207506,
+            1.1083157206268393
+          ],
+          "coefficients": [
+            -1.5993926868661439,
+            -0.5030871722228419,
+            -0.34635787648002797,
+            0.1980339563794248,
+            -0.9529602808008393
+          ]
+        },
+        "Period": {
+          "centre": 1.585308966372413,
+          "scale": 1.1696622930947451,
+          "coefficients": [
+            -0.088221304256872
+          ]
+        },
+        "AfterMiss": {
+          "centre": 0.13058368515839508,
+          "scale": 0.33694448552963063,
+          "coefficients": [
+            0.6977701185877442
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.2781730684066015,
+          "scale": 0.4480991100413229,
+          "coefficients": [
+            -0.21066585587151065
+          ]
+        },
+        "LateMargin": {
+          "knotPositions": [
+            -62.0,
+            -39.0,
+            -24.0,
+            -9.0,
+            7.0,
+            22.0,
+            37.0,
+            60.0
+          ],
+          "centres": [
+            22.991438103392284,
+            14.93389625343214,
+            14.629919400076762,
+            8.704378376782499,
+            0.35688346963479084,
+            0.06409612943225769,
+            0.0065838032535207106
+          ],
+          "scales": [
+            0.3158735864888175,
+            0.8384453311899299,
+            1.9911531153934514,
+            3.152313923243006,
+            1.9616800192940032,
+            0.8168071400387398,
+            0.26826322219746085
+          ],
+          "coefficients": [
+            -0.004258443575775627,
+            -0.024974152770532314,
+            -0.0959443858830185,
+            0.27547435175318863,
+            0.11645464886341671,
+            0.004019229857274186,
+            -0.01990481439473419
+          ]
+        },
+        "LateTrail10OrMore": {
+          "centre": 0.047858049659000326,
+          "scale": 0.2134658210155726,
+          "coefficients": [
+            0.6406128416696094
+          ]
+        },
+        "LateTrail10OrMoreClock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.4616043222815978,
+            0.15006938088630392
+          ],
+          "scales": [
+            2.3424449624080808,
+            1.1658059784429635
+          ],
+          "coefficients": [
+            0.23996951829139637,
+            -0.15603424995036358
+          ]
+        },
+        "LateTrail4To9": {
+          "centre": 0.060996132384635825,
+          "scale": 0.23932322122761704,
+          "coefficients": [
+            0.2694815622981653
+          ]
+        },
+        "LateTrail4To9Clock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.584511824274453,
+            0.15257890230580734
+          ],
+          "scales": [
+            2.59660183420238,
+            1.1376501868289037
+          ],
+          "coefficients": [
+            0.042455367978071146,
+            -0.18032733917893845
+          ]
+        },
+        "LateTrail1To3": {
+          "centre": 0.03870567742316436,
+          "scale": 0.1928925813979998,
+          "coefficients": [
+            0.01652405032939432
+          ]
+        },
+        "LateTrail1To3Clock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.2844321100646571,
+            0.060789465914794366
+          ],
+          "scales": [
+            1.7719781984830005,
+            0.7362416316144229
+          ],
+          "coefficients": [
+            -0.2781638731249397,
+            0.22113110011564938
+          ]
+        },
+        "LateLead1To3": {
+          "centre": 0.03288949248619763,
+          "scale": 0.17834734023867083,
+          "coefficients": [
+            0.12539074027289224
+          ]
+        },
+        "LateLead1To3Clock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.2906321041599008,
+            0.06259041658055564
+          ],
+          "scales": [
+            1.8203464429307046,
+            0.7171770343170755
+          ],
+          "coefficients": [
+            -0.2762457962804073,
+            -0.14104782966932533
+          ]
+        },
+        "LateLead4To8": {
+          "centre": 0.04215995984765729,
+          "scale": 0.2009539689414131,
+          "coefficients": [
+            0.5246533094808515
+          ]
+        },
+        "LateLead4To8Clock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.4218062649464143,
+            0.11484750966903841
+          ],
+          "scales": [
+            2.224535761545523,
+            0.9937545693268388
+          ],
+          "coefficients": [
+            0.0630082198717693,
+            -0.06924664904699471
+          ]
+        },
+        "LateLead9OrMore": {
+          "centre": 0.04089043724720262,
+          "scale": 0.19803638400286688,
+          "coefficients": [
+            0.3855657038025364
+          ]
+        },
+        "LateLead9OrMoreClock": {
+          "knotPositions": [
+            0.0,
+            14.0,
+            27.0
+          ],
+          "centres": [
+            0.44864338224439787,
+            0.16427031974255263
+          ],
+          "scales": [
+            2.351405525163494,
+            1.2283013781894665
+          ],
+          "coefficients": [
+            0.6044215141116729,
+            -0.15556423461423977
+          ]
+        }
+      }
+    }
+  }
+}

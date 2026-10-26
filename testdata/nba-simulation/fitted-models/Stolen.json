@@ -1,0 +1,159 @@
+{
+  "schemaVersion": 1,
+  "node": "Stolen",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linearSpline",
+          "feature": "ShotClock",
+          "knots": 8
+        },
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "LateInGame"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeShot"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSideOut"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamOffensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSteal"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "DefenceStealRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": 0.6997467285301248,
+      "terms": {
+        "ShotClock": {
+          "knotPositions": [
+            -4.0,
+            0.0,
+            4.0,
+            8.0,
+            12.0,
+            16.0,
+            20.0,
+            24.0
+          ],
+          "centres": [
+            3.9569160997732427,
+            3.738095238095238,
+            3.1901360544217687,
+            2.252891156462585,
+            1.2539965986394557,
+            0.5448412698412698,
+            0.09679705215419501
+          ],
+          "scales": [
+            0.3365706938564611,
+            0.8666143364630313,
+            1.456372027547557,
+            1.808087659273716,
+            1.7031960792410867,
+            1.22826986321854,
+            0.477125215518763
+          ],
+          "coefficients": [
+            -0.07132115853767516,
+            -0.01282909746692039,
+            0.00629901635006077,
+            -0.14510882724846663,
+            -0.007711141780238692,
+            -0.05340477390548483,
+            -0.10950810340342601
+          ]
+        },
+        "ScoreMargin": {
+          "centre": -0.3627125850340136,
+          "scale": 11.883494155543271,
+          "coefficients": [
+            -0.049414194306033235
+          ]
+        },
+        "LateInGame": {
+          "centre": 0.044628684807256236,
+          "scale": 0.206487203718809,
+          "coefficients": [
+            0.03666365249031627
+          ]
+        },
+        "AfterMadeShot": {
+          "centre": 0.34197845804988664,
+          "scale": 0.4743724193918302,
+          "coefficients": [
+            -0.03279077601027469
+          ]
+        },
+        "AfterSideOut": {
+          "centre": 0.04478458049886622,
+          "scale": 0.20683065983646579,
+          "coefficients": [
+            -0.05073826303774619
+          ]
+        },
+        "AfterTeamOffensiveRebound": {
+          "centre": 0.015547052154195011,
+          "scale": 0.12371475790505056,
+          "coefficients": [
+            -0.07876823263729228
+          ]
+        },
+        "AfterSteal": {
+          "centre": 0.06780045351473923,
+          "scale": 0.25140316628465337,
+          "coefficients": [
+            0.05568883034370432
+          ]
+        },
+        "DefenceStealRate": {
+          "knotPositions": [
+            0.023116125198908898,
+            0.06065115063552287,
+            0.07050684624181422,
+            0.12111736449176233
+          ],
+          "centres": [
+            0.035480439608405225,
+            0.004994102403970574,
+            0.0029976795392828094
+          ],
+          "scales": [
+            0.004140834764941819,
+            0.004332185916526192,
+            0.006051207350320778
+          ],
+          "coefficients": [
+            0.018955007653163856,
+            0.04138807025112939,
+            0.020682414430093447
+          ]
+        }
+      }
+    }
+  }
+}

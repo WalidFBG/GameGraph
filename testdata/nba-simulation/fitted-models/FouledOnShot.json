@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "node": "FouledOnShot",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "TeamPointsPerPossession"
+        },
+        {
+          "basis": "linear",
+          "feature": "ShotIsThree"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "ShooterFouledRatio",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "DefenceShootingFoulRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -2.856122692171746,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6973735059250012,
+          "scale": 11.680397669640604,
+          "coefficients": [
+            -0.06587874538029258
+          ]
+        },
+        "TeamPointsPerPossession": {
+          "centre": 1.1542353090197064,
+          "scale": 0.04397488219448812,
+          "coefficients": [
+            0.008010967144239782
+          ]
+        },
+        "ShotIsThree": {
+          "centre": 0.37490124997862556,
+          "scale": 0.4840974103866091,
+          "coefficients": [
+            -1.3810478492724823
+          ]
+        },
+        "AtHome": {
+          "centre": 0.5000530086694824,
+          "scale": 0.49999999719009774,
+          "coefficients": [
+            0.015846014128417178
+          ]
+        },
+        "ShooterFouledRatio": {
+          "knotPositions": [
+            -2.517696472610991,
+            -0.12571523427821507,
+            0.1810661076546303,
+            2.4674648698609416
+          ],
+          "centres": [
+            2.0811871144253664,
+            0.12696493900099015,
+            0.0912238611644351
+          ],
+          "scales": [
+            0.5439789603522376,
+            0.13502441029336143,
+            0.24287596473387169
+          ],
+          "coefficients": [
+            0.3331008502598396,
+            0.1530150561206377,
+            0.1954460214743033
+          ]
+        },
+        "DefenceShootingFoulRate": {
+          "knotPositions": [
+            0.04809491118650859,
+            0.09822963942069488,
+            0.11121238369230009,
+            0.20458817964196338
+          ],
+          "centres": [
+            0.04657980043550344,
+            0.0060066737076003626,
+            0.0034447108705960654
+          ],
+          "scales": [
+            0.006527450870936139,
+            0.005681839864379539,
+            0.007671998439327644
+          ],
+          "coefficients": [
+            0.049749280804559745,
+            0.030302509836509995,
+            0.03339960251442159
+          ]
+        }
+      }
+    }
+  }
+}

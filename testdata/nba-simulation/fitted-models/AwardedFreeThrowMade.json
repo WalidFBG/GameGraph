@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "node": "AwardedFreeThrowMade",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ShooterMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "ShooterPointsPerPossession"
+        },
+        {
+          "basis": "linear",
+          "feature": "ShooterAtHome"
+        },
+        {
+          "basis": "linear",
+          "feature": "AwardedFlagrant"
+        },
+        {
+          "basis": "linear",
+          "feature": "AwardedClearPath"
+        },
+        {
+          "basis": "linear",
+          "feature": "AwardedTakeFoul"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "AwardedShooterFreeThrowRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": 1.4174151032988522,
+      "terms": {
+        "ShooterMargin": {
+          "centre": 0.5764921106791676,
+          "scale": 11.751501875873727,
+          "coefficients": [
+            -0.010788155617479705
+          ]
+        },
+        "ShooterPointsPerPossession": {
+          "centre": 1.1544221093104265,
+          "scale": 0.04395329489091979,
+          "coefficients": [
+            0.0867999080449258
+          ]
+        },
+        "ShooterAtHome": {
+          "centre": 0.49554081865995886,
+          "scale": 0.49998011530638126,
+          "coefficients": [
+            0.01687536644333291
+          ]
+        },
+        "AwardedFlagrant": {
+          "centre": 0.16693345529384862,
+          "scale": 0.37291644747516745,
+          "coefficients": [
+            0.03241837968040258
+          ]
+        },
+        "AwardedClearPath": {
+          "centre": 0.014635261833981249,
+          "scale": 0.12008776351082186,
+          "coefficients": [
+            -0.02603100783870426
+          ]
+        },
+        "AwardedTakeFoul": {
+          "centre": 0.11662474273953807,
+          "scale": 0.32097260337989775,
+          "coefficients": [
+            -0.1449042069507367
+          ]
+        },
+        "AwardedShooterFreeThrowRate": {
+          "knotPositions": [
+            0.47505258729490957,
+            0.8057860231024664,
+            0.8490734647786632,
+            0.9385844331517567
+          ],
+          "centres": [
+            0.3145246667138217,
+            0.021941625295871323,
+            0.008704254783775718
+          ],
+          "scales": [
+            0.03512538400088134,
+            0.01915981116613488,
+            0.016195920607080774
+          ],
+          "coefficients": [
+            0.17433039613559886,
+            0.01710033817776072,
+            0.07725034412011815
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,370 @@
+{
+  "schemaVersion": 1,
+  "node": "DefenceTimeout",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "BeforeFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "TimeoutJustCalled"
+        },
+        {
+          "basis": "linear",
+          "feature": "Period"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterPeriodStart"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterOffensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeShot"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterMadeFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterDeadBallTurnover"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSideOut"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterAwardedBall"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterTeamOffensiveRebound"
+        },
+        {
+          "basis": "linear",
+          "feature": "AfterSteal"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "DefenceTimeoutsLeft",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "NonePeriodTimeouts"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "NonePeriodTimeoutsClock",
+          "knots": 10
+        },
+        {
+          "basis": "linear",
+          "feature": "OnePeriodTimeouts"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "OnePeriodTimeoutsClock",
+          "knots": 10
+        },
+        {
+          "basis": "linear",
+          "feature": "TwoOrMorePeriodTimeouts"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "TwoOrMorePeriodTimeoutsClock",
+          "knots": 10
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -6.81526693300887,
+      "terms": {
+        "BeforeFreeThrow": {
+          "centre": 0.154007090748734,
+          "scale": 0.3609555467753371,
+          "coefficients": [
+            0.9218706184009184
+          ]
+        },
+        "TimeoutJustCalled": {
+          "centre": 0.03730060919694642,
+          "scale": 0.1894974241262035,
+          "coefficients": [
+            0.002206983970852479
+          ]
+        },
+        "Period": {
+          "centre": 1.519705155686909,
+          "scale": 1.1272359264720522,
+          "coefficients": [
+            0.9950509277933808
+          ]
+        },
+        "AfterPeriodStart": {
+          "centre": 0.01599448627116565,
+          "scale": 0.1254538268849296,
+          "coefficients": [
+            -0.08816377448738082
+          ]
+        },
+        "AfterOffensiveRebound": {
+          "centre": 0.09021021091180954,
+          "scale": 0.2864826849201676,
+          "coefficients": [
+            -0.13636312704611675
+          ]
+        },
+        "AfterMadeShot": {
+          "centre": 0.3292583917901512,
+          "scale": 0.4699439362581332,
+          "coefficients": [
+            -0.1534403018363032
+          ]
+        },
+        "AfterMadeFreeThrow": {
+          "centre": 0.07862203505656828,
+          "scale": 0.2691479345268703,
+          "coefficients": [
+            -0.07350488111027917
+          ]
+        },
+        "AfterDeadBallTurnover": {
+          "centre": 0.05251593082139373,
+          "scale": 0.22306503049854637,
+          "coefficients": [
+            0.43996605678122613
+          ]
+        },
+        "AfterSideOut": {
+          "centre": 0.04564012405889877,
+          "scale": 0.208703385537494,
+          "coefficients": [
+            0.37188242473020344
+          ]
+        },
+        "AfterAwardedBall": {
+          "centre": 5.373549287712679e-05,
+          "scale": 0.007330252749663725,
+          "coefficients": [
+            0.0233020668117046
+          ]
+        },
+        "AfterTeamOffensiveRebound": {
+          "centre": 0.023306017791120792,
+          "scale": 0.15087361374962552,
+          "coefficients": [
+            0.22812784696324667
+          ]
+        },
+        "AfterSteal": {
+          "centre": 0.06674181847916874,
+          "scale": 0.24957433390716327,
+          "coefficients": [
+            0.02802583852268236
+          ]
+        },
+        "DefenceTimeoutsLeft": {
+          "knotPositions": [
+            1.0,
+            3.0,
+            5.0,
+            7.0
+          ],
+          "centres": [
+            1.869590967764545,
+            1.3390919869866653,
+            0.5055294990333452
+          ],
+          "scales": [
+            0.4047069535594801,
+            0.8329360831886942,
+            0.7311853595321349
+          ],
+          "coefficients": [
+            0.1772837667413202,
+            0.18672302830124674,
+            0.5938636362533183
+          ]
+        },
+        "NonePeriodTimeouts": {
+          "centre": 0.3034817094895712,
+          "scale": 0.4597614180147756,
+          "coefficients": [
+            0.7993009197888135
+          ]
+        },
+        "NonePeriodTimeoutsClock": {
+          "knotPositions": [
+            0.0,
+            301.0,
+            354.0,
+            407.0,
+            459.0,
+            511.0,
+            563.0,
+            616.0,
+            668.0,
+            720.0
+          ],
+          "centres": [
+            91.34432886121641,
+            16.069199633196853,
+            15.952153216244474,
+            14.935373724512147,
+            13.359243964978477,
+            11.170248059389401,
+            8.514930873961065,
+            5.108659007411994,
+            1.8423680998078371
+          ],
+          "scales": [
+            138.38347535399504,
+            24.35567793467711,
+            24.261406979175998,
+            23.299894354482603,
+            22.358703929353343,
+            20.84188788477003,
+            18.729796223089966,
+            14.511971330581252,
+            8.16146903297475
+          ],
+          "coefficients": [
+            0.7989859403204033,
+            0.6771876669000693,
+            -0.17264352884077683,
+            -2.277426251908797,
+            0.12748113985967469,
+            0.07289130019097857,
+            -0.21488621573633085,
+            -0.21296526875246863,
+            -0.01252061165957194
+          ]
+        },
+        "OnePeriodTimeouts": {
+          "centre": 0.29459198990707264,
+          "scale": 0.4558591332742517,
+          "coefficients": [
+            1.038786544137276
+          ]
+        },
+        "OnePeriodTimeoutsClock": {
+          "knotPositions": [
+            0.0,
+            80.0,
+            159.0,
+            238.0,
+            317.0,
+            397.0,
+            476.0,
+            555.0,
+            634.0,
+            720.0
+          ],
+          "centres": [
+            23.546620796803907,
+            23.105153350583205,
+            21.732316642232593,
+            17.929656735335175,
+            12.604296503104393,
+            6.785636269121366,
+            2.9107990818239697,
+            0.7407647962431881,
+            0.06392304142889685
+          ],
+          "scales": [
+            36.45084423267687,
+            35.87375923183879,
+            34.763428208124644,
+            32.13164330428041,
+            27.694738789433487,
+            20.69475976311184,
+            13.448930024691187,
+            6.392564074464649,
+            1.5674546700482412
+          ],
+          "coefficients": [
+            0.9847718825374637,
+            0.2152621028945465,
+            -2.360162309396291,
+            0.2523210702144828,
+            -0.12511634171978092,
+            -0.15550521157657357,
+            -0.011002989092217683,
+            -0.058384912725610846,
+            -0.14188426221839603
+          ]
+        },
+        "TwoOrMorePeriodTimeouts": {
+          "centre": 0.39585652623401807,
+          "scale": 0.48903388110852597,
+          "coefficients": [
+            -0.2734355230217816
+          ]
+        },
+        "TwoOrMorePeriodTimeoutsClock": {
+          "knotPositions": [
+            0.0,
+            70.0,
+            140.0,
+            210.0,
+            280.0,
+            350.0,
+            420.0,
+            490.0,
+            560.0,
+            662.0
+          ],
+          "centres": [
+            23.348371872973967,
+            16.29928683655649,
+            10.208756549013195,
+            5.85783574461623,
+            2.984261341401445,
+            1.2632127983926078,
+            0.40514108487287465,
+            0.08735054816043548,
+            0.008850002044285056
+          ],
+          "scales": [
+            31.68855970092256,
+            28.24283066392272,
+            23.41841061663801,
+            18.285000057407082,
+            13.178317733429031,
+            8.51273478181145,
+            4.691795607027738,
+            2.0792920141923115,
+            0.5836915444051887
+          ],
+          "coefficients": [
+            0.2231306547409092,
+            -0.07325962158369811,
+            0.32393663436644815,
+            -0.35661888697376365,
+            0.005435764535761939,
+            0.02862159601044416,
+            -0.02154898166771162,
+            -0.03880984951916456,
+            -0.05563350961536105
+          ]
+        }
+      }
+    }
+  }
+}

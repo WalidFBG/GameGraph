@@ -11,12 +11,16 @@
     <Project Path="src/Tests/GameGraph.Contract.Files.Tests.Unit/GameGraph.Contract.Files.Tests.Unit.csproj" />
     <Project Path="src/Tests/GameGraph.Engine.Tests.Unit/GameGraph.Engine.Tests.Unit.csproj" />
     <Project Path="src/Tests/GameGraph.Models.Tests.Unit/GameGraph.Models.Tests.Unit.csproj" />
+    <Project Path="src/Tests/GameGraph.Simulation.Tests.Unit/GameGraph.Simulation.Tests.Unit.csproj" />
   </Folder>
   <Folder Name="/src/Nba/">
     <Project Path="src/Nba/GameGraph.Nba/GameGraph.Nba.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Augmentation/GameGraph.Nba.Augmentation.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Tests.QualityAssurance/GameGraph.Nba.Tests.QualityAssurance.csproj" />
+    <Project Path="src/Nba/GameGraph.Nba.Benchmark/GameGraph.Nba.Benchmark.csproj" />
+    <Project Path="src/Nba/GameGraph.Nba.Fixture/GameGraph.Nba.Fixture.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.Sportradar/GameGraph.Nba.Sportradar.csproj" />
+    <Project Path="src/Nba/GameGraph.Nba.Tests.Unit/GameGraph.Nba.Tests.Unit.csproj" />
     <Project Path="src/Nba/GameGraph.Nba.TrainingDataGeneration/GameGraph.Nba.TrainingDataGeneration.csproj" />
   </Folder>
 </Solution>

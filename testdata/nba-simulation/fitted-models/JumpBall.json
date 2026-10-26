@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "node": "JumpBall",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": []
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": 0.019357457382313547,
+      "terms": {}
+    }
+  }
+}

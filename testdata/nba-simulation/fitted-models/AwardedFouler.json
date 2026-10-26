@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "node": "AwardedFouler",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "FoulShare",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "InFoulTrouble"
+        },
+        {
+          "basis": "linear",
+          "feature": "OnCourtNow"
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "FoulShare": {
+          "knotPositions": [
+            -3.1986731175506815,
+            -1.7768338190113793,
+            -1.497519996230115,
+            -0.8043728156701697
+          ],
+          "centres": [
+            1.3534182850136893,
+            0.14412617993007032,
+            0.058174325884929164
+          ],
+          "scales": [
+            0.15126715411103334,
+            0.12045395862696062,
+            0.1148359423737177
+          ],
+          "coefficients": [
+            0.18622227561035237,
+            0.10663913420515163,
+            0.04821141968096601
+          ]
+        },
+        "InFoulTrouble": {
+          "centre": 0.01705150976909414,
+          "scale": 0.1294633376044674,
+          "coefficients": [
+            -0.11076554826323932
+          ]
+        },
+        "OnCourtNow": {
+          "centre": 0.9058614564831261,
+          "scale": 0.2920213658987863,
+          "coefficients": [
+            -0.21445345453102033
+          ]
+        }
+      }
+    }
+  }
+}

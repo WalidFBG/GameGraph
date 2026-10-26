@@ -2,12 +2,12 @@ namespace GameGraph.Simulation;
 
 public static class Seeds
 {
-    public const int Root = 1;
+    public const ulong Root = 1;
 
-    public static int[] Draw(int count)
+    public static ulong[] Draw(int count)
     {
-        var root = new Random(Root);
-        var seeds = new int[count];
+        var root = new SplitMix64(Root);
+        var seeds = new ulong[count];
 
         for (var i = 0; i < count; i++)
             seeds[i] = root.Next();

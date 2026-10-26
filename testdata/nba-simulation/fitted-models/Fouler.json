@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "node": "Fouler",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "FoulShare",
+          "knots": 4
+        },
+        {
+          "basis": "linear",
+          "feature": "PersonalFouls"
+        },
+        {
+          "basis": "linear",
+          "feature": "InFoulTrouble"
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "FoulShare": {
+          "knotPositions": [
+            -3.58351893845611,
+            -1.8543828924295265,
+            -1.4375876555074412,
+            -0.5596157879354228
+          ],
+          "centres": [
+            1.6786230459492952,
+            0.21417535217514186,
+            0.038736843967817944
+          ],
+          "scales": [
+            0.13408600531971498,
+            0.1665718836415933,
+            0.09213820801918406
+          ],
+          "coefficients": [
+            0.08741411060548736,
+            0.14978374454512078,
+            0.07634146590796279
+          ]
+        },
+        "PersonalFouls": {
+          "centre": 0.9934000210190413,
+          "scale": 1.1188151581655914,
+          "coefficients": [
+            -0.06553613195552228
+          ]
+        },
+        "InFoulTrouble": {
+          "centre": 0.013496135362626234,
+          "scale": 0.1153862630164429,
+          "coefficients": [
+            -0.03996795410253816
+          ]
+        }
+      }
+    }
+  }
+}

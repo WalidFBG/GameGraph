@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "node": "Assister",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "AssistShare",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "AssistShare": {
+          "knotPositions": [
+            -4.605170185988091,
+            -1.7841548698428358,
+            -1.2376838616682477,
+            -0.534082485930258
+          ],
+          "centres": [
+            2.6237909230166667,
+            0.20389546083228713,
+            0.04661750883386645
+          ],
+          "scales": [
+            0.2969930582535273,
+            0.2318479088024139,
+            0.11655296516571596
+          ],
+          "coefficients": [
+            0.22436356030637342,
+            0.27711966796977305,
+            0.12136887966478489
+          ]
+        }
+      }
+    }
+  }
+}

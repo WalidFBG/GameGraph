@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "node": "SubstitutionCount",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linear",
+          "feature": "CountIs2"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountIs3"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountIs4"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountIs5"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountAfterTimeout"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountAtPeriodStart"
+        },
+        {
+          "basis": "linear",
+          "feature": "CountBeforeFreeThrow"
+        }
+      ]
+    },
+    "given": {
+      "size": "OneCount"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "CountIs2": {
+          "centre": 0.20007156480381313,
+          "scale": 0.40005366360138006,
+          "coefficients": [
+            -0.45032406042545076
+          ]
+        },
+        "CountIs3": {
+          "centre": 0.20007156480381313,
+          "scale": 0.40005366360138,
+          "coefficients": [
+            -1.100779976032715
+          ]
+        },
+        "CountIs4": {
+          "centre": 0.20001849042777947,
+          "scale": 0.40001386715302173,
+          "coefficients": [
+            -1.9060870524283557
+          ]
+        },
+        "CountIs5": {
+          "centre": 0.19976681516078112,
+          "scale": 0.39982500512255786,
+          "coefficients": [
+            -2.388306052383358
+          ]
+        },
+        "CountAfterTimeout": {
+          "centre": 0.7681745496382382,
+          "scale": 1.4919670809265857,
+          "coefficients": [
+            0.7687957626111472
+          ]
+        },
+        "CountAtPeriodStart": {
+          "centre": 0.37522556609814306,
+          "scale": 1.111192956646503,
+          "coefficients": [
+            0.7154554546932349
+          ]
+        },
+        "CountBeforeFreeThrow": {
+          "centre": 0.9442188307886168,
+          "scale": 1.603069929464036,
+          "coefficients": [
+            -0.17295184825853946
+          ]
+        }
+      }
+    }
+  }
+}

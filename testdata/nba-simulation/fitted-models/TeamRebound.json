@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "node": "TeamRebound",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ReboundToOffence"
+        },
+        {
+          "basis": "linear",
+          "feature": "MissedFreeThrow"
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -2.3338183446340346,
+      "terms": {
+        "ReboundToOffence": {
+          "centre": 0.2778071944008852,
+          "scale": 0.4479178017671512,
+          "coefficients": [
+            0.5826106875671218
+          ]
+        },
+        "MissedFreeThrow": {
+          "centre": 0.049419926820492975,
+          "scale": 0.21674316056930107,
+          "coefficients": [
+            -0.1170893571059908
+          ]
+        }
+      }
+    }
+  }
+}

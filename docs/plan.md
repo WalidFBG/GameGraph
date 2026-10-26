@@ -66,7 +66,7 @@ Augmentation runs side by side with training-data generation (and later the simu
 Built in two pieces: first the engine change (decision collector and incident collector, incidents reported by the NBA's transitions), then simulation itself.
 
 1. **Parameters**: `GameGraph.Parameters` is the contract between training and simulation (the family, and per predictor an intercept and each term's coefficients, and the file format). Callers read the files; simulation rebuilds the model from them and fails if a term's feature is not one of the node's features.
-2. **Randomness**: one root seed constant; each simulation gets its own seed, drawn from the root up front, so results do not depend on scheduling. `System.Random(seed)` sits behind a small class of our own, to be replaced by xoshiro256** (seeded through SplitMix64) with the speed work, before outputs are pinned by a digest test.
+2. **Randomness**: one root seed constant; each simulation gets its own seed, drawn from the root up front, so results do not depend on scheduling. The numbers come from xoshiro256** (`SeededRandom`, seeded through SplitMix64), and the root draws the seeds through SplitMix64: done, before outputs were pinned by the digest test.
 3. **Count**: 10,000 simulations per game.
 4. **The simulation index**: each incident carries the index of its simulation (`SimulationIndex`), read from the game state, so one incident collector receives all simulations. Superseded: each simulation's state now holds its own incident collector, so incidents carry no index.
 5. **The real schedule**: each simulation plays the real game's periods and possessions per period, overtime included; every possession's outcome is sampled. This leaks the real game into the price (overtime is known in advance, so is the pace) and is accepted until step 4 brings the clock; ties are possible and counted separately.
@@ -155,10 +155,12 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
 
    The data's lineups are clean: every team has one starting lineup and no change ever takes off a player who is not on, puts on one who is, or leaves other than five. Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
 
-   Two reshapes come with players, because they bring the uses that shape them:
-   - **Perspective**: whose decision it is. `ShooterMargin`, `ShooterPointsPerPossession` and `ShooterAtHome` copy the team features for the shooting team; players add the shooter, the candidate rebounder and the fouled player. One feature set is built for a side given as an expression, and the side's body is substituted into each feature, so the result is still an expression a compiler can read, never a delegate.
-   - **The observed cursor**: `ObservedOutcomeDecider` flattens each possession into the graph's decision order, so the order is written twice and the two can disagree only at runtime (`RulesDisagreeWithData`). Instead, each node reads its own fact from a cursor over the observed game (`ActionType` moves to the next action, `ShotMade` reads that action and fails if it is not a shot), and the walk still ends with everything consumed.
-7. Compilation (see below), once players have brought their family, the feature row per candidate and the lineup state: a compiler built before them would be rewritten for them.
+   Two reshapes were planned to come with players:
+   - **Perspective** (one feature set built for a side given as an expression, so `ShooterMargin` and the like stop copying the team features): dropped. Players brought few mirrored features, so the substitution would cost more than the copies it removes.
+   - **The observed cursor**: after compilation, in its own pull request (step 9).
+7. The digest test and the benchmark: done. The fixture (`testdata/nba-simulation`) is the latest game's context and the fitted models; the digest hashes every decision and incident of 1,000 simulations; the benchmark's baseline for the plain walk is 2.47 s for 10,000 simulations (the median of ten runs) on the 22 threads of an Ultra 9 185H. One thread alone does about 770 a second; six threads give about 4.2 times that, and the other 16 (hyperthreads and efficiency cores) add only about 30% more.
+8. Compilation (see below), now that players have brought their family, the feature row per candidate and the lineup state.
+9. **The observed cursor**: `ObservedOutcomeDecider` flattens each possession into the graph's decision order, so the order is written twice and the two can disagree only at runtime (`RulesDisagreeWithData`). Instead, each node reads its own fact from a cursor over the observed game (`ActionType` moves to the next action, `ShotMade` reads that action and fails if it is not a shot), and the walk still ends with everything consumed. It touches only the replay that writes training data, so it does not wait on, or hold up, compilation.
 
 Each step adds its nodes, reshapes the simulator where they need it, adds a family if they need one, and then goes through training data, training, simulation and the audit.
 

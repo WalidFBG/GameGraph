@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "node": "FouledPlayer",
+  "model": {
+    "distribution": {
+      "name": "choice"
+    },
+    "terms": {
+      "utility": [
+        {
+          "basis": "linearSpline",
+          "feature": "FoulDrawnShare",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {
+      "size": "OnePlayer"
+    }
+  },
+  "fit": {
+    "utility": {
+      "terms": {
+        "FoulDrawnShare": {
+          "knotPositions": [
+            -4.584967478670572,
+            -1.6014057407368363,
+            -1.0033021088637848,
+            -0.3629054936893685
+          ],
+          "centres": [
+            2.679478189928242,
+            0.14244552236981725,
+            0.013699911623551156
+          ],
+          "scales": [
+            0.4088467757188764,
+            0.21138431455956752,
+            0.057612492999790606
+          ],
+          "coefficients": [
+            0.27082965582471114,
+            0.26449127698256036,
+            0.0715124256799663
+          ]
+        }
+      }
+    }
+  }
+}

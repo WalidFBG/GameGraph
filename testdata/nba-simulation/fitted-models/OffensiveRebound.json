@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 1,
+  "node": "OffensiveRebound",
+  "model": {
+    "distribution": {
+      "name": "bernoulli"
+    },
+    "terms": {
+      "probability": [
+        {
+          "basis": "linear",
+          "feature": "ScoreMargin"
+        },
+        {
+          "basis": "linear",
+          "feature": "TeamPointsPerPossession"
+        },
+        {
+          "basis": "linear",
+          "feature": "MissedThree"
+        },
+        {
+          "basis": "linear",
+          "feature": "MissedFreeThrow"
+        },
+        {
+          "basis": "linear",
+          "feature": "AtHome"
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "OffenceReboundRate",
+          "knots": 4
+        },
+        {
+          "basis": "linearSpline",
+          "feature": "DefenceReboundRate",
+          "knots": 4
+        }
+      ]
+    },
+    "given": {}
+  },
+  "fit": {
+    "probability": {
+      "intercept": -0.9773796265286214,
+      "terms": {
+        "ScoreMargin": {
+          "centre": -0.6615753280519181,
+          "scale": 11.65834557147481,
+          "coefficients": [
+            -0.018592190682402768
+          ]
+        },
+        "TeamPointsPerPossession": {
+          "centre": 1.1534435137375905,
+          "scale": 0.04409602660742974,
+          "coefficients": [
+            -0.010034744325634438
+          ]
+        },
+        "MissedThree": {
+          "centre": 0.46055570263867107,
+          "scale": 0.4984417191665062,
+          "coefficients": [
+            -0.16674164352056178
+          ]
+        },
+        "MissedFreeThrow": {
+          "centre": 0.049419926820492975,
+          "scale": 0.21674316056930107,
+          "coefficients": [
+            -0.2360060979378692
+          ]
+        },
+        "AtHome": {
+          "centre": 0.4969010718964897,
+          "scale": 0.4999903965522079,
+          "coefficients": [
+            0.010742316462685272
+          ]
+        },
+        "OffenceReboundRate": {
+          "knotPositions": [
+            0.07894576290226303,
+            0.19779460503640395,
+            0.23473750430950446,
+            0.47667091916480014
+          ],
+          "centres": [
+            0.110681545184206,
+            0.018936738844946198,
+            0.011338591205848006
+          ],
+          "scales": [
+            0.016185839553665822,
+            0.01627069747497353,
+            0.02293495145332579
+          ],
+          "coefficients": [
+            0.06275684875871401,
+            0.06166680855412726,
+            0.0752391674337914
+          ]
+        },
+        "DefenceReboundRate": {
+          "knotPositions": [
+            0.37923783403090333,
+            0.6448625127928778,
+            0.7047320799069869,
+            0.9700033411537612
+          ],
+          "centres": [
+            0.2526366719294,
+            0.03234408756412516,
+            0.016000013834607404
+          ],
+          "scales": [
+            0.027800385633502043,
+            0.02623656252583194,
+            0.029886824399768402
+          ],
+          "coefficients": [
+            -0.02727556232070395,
+            -0.03750331343242251,
+            -0.016393933147686515
+          ]
+        }
+      }
+    }
+  }
+}

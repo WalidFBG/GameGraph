@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\GameGraph.Nba.Fixture\GameGraph.Nba.Fixture.csproj" />
+  </ItemGroup>
+</Project>
