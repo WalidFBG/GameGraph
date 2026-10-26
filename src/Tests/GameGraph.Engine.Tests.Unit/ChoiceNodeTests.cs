@@ -10,6 +10,8 @@ public sealed class ChoiceNodeTests
 
     private static readonly int[] Pair = [1, 2];
 
+    private static readonly int[] NoCandidates = [];
+
     private static readonly CandidateFeature<ToyState> Distance = new(nameof(Distance), (s, candidate) => candidate - s.Value);
 
     private static readonly CandidateFeature<ToyState> Odd = new(nameof(Odd), (_, candidate) => candidate % 2);
@@ -49,6 +51,15 @@ public sealed class ChoiceNodeTests
         Assert.False(pick.HasOneOutcome(state));
         Assert.Empty(collector.GamesFor(forced)[0].Examples);
         Assert.Single(collector.GamesFor(pick)[0].Examples);
+    }
+
+    [Fact]
+    public void AChoiceOfMoreThanItsCandidatesFailsLoudly()
+    {
+        var node = new ChoiceNode<ToyState>("Empty", _ => NoCandidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+        var buffer = Array.Empty<double>();
+
+        Assert.Throws<InvalidOperationException>(() => node.WriteFeatures(new ToyState(), ref buffer));
     }
 
     [Fact]
