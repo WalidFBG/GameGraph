@@ -12,6 +12,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
     private readonly List<Possession> _possessions = [];
     private readonly List<ObservedAction> _actions = [];
     private readonly Dictionary<string, AwardedKind> _foulsWithoutFreeThrowsInTheTree = [];
+    private readonly Dictionary<string, int> _takeFoulers = [];
     private int? _team;
     private int _period;
     private int? _lastClock;
@@ -170,6 +171,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         if (foul.FreeThrowsAwarded == TakeFoulFreeThrows)
         {
             _foulsWithoutFreeThrowsInTheTree[foul.SourceId] = AwardedKind.TakeFoul;
+            _takeFoulers[foul.SourceId] = SlotOf(foul.Participants, ParticipationType.FoulCommittedBy);
             return;
         }
 
@@ -209,7 +211,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
     {
         if (AwardedKindOf(freeThrow) is { } kind)
         {
-            _awarded.Add(new AwardedFreeThrow(Side(teams.GetValueOrDefault(freeThrow.ShooterId)), freeThrow.Made, kind));
+            _awarded.Add(new AwardedFreeThrow(Side(teams.GetValueOrDefault(freeThrow.ShooterId)), freeThrow.Made, kind, slots[freeThrow.ShooterId], kind == AwardedKind.TakeFoul ? _takeFoulers[freeThrow.FoulId] : null));
             return;
         }
 

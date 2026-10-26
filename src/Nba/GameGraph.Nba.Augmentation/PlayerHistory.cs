@@ -51,6 +51,7 @@ public sealed class PlayerHistory
             foreach (var action in possession.Actions)
             {
                 Substitute(court, action.Before);
+                CreditAwarded(games, court, action.AwardedBefore);
 
                 switch (action)
                 {
@@ -98,6 +99,7 @@ public sealed class PlayerHistory
             }
 
             Substitute(court, possession.After);
+            CreditAwarded(games, court, possession.AwardedAfter);
         }
 
         for (var team = 0; team < game.Roster.Active.Length; team++)
@@ -108,6 +110,17 @@ public sealed class PlayerHistory
                 games[player].Started = game.Roster.Starters[team].Contains(player);
                 Add(game.Players[player], games[player]);
             }
+        }
+    }
+
+    private static void CreditAwarded(PlayerGame[] games, int[][] court, AwardedFreeThrow[] awarded)
+    {
+        foreach (var freeThrow in awarded)
+        {
+            Credit(games, court[freeThrow.Team], freeThrow.Shooter, PlayerEvent.AwardedFreeThrow);
+
+            if (freeThrow.Fouler is { } fouler)
+                Credit(games, court[Sides.Opponent(freeThrow.Team)], fouler, PlayerEvent.Foul);
         }
     }
 

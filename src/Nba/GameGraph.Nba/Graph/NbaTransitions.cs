@@ -48,6 +48,7 @@ public static class NbaTransitions
 
             state.LastAwarded = AwardedFreeThrows.None;
             state.BallAwardedToDefence = false;
+            state.AwardedShooterKnown = false;
 
             return ballToDefence ? EndOfPossession(state, PlayStart.AwardedBall) : ActionOrPeriodEnd(state);
         }
@@ -57,7 +58,27 @@ public static class NbaTransitions
         state.LastAwarded = awarded;
         state.AwardedTeam = toDefence ? Sides.Opponent(state.TeamInPossession) : state.TeamInPossession;
         state.BallAwardedToDefence |= toDefence && AwardedFreeThrows.MovesTheBall(AwardedFreeThrows.KindOf(awarded));
+        state.AwardedShooters = state.OnCourtInDeadBall(state.AwardedTeam);
 
+        return NbaNodes.AwardedShooter;
+    }
+
+    public static Next<NbaState> AwardedShooter(NbaState state, ReadOnlySpan<int> shooter)
+    {
+        state.AwardedShooter = shooter[0];
+        state.AwardedShooterKnown = true;
+
+        if (AwardedFreeThrows.KindOf(state.LastAwarded) != AwardedKind.TakeFoul)
+            return NbaNodes.AwardedFreeThrowMade;
+
+        state.AwardedFoulers = state.OnCourtInDeadBall(Sides.Opponent(state.AwardedTeam));
+        return NbaNodes.AwardedFouler;
+    }
+
+    public static Next<NbaState> AwardedFouler(NbaState state, ReadOnlySpan<int> fouler)
+    {
+        state.PersonalFouls[fouler[0]]++;
+        Report(state, fouler[0], Credit.Foul);
         return NbaNodes.AwardedFreeThrowMade;
     }
 
@@ -73,6 +94,7 @@ public static class NbaTransitions
             state.Score[state.AwardedTeam]++;
 
         state.Incidents.AwardedFreeThrow(new AwardedFreeThrowIncident(state.AwardedTeam, state.Period, Yes(made)));
+        Report(state, state.AwardedShooter, Yes(made) ? Credit.FreeThrowMade : Credit.FreeThrowMissed);
         return NbaNodes.AwardedFreeThrow;
     }
 
@@ -336,6 +358,9 @@ public static class NbaTransitions
 
     private static Next<NbaState> AskTimeouts(NbaState state, Moment moment)
     {
+        for (var team = 0; team < state.OnCourt.Length; team++)
+            state.OnCourt[team].CopyTo(state.FiveAtDeadBall[team]);
+
         state.Moment = moment;
         state.TimeoutJustCalled = false;
         state.TimeoutCalledHere = false;

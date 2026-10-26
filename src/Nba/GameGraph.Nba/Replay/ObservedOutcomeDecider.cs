@@ -237,11 +237,18 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             callers.Select(caller => new ObservedDecision(caller == inPossession ? NbaNodes.OffenceTimeout : NbaNodes.DefenceTimeout, _ => 1, inPossession, possession.Period));
 
         IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
-            awarded.SelectMany(f => new[]
-            {
-                new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => AwardedFreeThrows.CategoryOf(f.Kind, f.Team != inPossession) ?? throw new RulesDisagreeWithDataException($"The rules have no category for a {f.Kind} free throw to the {(f.Team != inPossession ? "defence" : "offence")}"), inPossession, possession.Period),
-                new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period),
-            });
+            awarded.SelectMany(f => AwardedOne(f, inPossession));
+
+        IEnumerable<ObservedDecision> AwardedOne(AwardedFreeThrow f, int inPossession)
+        {
+            yield return new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => AwardedFreeThrows.CategoryOf(f.Kind, f.Team != inPossession) ?? throw new RulesDisagreeWithDataException($"The rules have no category for a {f.Kind} free throw to the {(f.Team != inPossession ? "defence" : "offence")}"), inPossession, possession.Period);
+            yield return new ObservedDecision(NbaNodes.AwardedShooter, s => Chosen(NbaNodes.AwardedShooter, s, [f.Shooter]), inPossession, possession.Period);
+
+            if (f.Fouler is { } fouler)
+                yield return new ObservedDecision(NbaNodes.AwardedFouler, s => Chosen(NbaNodes.AwardedFouler, s, [fouler]), inPossession, possession.Period);
+
+            yield return new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period);
+        }
 
         ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
             new(node, _ => outcome, team, possession.Period);

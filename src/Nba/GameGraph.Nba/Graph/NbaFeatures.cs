@@ -69,6 +69,15 @@ public static class NbaFeatures
     public static readonly Feature<NbaState> ShooterBlockedRate =
         new(nameof(ShooterBlockedRate), s => s.BlockedRates[s.Shooter]);
 
+    public static readonly CandidateFeature<NbaState> AwardedShare =
+        new(nameof(AwardedShare), (s, player) => s.LogShares[(int)PlayerEvent.AwardedFreeThrow][player]);
+
+    public static readonly CandidateFeature<NbaState> TookPreviousAwarded =
+        new(nameof(TookPreviousAwarded), (s, player) => s.AwardedShooterKnown && s.AwardedShooter == player ? 1 : 0);
+
+    public static readonly CandidateFeature<NbaState> OnCourtNow =
+        new(nameof(OnCourtNow), (s, player) => s.IsOnCourt[player] ? 1 : 0);
+
     public static readonly CandidateFeature<NbaState> FoulDrawnShare =
         new(nameof(FoulDrawnShare), (s, player) => s.LogShares[(int)PlayerEvent.FoulDrawn][player]);
 
