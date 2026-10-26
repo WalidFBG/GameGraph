@@ -18,6 +18,12 @@ internal sealed class SimulationDigest : IDecisionCollector<NbaState>, INbaIncid
         _hash.AppendData(MemoryMarshal.AsBytes(features));
     }
 
+    public void Outcome(NodeSpec<NbaState> node, int outcome)
+    {
+        _decisions[NbaGameSpec.Instance.IndexOf(node)]++;
+        Add(NbaGameSpec.Instance.IndexOf(node), outcome);
+    }
+
     public void Possession(in PossessionIncident incident) => Add(-1, incident.TeamInPossession, incident.Period, incident.Points);
 
     public void AwardedFreeThrow(in AwardedFreeThrowIncident incident) => Add(-2, incident.Team, incident.Period, incident.Made ? 1 : 0);

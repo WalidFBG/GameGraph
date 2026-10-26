@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using GameGraph.Contract;
 using GameGraph.Contract.Distributions;
 using GameGraph.Contract.Terms;
@@ -41,6 +42,28 @@ internal sealed class Predictor
         }
 
         return Links.Inverse(_link, eta);
+    }
+
+    public Expression ValueExpression(IReadOnlyList<Expression> features, IReadOnlyList<ParameterExpression> segments, IReadOnlyList<ParameterExpression> located)
+    {
+        Expression eta = Expression.Constant(_intercept);
+
+        for (var t = 0; t < _linearColumns.Length; t++)
+            eta = Expression.Add(eta, Expression.Multiply(Expression.Constant(_linearSlopes[t]), features[_linearColumns[t]]));
+
+        for (var t = 0; t < _splineLookups.Length; t++)
+        {
+            var lookup = _splineLookups[t];
+            var segment = segments[lookup];
+
+            eta = Expression.Add(
+                eta,
+                Expression.Add(
+                    Expression.ArrayIndex(Expression.Constant(_splineIntercepts[t]), segment),
+                    Expression.Multiply(Expression.ArrayIndex(Expression.Constant(_splineSlopes[t]), segment), located[lookup])));
+        }
+
+        return Expression.Call(Links.InverseMethod, Expression.Constant(_link), eta);
     }
 
     public static Predictor FromFit(Link link, Term[] terms, PredictorFit fit, IReadOnlyList<string> features, List<KnotLookup> lookups)

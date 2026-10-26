@@ -1,9 +1,12 @@
+using System.Reflection;
 using GameGraph.Contract.Distributions;
 
 namespace GameGraph.Models.Predictors;
 
 internal static class Links
 {
+    public static MethodInfo InverseMethod { get; } = typeof(Links).GetMethod(nameof(Inverse))!;
+
     public static double Inverse(Link link, double eta) => link switch
     {
         Link.Identity => eta,
