@@ -31,6 +31,7 @@ PLAYER_GROUPS = (
     ("bench benched", 0, 0),
 )
 PLAYER_COUNTS = ("rebounds", "turnovers", "fouls")
+FOUL_OUT = 6
 QUARTILES = (0.25, 0.5, 0.75)
 REGULATION_PERIODS = 4
 BIN_WIDTHS = {"total points": 10, "home margin": 5}
@@ -241,6 +242,9 @@ def _players(run: Path, players: pl.DataFrame) -> list[Failure]:
         real, simulated = (players[f"{side} {count}"].to_numpy() for side in SIDES)
         rows.append(_statistic(count, real, simulated))
         errors[count] = float(np.abs(simulated - real).mean())
+    real, simulated = ((players[f"{side} fouls"] >= FOUL_OUT).cast(pl.Float64).to_numpy() for side in SIDES)
+    rows.append(_statistic("fouled out", real, simulated))
+    errors["fouled out"] = float(np.abs(simulated - real).mean())
     statistics = pl.DataFrame(rows)
     statistics.write_csv(run / BUCKETS / csv_name(run, PLAYERS_CHECK))
     failures = [

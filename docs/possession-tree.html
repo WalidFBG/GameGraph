@@ -394,8 +394,8 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Exists when</dt><dd>before every play and every free throw, once the timeouts are done</dd>
           <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence, Both</dd>
-          <dt>Features</dt><dd><ul><li>before a free throw, and between free throws</li><li>whether a timeout was called at this moment</li><li>the period, its seconds left (a spline), late in the game</li><li>how the play started: after the period start, a made shot, a dead-ball turnover, a side-out, or a team rebound at either end (against every other start)</li><li>each five's longest stint, the log of its seconds plus one (a spline)</li></ul> 14 features</dd>
-          <dt>Transition</dt><dd>each changing team in turn, the offence first → <a href="#SubstitutionCount">SubstitutionCount</a>; then the moment carries on to <a href="#AwardedFreeThrow">AwardedFreeThrow</a> or <a href="#FreeThrowMade">FreeThrowMade</a></dd>
+          <dt>Features</dt><dd><ul><li>before a free throw, and between free throws</li><li>whether a timeout was called at this moment</li><li>the period, its seconds left (a spline), late in the game</li><li>how the play started: after the period start, a made shot, a dead-ball turnover, a side-out, or a team rebound at either end (against every other start)</li><li>each five's longest stint, the log of its seconds plus one (a spline)</li><li>whether each team must change: a fouled-out player is on court and the bench has someone to bring on, before a play with time left</li><li>how many of the defence's five are in foul trouble (the offence's gained less than 0.0001)</li></ul> 17 features</dd>
+          <dt>Transition</dt><dd>a team that must change changes whatever the outcome; each changing team in turn, the offence first → <a href="#SubstitutionCount">SubstitutionCount</a> (a team with no one left on its bench cannot change, and is passed over); then the moment carries on to <a href="#AwardedFreeThrow">AwardedFreeThrow</a> or <a href="#FreeThrowMade">FreeThrowMade</a></dd>
           <dt>Observed as</dt><dd>the lineup changes in event order, netted per team over the moment they come before: the next play or free throw, or after a period's last action, the moment before it ends. A team that changes and changes back has not changed. A change after the game's last moment rejects the game (<code>UnmatchedMoment</code>)</dd>
           <dt>Why no rule</dt><dd>substitutions need a dead ball, but 0.3 to 0.6% of moments after a live start change without a timeout: a dead ball inside the play (the ball out of bounds off a deflection, a kicked ball) that the graph does not model</dd>
         </dl>
@@ -405,21 +405,21 @@ tr:last-child td { border-bottom: none; }
         <h3>SubstitutionCount <span class="tag">Choice</span></h3>
         <p class="question">How many players does the team change?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>int</code>: the row of the count among the candidates 1 to the smaller of 5 and the bench: a number chosen as a Choice of one, so that a count the bench cannot fill has no row</dd>
+          <dt>Outcome</dt><dd><code>int</code>: the row of the count among the candidates from the number forced off (at least 1) to the smaller of 5 and the bench: a number chosen as a Choice of one, so that a count the bench cannot fill has no row. Before a play with time left, a player with six fouls on court is forced off, as many as the bench can replace</dd>
           <dt>Features</dt><dd>its size, <code>OneCount</code>, always 1; and one per candidate count: whether it is 2, 3, 4 or 5 (against 1), and the count times whether a timeout was called, whether it is a period's start, whether it is before a free throw</dd>
-          <dt>Transition</dt><dd>→ <a href="#SubstitutedOff">SubstitutedOff</a></dd>
-          <dt>Observed as</dt><dd>the number of players the net change takes off</dd>
+          <dt>Transition</dt><dd>more than the forced → <a href="#SubstitutedOff">SubstitutedOff</a>; only the forced → <a href="#SubstitutedOn">SubstitutedOn</a></dd>
+          <dt>Observed as</dt><dd>the number of players the net change takes off; a player forced off whom the change does not take off rejects the game (<code>RulesDisagreeWithData</code>)</dd>
         </dl>
       </article>
 
       <article class="card choice" id="SubstitutedOff">
         <h3>SubstitutedOff <span class="tag">Choice</span></h3>
-        <p class="question">Which of the five come off?</p>
+        <p class="question">Which of the five, besides any forced off, come off?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>int</code>: the rows of the players taken off among the team's five</dd>
-          <dt>Features</dt><dd>its size, <code>ChangeSize</code>, the count; and one per candidate: the log of the seconds since his last change plus one (a spline of 16 knots), his seconds played against his usual pace (a spline), his usual seconds (a spline), whether he started, a starter at a period's start, a starter late in the game</dd>
+          <dt>Outcome</dt><dd><code>int</code>: the rows of the players taken off among the team's five not forced off</dd>
+          <dt>Features</dt><dd>its size, <code>ChosenOff</code>, the count less the forced; and one per candidate: the log of the seconds since his last change plus one (a spline of 16 knots), his seconds played against his usual pace (a spline), his usual seconds (a spline), whether he started, a starter at a period's start, his fouls so far (a spline over 0 to 6), whether he is in foul trouble (as for <a href="#Fouler">Fouler</a>), a starter late in the game</dd>
           <dt>Transition</dt><dd>→ <a href="#SubstitutedOn">SubstitutedOn</a></dd>
-          <dt>Observed as</dt><dd>the players the net change takes off</dd>
+          <dt>Observed as</dt><dd>the players the net change takes off, less those forced off</dd>
         </dl>
       </article>
 
@@ -427,7 +427,7 @@ tr:last-child td { border-bottom: none; }
         <h3>SubstitutedOn <span class="tag">Choice</span></h3>
         <p class="question">Which of the bench come on?</p>
         <dl>
-          <dt>Outcome</dt><dd><code>int</code>: the rows of the players put on among the team's bench</dd>
+          <dt>Outcome</dt><dd><code>int</code>: the rows of the players put on among the team's bench; a player who has fouled out leaves the bench for good</dd>
           <dt>Features</dt><dd>its size, the count; and the same as <a href="#SubstitutedOff">SubstitutedOff</a>'s without the late-game term (it gained less than 0.0001)</dd>
           <dt>Transition</dt><dd>each leaving player swaps places with a joining one; the seconds he played are added up and both are stamped with the game second; → the next changing team, or the moment carries on</dd>
           <dt>Observed as</dt><dd>the players the net change puts on</dd>
