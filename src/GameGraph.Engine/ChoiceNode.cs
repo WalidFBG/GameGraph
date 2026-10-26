@@ -70,14 +70,23 @@ public sealed class ChoiceNode<TState> : NodeSpec<TState>
         return true;
     }
 
-    public override bool HasOneOutcome(TState state) => Size.Compute(state) == CandidatesIn(state).Length;
+    public override bool HasOneOutcome(TState state)
+    {
+        var size = Size.Compute(state);
+
+        return size == 0 || size == CandidatesIn(state).Length;
+    }
 
     public override ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer)
     {
         var candidates = CandidatesIn(state);
+        var size = Size.Compute(state);
+
+        if (size < 0 || size > candidates.Length)
+            throw new InvalidOperationException($"{Name} chooses {size} of {candidates.Length} candidates");
+
         var width = Features.Length + 1;
         var features = Sized(ref buffer, candidates.Length * width);
-        var size = Size.Compute(state);
 
         for (var c = 0; c < candidates.Length; c++)
         {

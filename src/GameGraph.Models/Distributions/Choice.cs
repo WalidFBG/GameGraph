@@ -65,6 +65,10 @@ internal sealed class Choice : IDistribution
     public double[] Probabilities(ReadOnlySpan<double> parameters)
     {
         var (candidates, size) = Decision(parameters);
+
+        if (size == 0)
+            return new double[candidates];
+
         Span<double> suffixes = stackalloc double[(candidates + 1) * (size + 1)];
         FillSuffixSets(parameters, candidates, size, suffixes);
 
@@ -82,8 +86,11 @@ internal sealed class Choice : IDistribution
     {
         var candidates = parameters.Length / ParametersPerCandidate;
 
-        if (candidates == 0 || parameters.Length != candidates * ParametersPerCandidate)
-            throw new ArgumentException($"A choice needs a utility and a size for each of one or more candidates, got {parameters.Length} values", nameof(parameters));
+        if (parameters.Length != candidates * ParametersPerCandidate)
+            throw new ArgumentException($"A choice needs a utility and a size for each of its candidates, got {parameters.Length} values", nameof(parameters));
+
+        if (candidates == 0)
+            return (0, 0);
 
         if (candidates > ChoiceDistribution.MostCandidates)
             throw new ArgumentException($"A choice has at most {ChoiceDistribution.MostCandidates} candidates, got {candidates}", nameof(parameters));
@@ -96,8 +103,8 @@ internal sealed class Choice : IDistribution
                 throw new ArgumentException("Every candidate of a choice has the same size", nameof(parameters));
         }
 
-        if (size != Math.Round(size) || size < 1 || size > candidates)
-            throw new ArgumentException($"A choice of {size} is not a whole number from 1 to its {candidates} candidates", nameof(parameters));
+        if (size != Math.Round(size) || size < 0 || size > candidates)
+            throw new ArgumentException($"A choice of {size} is not a whole number from 0 to its {candidates} candidates", nameof(parameters));
 
         return (candidates, (int)size);
     }

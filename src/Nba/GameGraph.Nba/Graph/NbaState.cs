@@ -67,6 +67,10 @@ public sealed class NbaState
 
     public int[] Leaving { get; } = new int[Lineups.Size];
 
+    public int ForcedOff { get; set; }
+
+    public int[] Removable { get; set; } = [];
+
     public int[] Score { get; } = new int[2];
 
     public int[] TimeoutsLeft { get; } = [Timeouts.PerGame, Timeouts.PerGame];
@@ -128,6 +132,16 @@ public sealed class NbaState
     public int Elapsed => Periods.Elapsed(Period, PeriodClock);
 
     public int SecondsOnCourt(int player, int now) => SecondsPlayed[player] + (IsOnCourt[player] ? now - ChangedAt[player] : 0);
+
+    public bool IsInFoulTrouble(int player) => PersonalFouls[player] >= Math.Min(Period, Periods.Regulation - 1) + 2;
+
+    public int InFoulTrouble(int team) => OnCourt[team].Count(IsInFoulTrouble);
+
+    public bool FouledOut(int player) => PersonalFouls[player] >= Lineups.FoulOut;
+
+    public bool ForcesFoulOuts => Moment == Moment.Play && PeriodClock > 0;
+
+    public bool MustChange(int team) => ForcesFoulOuts && Bench[team].Length > 0 && OnCourt[team].Any(FouledOut);
 
     public int LongestStint(int team) => Elapsed - OnCourt[team].Min(p => ChangedAt[p]);
 }

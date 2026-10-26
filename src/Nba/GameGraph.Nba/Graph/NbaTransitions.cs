@@ -239,7 +239,7 @@ public static class NbaTransitions
         if (teams is < SubstitutingTeams.None or > SubstitutingTeams.Both)
             throw new ArgumentOutOfRangeException(nameof(teams), teams, "Substitutions name no team, the offence, the defence or both");
 
-        state.SubstitutingTeams = teams;
+        state.SubstitutingTeams = teams | SubstitutingTeams.Of(state.MustChange(state.TeamInPossession), state.MustChange(Sides.Opponent(state.TeamInPossession)));
         return NextChange(state);
     }
 
@@ -251,15 +251,21 @@ public static class NbaTransitions
 
     public static Next<NbaState> SubstitutedOff(NbaState state, ReadOnlySpan<int> off)
     {
-        off.CopyTo(state.Leaving);
+        off.CopyTo(state.Leaving.AsSpan(state.ForcedOff));
         return NbaNodes.SubstitutedOn;
     }
 
     public static Next<NbaState> SubstitutedOn(NbaState state, ReadOnlySpan<int> on)
     {
-        for (var i = 0; i < on.Length; i++)
-            Swap(state, state.LineupTeam, state.Leaving[i], on[i]);
+        var team = state.LineupTeam;
 
+        for (var i = 0; i < on.Length; i++)
+            Swap(state, team, state.Leaving[i], on[i]);
+
+        if (state.Leaving.Take(on.Length).Any(state.FouledOut))
+            state.Bench[team] = [.. state.Bench[team].Where(p => !state.FouledOut(p))];
+
+        state.ForcedOff = 0;
         return NextChange(state);
     }
 
@@ -323,7 +329,23 @@ public static class NbaTransitions
     private static Next<NbaState> Change(NbaState state, int side, int team)
     {
         state.SubstitutingTeams &= ~side;
+
+        var court = state.OnCourt[team];
+        var bench = state.Bench[team].Length;
+
+        if (bench == 0)
+            return NextChange(state);
+
         state.LineupTeam = team;
+        state.ForcedOff = 0;
+
+        foreach (var player in court)
+        {
+            if (state.ForcesFoulOuts && state.FouledOut(player) && state.ForcedOff < bench)
+                state.Leaving[state.ForcedOff++] = player;
+        }
+
+        state.Removable = state.ForcedOff == 0 ? court : [.. court.Where(p => Array.IndexOf(state.Leaving, p, 0, state.ForcedOff) < 0)];
         return NbaNodes.SubstitutionCount;
     }
 

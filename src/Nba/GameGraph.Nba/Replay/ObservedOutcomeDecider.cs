@@ -209,8 +209,8 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
             foreach (var change in offence.Concat(defence))
             {
-                yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [change.Off.Length]), inPossession, possession.Period);
-                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, change.Off), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [ForcedAmong(s, change.Off).Length]), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, [.. change.Off.Except(s.Leaving.Take(s.ForcedOff))]), inPossession, possession.Period);
                 yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
             }
         }
@@ -230,6 +230,15 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         ObservedDecision Player(ChoiceNode<NbaState> node, int player) =>
             new(node, s => Chosen(node, s, [player]), team, possession.Period);
+    }
+
+    private static int[] ForcedAmong(NbaState state, int[] off)
+    {
+        var forced = state.Leaving.Take(state.ForcedOff).ToArray();
+
+        return forced.All(off.Contains)
+            ? off
+            : throw new RulesDisagreeWithDataException($"[{string.Join(", ", forced)}] fouled out in period {state.Period} at {state.PeriodClock} seconds left, but the change takes off [{string.Join(", ", off)}]");
     }
 
     private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int[] chosen) =>

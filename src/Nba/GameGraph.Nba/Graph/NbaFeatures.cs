@@ -52,7 +52,7 @@ public static class NbaFeatures
         new(nameof(PersonalFouls), (s, player) => s.PersonalFouls[player]);
 
     public static readonly CandidateFeature<NbaState> InFoulTrouble =
-        new(nameof(InFoulTrouble), (s, player) => s.PersonalFouls[player] >= Math.Min(s.Period, Periods.Regulation - 1) + 2 ? 1 : 0);
+        new(nameof(InFoulTrouble), (s, player) => s.IsInFoulTrouble(player) ? 1 : 0);
 
     public static readonly CandidateFeature<NbaState> FoulDrawnShare =
         new(nameof(FoulDrawnShare), (s, player) => s.LogShares[(int)PlayerEvent.FoulDrawn][player]);
@@ -137,6 +137,18 @@ public static class NbaFeatures
 
     public static readonly Feature<NbaState> ChangeSize =
         new(nameof(ChangeSize), s => s.ChangeSize);
+
+    public static readonly Feature<NbaState> ChosenOff =
+        new(nameof(ChosenOff), s => s.ChangeSize - s.ForcedOff);
+
+    public static readonly Feature<NbaState> OffenceMustChange =
+        new(nameof(OffenceMustChange), s => s.MustChange(s.TeamInPossession) ? 1 : 0);
+
+    public static readonly Feature<NbaState> DefenceInFoulTrouble =
+        new(nameof(DefenceInFoulTrouble), s => s.InFoulTrouble(Sides.Opponent(s.TeamInPossession)));
+
+    public static readonly Feature<NbaState> DefenceMustChange =
+        new(nameof(DefenceMustChange), s => s.MustChange(Sides.Opponent(s.TeamInPossession)) ? 1 : 0);
 
     public static readonly CandidateFeature<NbaState> StartShare =
         new(nameof(StartShare), (s, player) => s.StartShares[player]);

@@ -43,7 +43,7 @@ public static class NbaNodes
         nameof(Substitutions),
         new CategoricalDistribution(SubstitutingTeams.Names),
         [
-            .. new[] { NbaFeatures.BeforeFreeThrow, NbaFeatures.BetweenFreeThrows, NbaFeatures.TimeoutCalledHere, NbaFeatures.Period, NbaFeatures.LateInGame }
+            .. new[] { NbaFeatures.BeforeFreeThrow, NbaFeatures.BetweenFreeThrows, NbaFeatures.TimeoutCalledHere, NbaFeatures.Period, NbaFeatures.LateInGame, NbaFeatures.OffenceMustChange, NbaFeatures.DefenceMustChange, NbaFeatures.DefenceInFoulTrouble }
                 .Concat(new[] { PlayStart.PeriodStart, PlayStart.MadeShot, PlayStart.DeadBallTurnover, PlayStart.SideOut, PlayStart.TeamDefensiveRebound, PlayStart.TeamOffensiveRebound }.Select(NbaFeatures.After))
                 .Select(FeatureTerm.Linear),
             FeatureTerm.Spline(NbaFeatures.PeriodClock, 4),
@@ -54,7 +54,7 @@ public static class NbaNodes
 
     public static readonly ChoiceNode<NbaState> SubstitutionCount = new(
         nameof(SubstitutionCount),
-        s => SubstitutingTeams.Counts(s.Bench[s.LineupTeam].Length),
+        s => SubstitutingTeams.Counts(s.ForcedOff, s.Bench[s.LineupTeam].Length),
         NbaFeatures.OneCount,
         [
             .. NbaFeatures.CountIs.Select(CandidateTerm.Linear),
@@ -64,8 +64,8 @@ public static class NbaNodes
 
     public static readonly ChoiceNode<NbaState> SubstitutedOff = new(
         nameof(SubstitutedOff),
-        s => s.OnCourt[s.LineupTeam],
-        NbaFeatures.ChangeSize,
+        s => s.Removable,
+        NbaFeatures.ChosenOff,
         [.. PlayerTerms(), CandidateTerm.Linear(NbaFeatures.StartedLate)],
         NbaTransitions.SubstitutedOff);
 
@@ -220,6 +220,8 @@ public static class NbaNodes
         CandidateTerm.Spline(NbaFeatures.UsualSeconds, 6),
         CandidateTerm.Linear(NbaFeatures.Started),
         CandidateTerm.Linear(NbaFeatures.StartedAtPeriodStart),
+        CandidateTerm.Spline(NbaFeatures.PersonalFouls, Lineups.FoulOut + 1),
+        CandidateTerm.Linear(NbaFeatures.InFoulTrouble),
     ];
 
     private static FeatureTerm<NbaState>[] ActionTimeShape() =>
