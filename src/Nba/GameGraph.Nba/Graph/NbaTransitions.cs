@@ -137,11 +137,22 @@ public static class NbaTransitions
     }
 
     public static Next<NbaState> Stolen(NbaState state, int stolen) =>
-        EndOfPossession(state, Yes(stolen) ? PlayStart.Steal : PlayStart.DeadBallTurnover);
+        Yes(stolen) ? NbaNodes.Stealer : EndOfPossession(state, PlayStart.DeadBallTurnover);
+
+    public static Next<NbaState> Stealer(NbaState state, ReadOnlySpan<int> stealer)
+    {
+        state.Steals[stealer[0]]++;
+        return EndOfPossession(state, PlayStart.Steal);
+    }
 
     public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter)
     {
         state.Shooter = shooter[0];
+        state.FieldGoalAttempts[state.Shooter]++;
+
+        if (state.ShotPoints == 3)
+            state.ThreePointAttempts[state.Shooter]++;
+
         return NbaNodes.FouledOnShot;
     }
 
@@ -170,20 +181,43 @@ public static class NbaTransitions
 
     public static Next<NbaState> ShotMade(NbaState state, int made)
     {
-        if (Yes(made))
-            Score(state, state.ShotPoints);
+        if (!Yes(made))
+            return state.Fouled ? AfterShot(state, made: false) : NbaNodes.Blocked;
 
-        if (state.Fouled)
+        Score(state, state.ShotPoints);
+        state.Points[state.Shooter] += state.ShotPoints;
+        return NbaNodes.Assisted;
+    }
+
+    public static Next<NbaState> Assisted(NbaState state, int assisted)
+    {
+        if (!Yes(assisted))
+            return AfterShot(state, made: true);
+
+        var teammates = 0;
+
+        foreach (var player in state.OnCourt[state.TeamInPossession])
         {
-            state.FreeThrowsLeft = Yes(made) ? 1 : state.ShotPoints;
-            return AskTimeouts(state, Moment.FreeThrow);
+            if (player != state.Shooter)
+                state.Teammates[teammates++] = player;
         }
 
-        if (Yes(made))
-            return EndOfPossession(state, PlayStart.MadeShot);
+        return NbaNodes.Assister;
+    }
 
-        state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
-        return AfterMiss(state);
+    public static Next<NbaState> Assister(NbaState state, ReadOnlySpan<int> assister)
+    {
+        state.Assists[assister[0]]++;
+        return AfterShot(state, made: true);
+    }
+
+    public static Next<NbaState> Blocked(NbaState state, int blocked) =>
+        Yes(blocked) ? NbaNodes.Blocker : AfterShot(state, made: false);
+
+    public static Next<NbaState> Blocker(NbaState state, ReadOnlySpan<int> blocker)
+    {
+        state.Blocks[blocker[0]]++;
+        return AfterShot(state, made: false);
     }
 
     public static Next<NbaState> InBonus(NbaState state, int inBonus)
@@ -201,8 +235,13 @@ public static class NbaTransitions
 
     public static Next<NbaState> FreeThrowMade(NbaState state, int made)
     {
+        state.FreeThrowAttempts[state.Shooter]++;
+
         if (Yes(made))
+        {
             Score(state, 1);
+            state.Points[state.Shooter]++;
+        }
 
         state.FreeThrowsLeft--;
 
@@ -267,6 +306,21 @@ public static class NbaTransitions
 
         state.ForcedOff = 0;
         return NextChange(state);
+    }
+
+    private static Next<NbaState> AfterShot(NbaState state, bool made)
+    {
+        if (state.Fouled)
+        {
+            state.FreeThrowsLeft = made ? 1 : state.ShotPoints;
+            return AskTimeouts(state, Moment.FreeThrow);
+        }
+
+        if (made)
+            return EndOfPossession(state, PlayStart.MadeShot);
+
+        state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
+        return AfterMiss(state);
     }
 
     private static Next<NbaState> AfterRebound(NbaState state, bool byTeam)
@@ -417,7 +471,7 @@ public static class NbaTransitions
         for (var team = 0; team < state.Active.Length; team++)
         {
             foreach (var player in state.Active[team])
-                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now), state.Rebounds[player], state.Turnovers[player], state.PersonalFouls[player]));
+                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now), state.Rebounds[player], state.Turnovers[player], state.PersonalFouls[player], state.Points[player], state.FieldGoalAttempts[player], state.ThreePointAttempts[player], state.FreeThrowAttempts[player], state.Assists[player], state.Steals[player], state.Blocks[player]));
         }
     }
 

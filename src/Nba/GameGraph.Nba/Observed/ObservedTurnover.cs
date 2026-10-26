@@ -4,25 +4,27 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedTurnover : ObservedAction
 {
-    public ObservedTurnover(int clock, int? player, bool offensiveFoul, bool stolen)
+    public ObservedTurnover(int clock, int? player, bool offensiveFoul, int? stealer)
         : base(clock)
     {
-        if ((offensiveFoul || stolen) && player is null)
+        if ((offensiveFoul || stealer is not null) && player is null)
             throw new ArgumentException("An offensive foul or a steal names its player", nameof(player));
 
-        if (offensiveFoul && stolen)
-            throw new ArgumentException("An offensive foul is never a steal", nameof(stolen));
+        if (offensiveFoul && stealer is not null)
+            throw new ArgumentException("An offensive foul is never a steal", nameof(stealer));
 
         Player = player;
         Kind = player is null ? TurnoverKinds.Team : offensiveFoul ? TurnoverKinds.OffensiveFoul : TurnoverKinds.Other;
-        Stolen = stolen;
+        Stealer = stealer;
     }
 
     public int? Player { get; }
 
     public int Kind { get; }
 
-    public bool Stolen { get; }
+    public int? Stealer { get; }
+
+    public bool Stolen => Stealer is not null;
 
     public override ActionType Type => ActionType.Turnover;
 

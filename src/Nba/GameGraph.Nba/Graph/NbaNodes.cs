@@ -149,6 +149,13 @@ public static class NbaNodes
         ],
         NbaTransitions.Stolen);
 
+    public static readonly ChoiceNode<NbaState> Stealer = new(
+        nameof(Stealer),
+        s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.StealShare, 4)],
+        NbaTransitions.Stealer);
+
     public static readonly ChoiceNode<NbaState> Shooter = new(
         nameof(Shooter),
         s => s.OnCourt[s.TeamInPossession],
@@ -181,6 +188,37 @@ public static class NbaNodes
         new BernoulliDistribution(),
         [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome],
         NbaTransitions.ShotMade);
+
+    public static readonly NodeSpec<NbaState> Assisted = Node(
+        nameof(Assisted),
+        new BernoulliDistribution(),
+        [
+            FeatureTerm.Linear(NbaFeatures.ShotIsThree),
+            FeatureTerm.Spline(NbaFeatures.ShotClock, 24),
+            FeatureTerm.Spline(NbaFeatures.ShooterAssistedRate, 4),
+            .. new[] { PlayStart.OffensiveRebound, PlayStart.TeamOffensiveRebound }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
+        ],
+        NbaTransitions.Assisted);
+
+    public static readonly ChoiceNode<NbaState> Assister = new(
+        nameof(Assister),
+        s => s.Teammates,
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.AssistShare, 4)],
+        NbaTransitions.Assister);
+
+    public static readonly NodeSpec<NbaState> Blocked = Node(
+        nameof(Blocked),
+        new BernoulliDistribution(),
+        [FeatureTerm.Linear(NbaFeatures.ShotIsThree), FeatureTerm.Spline(NbaFeatures.ShooterBlockedRate, 4), FeatureTerm.Spline(NbaFeatures.ShotClock, 8)],
+        NbaTransitions.Blocked);
+
+    public static readonly ChoiceNode<NbaState> Blocker = new(
+        nameof(Blocker),
+        s => s.OnCourt[Sides.Opponent(s.TeamInPossession)],
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.BlockShare, 4)],
+        NbaTransitions.Blocker);
 
     public static readonly NodeSpec<NbaState> InBonus = Node(
         nameof(InBonus),

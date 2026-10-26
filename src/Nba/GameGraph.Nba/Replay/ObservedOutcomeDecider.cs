@@ -42,7 +42,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         var decider = new ObservedOutcomeDecider(game);
         var unread = new double[game.Players.Length];
         double[][] unreadShares = [.. Enum.GetValues<PlayerEvent>().Select(_ => unread)];
-        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unreadShares, unread, unread, unread, game.Roster.Active);
+        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unreadShares, unread, unread, unread, unread, unread, game.Roster.Active);
         var state = new NbaState(new EmptyIncidentCollector(), context);
 
         try
@@ -135,6 +135,21 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
+                    if (shot.Made)
+                    {
+                        yield return Decision(NbaNodes.Assisted, Number(shot.Assister is not null));
+
+                        if (shot.Assister is { } assister)
+                            yield return Player(NbaNodes.Assister, assister);
+                    }
+                    else if (!shot.Fouled)
+                    {
+                        yield return Decision(NbaNodes.Blocked, Number(shot.Blocker is not null));
+
+                        if (shot.Blocker is { } blocker)
+                            yield return Player(NbaNodes.Blocker, blocker);
+                    }
+
                     foreach (var decision in shot.FreeThrows.SelectMany(FreeThrow))
                         yield return decision;
 
@@ -168,6 +183,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
                     if (turnover.Kind == TurnoverKinds.Other)
                         yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
+
+                    if (turnover.Stealer is { } stealer)
+                        yield return Player(NbaNodes.Stealer, stealer);
 
                     break;
                 default:

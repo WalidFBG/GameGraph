@@ -54,6 +54,21 @@ public static class NbaFeatures
     public static readonly CandidateFeature<NbaState> InFoulTrouble =
         new(nameof(InFoulTrouble), (s, player) => s.IsInFoulTrouble(player) ? 1 : 0);
 
+    public static readonly CandidateFeature<NbaState> AssistShare =
+        new(nameof(AssistShare), (s, player) => s.LogShares[(int)PlayerEvent.Assist][player]);
+
+    public static readonly CandidateFeature<NbaState> StealShare =
+        new(nameof(StealShare), (s, player) => s.LogShares[(int)PlayerEvent.Steal][player]);
+
+    public static readonly CandidateFeature<NbaState> BlockShare =
+        new(nameof(BlockShare), (s, player) => s.LogShares[(int)PlayerEvent.Block][player]);
+
+    public static readonly Feature<NbaState> ShooterAssistedRate =
+        new(nameof(ShooterAssistedRate), s => s.AssistedRates[s.Shooter]);
+
+    public static readonly Feature<NbaState> ShooterBlockedRate =
+        new(nameof(ShooterBlockedRate), s => s.BlockedRates[s.Shooter]);
+
     public static readonly CandidateFeature<NbaState> FoulDrawnShare =
         new(nameof(FoulDrawnShare), (s, player) => s.LogShares[(int)PlayerEvent.FoulDrawn][player]);
 

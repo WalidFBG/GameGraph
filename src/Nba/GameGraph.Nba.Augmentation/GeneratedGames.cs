@@ -25,6 +25,8 @@ public static class GeneratedGames
             teams.PointsPerPossession(game, Sides.Home),
             teams.PointsPerPossession(game, Sides.Away),
             players.LogShares(game),
+            players.AssistedRates(game),
+            players.BlockedRates(game),
             players.UsualSeconds(game),
             players.StartShares(game),
             players.StartedLastGame(game),

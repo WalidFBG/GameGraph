@@ -24,7 +24,7 @@ internal sealed class GameScore : INbaIncidentCollector
             _points[incident.Team]++;
     }
 
-    public void Played(in PlayedIncident incident) => _players.Add(incident.Player, new PlayerTotals(incident.Started, incident.Seconds, incident.Rebounds, incident.Turnovers, incident.Fouls));
+    public void Played(in PlayedIncident incident) => _players.Add(incident.Player, new PlayerTotals(incident.Started, incident.Seconds, incident.Rebounds, incident.Turnovers, incident.Fouls, incident.Points, incident.FieldGoalAttempts, incident.ThreePointAttempts, incident.FreeThrowAttempts, incident.Assists, incident.Steals, incident.Blocks));
 
     public GameTotals Totals() => new(_points[Sides.Home], _points[Sides.Away], _possessions, _periods, _players);
 }

@@ -4,6 +4,8 @@ public sealed record GameContext(
     double HomePointsPerPossession,
     double AwayPointsPerPossession,
     double[][] LogShares,
+    double[] AssistedRates,
+    double[] BlockedRates,
     double[] UsualSeconds,
     double[] StartShares,
     double[] StartedLastGame,

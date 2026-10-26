@@ -9,6 +9,8 @@ public sealed class NbaState
         Incidents = incidents;
         PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
         LogShares = context.LogShares;
+        AssistedRates = context.AssistedRates;
+        BlockedRates = context.BlockedRates;
         UsualSeconds = context.UsualSeconds;
         StartShares = context.StartShares;
         StartedLastGame = context.StartedLastGame;
@@ -21,6 +23,13 @@ public sealed class NbaState
         Rebounds = new int[UsualSeconds.Length];
         Turnovers = new int[UsualSeconds.Length];
         PersonalFouls = new int[UsualSeconds.Length];
+        Points = new int[UsualSeconds.Length];
+        FieldGoalAttempts = new int[UsualSeconds.Length];
+        ThreePointAttempts = new int[UsualSeconds.Length];
+        FreeThrowAttempts = new int[UsualSeconds.Length];
+        Assists = new int[UsualSeconds.Length];
+        Steals = new int[UsualSeconds.Length];
+        Blocks = new int[UsualSeconds.Length];
     }
 
     public INbaIncidentCollector Incidents { get; }
@@ -28,6 +37,10 @@ public sealed class NbaState
     public double[] PointsPerPossession { get; }
 
     public double[][] LogShares { get; }
+
+    public double[] AssistedRates { get; }
+
+    public double[] BlockedRates { get; }
 
     public double[] UsualSeconds { get; }
 
@@ -54,6 +67,22 @@ public sealed class NbaState
     public int[] Turnovers { get; }
 
     public int[] PersonalFouls { get; }
+
+    public int[] Points { get; }
+
+    public int[] FieldGoalAttempts { get; }
+
+    public int[] ThreePointAttempts { get; }
+
+    public int[] FreeThrowAttempts { get; }
+
+    public int[] Assists { get; }
+
+    public int[] Steals { get; }
+
+    public int[] Blocks { get; }
+
+    public int[] Teammates { get; } = new int[Lineups.Size - 1];
 
     public int Shooter { get; set; }
 
