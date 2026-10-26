@@ -131,7 +131,7 @@ public static class NbaFeatures
         new(nameof(ActionFoul), s => s.Action == ActionType.NonShootingFoul ? 1 : 0);
 
     public static readonly IReadOnlyList<Feature<NbaState>> AfterPlayStart =
-        [.. Enum.GetValues<PlayStart>().Select(IndicatorOf).OfType<PlayStart>().Distinct().Select(After)];
+        [.. Enum.GetValues<PlayStart>().Except([PlayStart.NotSet, PlayStart.DefensiveRebound]).Select(After)];
 
     public static readonly IReadOnlyList<Feature<NbaState>> PreviousAwarded =
         [.. AwardedFreeThrows.Categories.Select(c => LastAwardedIn($"Previous{AwardedFreeThrows.Names[c]}", [c]))];
@@ -139,28 +139,10 @@ public static class NbaFeatures
     public static readonly IReadOnlyList<Feature<NbaState>> KindAwarded =
         [.. AwardedFreeThrows.Kinds.Where(k => k != ReferenceAwardedKind).Select(k => LastAwardedIn($"Awarded{k}", [.. AwardedFreeThrows.Categories.Where(c => AwardedFreeThrows.KindOf(c) == k)]))];
 
-    public static Feature<NbaState> After(PlayStart indicator) =>
-        IndicatorOf(indicator) == indicator
-            ? Indicator($"After{indicator}", nameof(NbaState.Start), Enum.GetValues<PlayStart>().Where(p => IndicatorOf(p) == indicator).Cast<object>())
-            : throw new ArgumentOutOfRangeException(nameof(indicator), indicator, "Only a play start with its own indicator has an After feature");
+    public static Feature<NbaState> After(PlayStart start) =>
+        Indicator($"After{start}", nameof(NbaState.Start), [start]);
 
     private const AwardedKind ReferenceAwardedKind = AwardedKind.Technical;
-
-    private static PlayStart? IndicatorOf(PlayStart start) => start switch
-    {
-        PlayStart.NotSet or PlayStart.DefensiveRebound => null,
-        PlayStart.PeriodStart => PlayStart.PeriodStart,
-        PlayStart.OffensiveRebound => PlayStart.OffensiveRebound,
-        PlayStart.MadeShot => PlayStart.MadeShot,
-        PlayStart.MadeFreeThrow => PlayStart.MadeFreeThrow,
-        PlayStart.DeadBallTurnover => PlayStart.DeadBallTurnover,
-        PlayStart.TeamDefensiveRebound => PlayStart.TeamDefensiveRebound,
-        PlayStart.TeamOffensiveRebound => PlayStart.TeamOffensiveRebound,
-        PlayStart.Steal => PlayStart.Steal,
-        PlayStart.SideOut => PlayStart.SideOut,
-        PlayStart.AwardedBall => PlayStart.AwardedBall,
-        _ => throw new ArgumentOutOfRangeException(nameof(start), start, "A play start needs an indicator, or the reference level"),
-    };
 
     private static (Feature<NbaState> Inside, Feature<NbaState> Clock) PeriodTimeoutsSoFar(string name, int fewest, int most) =>
     (

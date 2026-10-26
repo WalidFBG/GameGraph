@@ -21,13 +21,15 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> OffenceTimeout = Node(
         nameof(OffenceTimeout),
         new BernoulliDistribution(),
-        [.. TimeoutTerms(NbaFeatures.OffenceTimeoutsLeft), FeatureTerm.Linear(NbaFeatures.ScoreMargin), .. LateSituation()],
+        [.. TimeoutTerms(NbaFeatures.OffenceTimeoutsLeft, NbaFeatures.AfterPlayStart), FeatureTerm.Linear(NbaFeatures.ScoreMargin), .. LateSituation()],
         NbaTransitions.OffenceTimeout);
 
     public static readonly NodeSpec<NbaState> DefenceTimeout = Node(
         nameof(DefenceTimeout),
         new BernoulliDistribution(),
-        TimeoutTerms(NbaFeatures.DefenceTimeoutsLeft),
+        TimeoutTerms(
+            NbaFeatures.DefenceTimeoutsLeft,
+            [.. new[] { PlayStart.PeriodStart, PlayStart.OffensiveRebound, PlayStart.MadeShot, PlayStart.MadeFreeThrow, PlayStart.DeadBallTurnover, PlayStart.SideOut, PlayStart.AwardedBall, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After)]),
         NbaTransitions.DefenceTimeout);
 
     public static readonly NodeSpec<NbaState> AwardedFreeThrow = Node(
@@ -159,10 +161,10 @@ public static class NbaNodes
             .Append(NbaFeatures.AtHome)
             .Select(FeatureTerm.Linear);
 
-    private static FeatureTerm<NbaState>[] TimeoutTerms(Feature<NbaState> timeoutsLeft) =>
+    private static FeatureTerm<NbaState>[] TimeoutTerms(Feature<NbaState> timeoutsLeft, IEnumerable<Feature<NbaState>> starts) =>
     [
         .. new[] { NbaFeatures.BeforeFreeThrow, NbaFeatures.TimeoutJustCalled, NbaFeatures.Period }
-            .Concat(NbaFeatures.AfterPlayStart)
+            .Concat(starts)
             .Select(FeatureTerm.Linear),
         FeatureTerm.Spline(timeoutsLeft, 4),
         .. NbaFeatures.PeriodTimeouts.SelectMany(t => new[] { FeatureTerm.Linear(t.Inside), FeatureTerm.Spline(t.Clock, 10) }),
