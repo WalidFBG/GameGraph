@@ -1,55 +1,36 @@
 # GameGraph
 
-A sport-agnostic way to model a sport once and use that one definition for everything:
+GameGraph models a sport as a graph of decisions (who shoots, does it go in, how long did the action take) and uses that one definition for three jobs:
 
-- **Simulate**: Monte Carlo games for pricing.
-- **Generate training data**: walk real games and turn every decision into a training example.
-- **Train**: fit the models those rows are for.
+- **Simulate** games many times, for pricing.
+- **Generate training data** by replaying real games through the same graph: every decision becomes a training example.
+- **Train** each decision's model, in Python.
 
-A sport is described as a graph of decisions (a shot, who shoots, how long a possession lasts) plus plain C# rules that update the game state. The engine walks that graph. The only difference between simulating and generating training data is where each decision's outcome comes from: drawn from a model, or read from what actually happened. Training (Python) and simulation (C#) meet only in files, and parity tests check that C# computes exactly what Python fitted.
+The NBA is the only sport so far. Open [`docs/graph.html`](docs/graph.html) in a browser to watch a simulated game walk through its graph, or to make the decisions yourself.
 
-The NBA is the first (and for now only) sport.
+## Docs
 
-## Status
-
-In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in Python, evaluated in C#).
-
-## Layout
-
-| Path | What it holds |
+| | |
 |---|---|
-| `src/GameGraph.Contract` | The contract with Python: model declarations, fitted models, the training-data manifest and training data, as records with their invariants |
-| `src/GameGraph.Contract.Files` | Reads and writes the contract's files, validated against the schemas: the only C# that knows their formats |
-| `src/GameGraph.Models` | The models (GAMLSS, `docs/models.md`): evaluating and sampling fitted models |
-| `python/` | Training, in Python: reads each node's training data, writes its fitted model and report (`gamegraph.contract`, `gamegraph.files`, `gamegraph.models`, `gamegraph.training`) |
-| `schemas/` | The contract between C# and Python: JSON Schemas for the training data, fitted models and training reports |
-| `testdata/` | Test data only: reference outputs (golden files) written by `python/tests/golden.py` (`uv run python tests/golden.py`) and checked by both test suites, and the simulation fixture (`nba-simulation`: the latest game's context and the fitted models) that the digest test and the benchmark simulate |
-| `src/GameGraph.Engine` | The walk: state, nodes, outcome deciders, run loop, randomness, decision collectors, among them the one that records training examples |
-| `src/GameGraph.Simulation` | Simulates a game many times, on the plain walk or compiled (`CompiledGame`): samples each decision from its node's fitted model, reports incidents |
-| `src/Nba/GameGraph.Nba` | The NBA: state, rules, features, observed games |
-| `src/Nba/GameGraph.Nba.Sportradar` | Reads Sportradar ValidatedData into observed games |
-| `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
-| `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
-| `src/Nba/GameGraph.Nba.Fixture` | Reads and writes the simulation fixture in `testdata/nba-simulation` |
-| `src/Nba/GameGraph.Nba.Tests.Unit` | The digest test (a fixed number of simulations of the fixture game, every decision and incident hashed and pinned), the replay's tests on hand-made games, and the compiled walk's tests: its parameters bit for bit, its outcomes against the plain walk's, and one thread against many |
-| `src/Nba/GameGraph.Nba.Benchmark` | Times runs of 10,000 simulations of the fixture game on all threads, plain and compiled (Release only) |
-| `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | The audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game; `SimulationFixtureRefresh` rewrites the simulation fixture from the latest game and the fitted models. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
-| `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
-| `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game), `GameGraph.Models.Tests.Unit` (the forward pass and the parity with Python), `GameGraph.Contract.Files.Tests.Unit` (the contract and its files) and `GameGraph.Simulation.Tests.Unit` (the random numbers) |
-| `src/GameGraph.Host` | Command line: generates the training data and writes it |
-| `docs/` | Architecture, plan, compilation (the speed work and its decisions), data, lessons, and the possession tree as built (`possession-tree.html`) |
+| [`docs/graph.html`](docs/graph.html) | The NBA graph, interactive: every node, what it asks, what it reads, how often each answer comes up and where it leads |
+| [`docs/how-it-works.md`](docs/how-it-works.md) | The walk, simulation against training data, and how C# and Python share the models |
+| [`docs/models.md`](docs/models.md) | The models and how they are trained |
+| [`docs/data.md`](docs/data.md) | Where the data comes from and where everything is written |
 
-## Build
+## Data
 
-Everything is built, tested and run in Release, so every timing and every output comes from the build that is benchmarked:
+The real games are Sportradar's validated play-by-play, in the quants blob storage under `data-nba`. Copy them to `C:\Data\Basketball\ValidatedData\PlayByPlay`, where the Host and the audits read them (see [`docs/data.md`](docs/data.md)). The tests and the benchmark need no data: they run on the fixture in `testdata/`.
+
+## Build and test
+
+Everything is built, tested and run in Release.
 
 ```
 dotnet build -c Release GameGraph.slnx
 dotnet test -c Release --solution GameGraph.slnx
-dotnet run -c Release --project src/Nba/GameGraph.Nba.Benchmark
 ```
 
-The Python, from `python/`, needs [uv](https://docs.astral.sh/uv/), which installs Python 3.13 and the packages:
+From `python/`, with [uv](https://docs.astral.sh/uv/):
 
 ```
 uv sync
@@ -59,26 +40,48 @@ uv run ruff format --check
 uv run pyright
 ```
 
-To train the nodes, from the training data the Host writes to the fitted models simulation reads:
+## Run
 
-```
-uv run gamegraph-train <training data> <fitted models> [--all]
-```
+1. **Generate the training data** from the real games:
 
-A node keeps its fitted model when the digest recorded with it (`<node>.digest`) still matches: its training data (examples, games and manifest, apart from when it was written), the trainer's source and the torch version. The rest are trained; `--all` retrains every node regardless.
+   ```
+   dotnet run -c Release --project src/GameGraph.Host
+   ```
 
-The audits run only when asked for by name; each analysis reads its audit's latest run:
+2. **Train** every node whose training data or trainer changed since its last fit (`--all` retrains every node), from `python/`:
 
-```
-src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.CalibrationAudit -explicit only
-uv run gamegraph-calibration <calibration audits> <training data>
-src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.SimulationAudit -explicit only
-uv run gamegraph-simulation <simulation audits> <training data>
-src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.SimulationFixtureRefresh -explicit only
-```
+   ```
+   uv run gamegraph-train C:\Data\GameGraph\nba\training-data C:\Data\GameGraph\nba\fitted-models [--all]
+   ```
 
-The C# requires the .NET 10 SDK, and access to the OddsFactory NuGet feed for `OddsFactory.Sports.Data.Contracts`. The vulnerability audit uses nuget.org only (`auditSources` in `nuget.config`), so builds do not depend on the feed's audit data.
+3. **Check the models.** Two audits write data, and two Python analyses read their latest run. The calibration audit compares each node's predicted probabilities with the training data; the simulation audit simulates every training game once and compares decisions, games and box scores with the real ones:
 
-## Data
+   ```
+   src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.CalibrationAudit -explicit only
+   uv run gamegraph-calibration C:\Data\GameGraph\nba\audit\calibration C:\Data\GameGraph\nba\training-data
+   src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.SimulationAudit -explicit only
+   uv run gamegraph-simulation C:\Data\GameGraph\nba\audit\simulation C:\Data\GameGraph\nba\training-data
+   ```
 
-No real game data is stored in this repository. `testdata/` holds synthetic test data, and one derived fixture: the fitted models (coefficients only) and one game's context (each player's rates and shares, by index, with no ids or names). Real game data stays on your machine; its location is set in `src/GameGraph.Host/Program.cs`.
+4. **Time the simulator**: 10,000 simulations of the fixture game on all cores, on the plain and the compiled walk:
+
+   ```
+   dotnet run -c Release --project src/Nba/GameGraph.Nba.Benchmark
+   ```
+
+5. **Refresh the fixture** after the nodes change (the digest test fails until you do, then pin its new digest):
+
+   ```
+   src/Nba/GameGraph.Nba.Tests.QualityAssurance/bin/Release/net10.0/GameGraph.Nba.Tests.QualityAssurance.exe -class GameGraph.Nba.Tests.QualityAssurance.SimulationFixtureRefresh -explicit only
+   ```
+
+## Where to start in the code
+
+- **The NBA's graph**: `src/Nba/GameGraph.Nba/Graph`, in `NbaNodes.cs` (each node and its model), `NbaTransitions.cs` (the rules between nodes) and `NbaFeatures.cs`.
+- **The walk**: `src/GameGraph.Engine/GameWalker.cs`.
+- **Simulating a game**: `Simulator.Run` in `src/GameGraph.Simulation`, given a `FittedGame` (the plain walk) or a `CompiledGame` (the fast one).
+- **Training**: `python/src/gamegraph/train_nodes.py`.
+
+## Data in this repository
+
+No real game data. `testdata/` holds synthetic test data, and one derived fixture (`testdata/nba-simulation`): the fitted models' coefficients and one game's player rates, by index, with no ids or names.

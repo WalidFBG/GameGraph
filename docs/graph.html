@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GameGraph: the NBA decision graph</title>
+<style>
+:root {
+  --page: #f6f6f3; --panel: #ffffff; --text: #1f2328; --muted: #6b7280; --line: #d9dce1; --faint: #c9ced6;
+  --accent: #2563eb; --home: #2563eb; --away: #dc2626;
+  --bernoulli: #dbeafe; --bernoulli-edge: #2563eb;
+  --categorical: #ede9fe; --categorical-edge: #7c3aed;
+  --jsu: #ffedd5; --jsu-edge: #ea580c;
+  --choice: #dcfce7; --choice-edge: #16a34a;
+  --rule: #f1f2f4; --rule-edge: #9ca3af;
+  --region: rgba(0,0,0,0.025);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --page: #1d1e21; --panel: #26282c; --text: #e7e7e7; --muted: #a0a6b0; --line: #3c3f45; --faint: #4a4e56;
+    --accent: #7aa7ff; --home: #6e9dff; --away: #ff6b6b;
+    --bernoulli: #1f3555; --bernoulli-edge: #7aa7ff;
+    --categorical: #352c52; --categorical-edge: #b69cff;
+    --jsu: #4a3220; --jsu-edge: #ff9d5c;
+    --choice: #1e3a2a; --choice-edge: #5fd38d;
+    --rule: #2f3136; --rule-edge: #8a9099;
+    --region: rgba(255,255,255,0.03);
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--page); color: var(--text); font: 14px/1.45 "Segoe UI", system-ui, -apple-system, sans-serif; overflow: hidden; }
+.app { display: grid; grid-template-rows: 54px 1fr; height: 100vh; }
+header { display: flex; align-items: center; gap: 18px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { font-size: 15px; margin: 0; font-weight: 600; white-space: nowrap; }
+header h1 span { color: var(--muted); font-weight: 400; }
+.score { display: flex; align-items: center; gap: 10px; margin: 0 auto; font-variant-numeric: tabular-nums; }
+.team { font-weight: 700; letter-spacing: 0.04em; }
+.team.home { color: var(--home); } .team.away { color: var(--away); }
+.points { font-size: 22px; font-weight: 700; min-width: 34px; text-align: center; }
+.clock { color: var(--muted); padding: 2px 10px; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+.ball { font-size: 12px; color: var(--muted); }
+.ball b { color: var(--text); }
+.controls { display: flex; align-items: center; gap: 6px; }
+button, select { font: inherit; color: var(--text); background: var(--page); border: 1px solid var(--line); border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; min-width: 74px; }
+button:disabled { opacity: 0.45; cursor: default; }
+.segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.segmented button { border: 0; border-radius: 0; background: transparent; }
+.segmented button.on { background: var(--accent); color: #fff; }
+main { display: grid; grid-template-columns: 1fr 350px; min-height: 0; }
+.diagram { position: relative; min-width: 0; min-height: 0; }
+svg { width: 100%; height: 100%; display: block; }
+.region rect { fill: var(--region); stroke: var(--line); stroke-dasharray: 3 4; }
+.region text { fill: var(--muted); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; }
+.edge { fill: none; stroke: var(--faint); stroke-width: 1.4; }
+.trail { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; }
+.node { cursor: pointer; }
+.node rect { stroke-width: 1.6; }
+.node text { font-size: 15px; font-weight: 600; fill: var(--text); pointer-events: none; }
+.node.bernoulli rect { fill: var(--bernoulli); stroke: var(--bernoulli-edge); }
+.node.categorical rect { fill: var(--categorical); stroke: var(--categorical-edge); }
+.node.jsu rect { fill: var(--jsu); stroke: var(--jsu-edge); }
+.node.choice rect { fill: var(--choice); stroke: var(--choice-edge); }
+.node.rule rect { fill: var(--rule); stroke: var(--rule-edge); stroke-dasharray: 4 3; }
+.node.rule text { font-weight: 500; font-size: 13px; fill: var(--muted); }
+.node.selected rect { stroke-width: 3.2; }
+.node.current rect { stroke-width: 3.2; filter: drop-shadow(0 0 6px var(--accent)); }
+.node.visited rect { stroke-width: 2.2; }
+.token { stroke: #fff; stroke-width: 2.5; }
+.decision { font-size: 13px; font-weight: 700; paint-order: stroke; stroke: var(--page); stroke-width: 4px; }
+.legend { position: absolute; left: 12px; bottom: 10px; display: flex; gap: 12px; font-size: 12px; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; border: 1.5px solid; }
+.legend .l-bernoulli::before { background: var(--bernoulli); border-color: var(--bernoulli-edge); }
+.legend .l-categorical::before { background: var(--categorical); border-color: var(--categorical-edge); }
+.legend .l-jsu::before { background: var(--jsu); border-color: var(--jsu-edge); }
+.legend .l-choice::before { background: var(--choice); border-color: var(--choice-edge); }
+.legend .l-rule::before { background: var(--rule); border-color: var(--rule-edge); border-style: dashed; }
+aside { border-left: 1px solid var(--line); background: var(--panel); display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button { flex: 1; border: 0; border-radius: 0; background: transparent; padding: 10px 0; color: var(--muted); border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--text); border-bottom-color: var(--accent); font-weight: 600; }
+.pane { overflow-y: auto; padding: 14px 16px; display: none; }
+.pane.on { display: block; }
+.pane h2 { font-size: 18px; margin: 0 0 2px; }
+.chip { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; border: 1px solid; margin-left: 6px; vertical-align: 3px; }
+.chip.bernoulli { background: var(--bernoulli); border-color: var(--bernoulli-edge); }
+.chip.categorical { background: var(--categorical); border-color: var(--categorical-edge); }
+.chip.jsu { background: var(--jsu); border-color: var(--jsu-edge); }
+.chip.choice { background: var(--choice); border-color: var(--choice-edge); }
+.chip.rule { background: var(--rule); border-color: var(--rule-edge); }
+.question { margin: 6px 0 12px; font-size: 15px; }
+.section { margin: 14px 0 6px; font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.call { border: 1.5px solid var(--accent); border-radius: 10px; padding: 10px 12px; margin: 10px 0; }
+.call .options { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.call .options button { padding: 4px 9px; }
+.call .options button.picked { background: var(--accent); color: #fff; border-color: var(--accent); }
+.call .hint { font-size: 12px; color: var(--muted); }
+.bars { display: grid; grid-template-columns: auto 1fr auto; gap: 3px 8px; align-items: center; font-size: 12.5px; }
+.bar { height: 9px; border-radius: 4px; background: var(--accent); opacity: 0.75; }
+.muted { color: var(--muted); }
+ul.reads { margin: 0; padding-left: 18px; }
+ul.reads li { margin: 2px 0; }
+ul.reads .basis { color: var(--muted); font-size: 12px; }
+.log { list-style: none; margin: 0; padding: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.log li { padding: 4px 0; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 62px 1fr; gap: 6px; }
+.log li .when { color: var(--muted); font-size: 12px; }
+.log li.rule { color: var(--muted); font-style: italic; }
+.log li .who.home { color: var(--home); font-weight: 600; } .log li .who.away { color: var(--away); font-weight: 600; }
+.lineup { margin-bottom: 14px; }
+.lineup h3 { font-size: 13px; margin: 0 0 6px; }
+.players { display: flex; flex-wrap: wrap; gap: 5px; }
+.player { font-size: 12px; padding: 2px 7px; border-radius: 6px; border: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+.player.on { border-color: currentColor; font-weight: 600; }
+.player.out { text-decoration: line-through; opacity: 0.5; }
+.home-text { color: var(--home); } .away-text { color: var(--away); }
+.stats { display: grid; grid-template-columns: auto auto auto; gap: 2px 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.help { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: none; align-items: center; justify-content: center; z-index: 5; }
+.help.on { display: flex; }
+.help .card { background: var(--panel); border-radius: 12px; max-width: 620px; padding: 20px 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+.help h2 { margin: 0 0 8px; font-size: 18px; }
+.help p { margin: 8px 0; }
+.toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--line); border-radius: 9px; padding: 6px 14px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; }
+.toast.on { opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>GameGraph <span>· the NBA decision graph</span></h1>
+    <div class="score">
+      <span class="team home">HOME</span><span class="points" id="homePoints">0</span>
+      <span class="muted">:</span>
+      <span class="points" id="awayPoints">0</span><span class="team away">AWAY</span>
+      <span class="clock" id="clock">Q1 12:00</span>
+      <span class="ball">shot clock <b id="shotClock">24</b> · ball <b id="ball">–</b></span>
+    </div>
+    <div class="controls">
+      <div class="segmented" title="Who makes the decisions">
+        <button id="modeAuto" class="on">Auto</button><button id="modeYou">You decide</button>
+      </div>
+      <select id="speed" title="Speed">
+        <option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option><option value="12">12×</option>
+      </select>
+      <button id="step" title="One decision">Step</button>
+      <button id="play" class="primary">Play</button>
+      <button id="restart" title="A new game">Restart</button>
+      <button id="helpButton" title="What is this?">?</button>
+    </div>
+  </header>
+  <main>
+    <div class="diagram">
+      <svg id="svg" viewBox="0 0 1440 856" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--faint)"></path>
+          </marker>
+        </defs>
+        <g id="regions"></g><g id="edges"></g><g id="trail"></g><g id="nodes"></g><g id="marks"></g><g id="tokenLayer"></g>
+      </svg>
+      <div class="toast" id="toast"></div>
+      <div class="legend">
+        <span class="l-bernoulli">yes / no</span><span class="l-categorical">one of several</span><span class="l-jsu">seconds</span><span class="l-choice">players</span><span class="l-rule">rule</span>
+      </div>
+    </div>
+    <aside>
+      <div class="tabs">
+        <button id="tabNode" class="on">Node</button><button id="tabLog">Play-by-play</button><button id="tabCourt">Court</button>
+      </div>
+      <div class="pane on" id="paneNode"></div>
+      <div class="pane" id="paneLog"><ul class="log" id="log"></ul></div>
+      <div class="pane" id="paneCourt"></div>
+    </aside>
+  </main>
+</div>
+<div class="help" id="help">
+  <div class="card">
+    <h2>A game, one decision at a time</h2>
+    <p>The NBA is modelled as a graph of decisions. Each box is a node: a question answered by a fitted model (who shoots, does it go in, how long did the action take). After each answer the rules update the game and say which node comes next. Grey dashed boxes are rules, not decisions.</p>
+    <p><b>Play</b> sends the ball through the graph; <b>Step</b> moves one decision. In <b>Auto</b> every answer is drawn at random with the shares a simulation of a real game produced; in <b>You decide</b> the game stops at each node for you to answer, or to let it draw.</p>
+    <p>Click any node to see what it asks, how often each answer comes up, what it reads and where it leads. The <b>Play-by-play</b> tab lists every decision, the <b>Court</b> tab the players on court, fouls and timeouts.</p>
+    <p class="muted">The auto draws use each node's average outcome shares over 2,000 simulations of one game, not the fitted models' answers for the situation, so a game here is plausible, not a forecast.</p>
+    <p style="text-align:right"><button id="helpClose" class="primary">Got it</button></p>
+  </div>
+</div>
+<script>
+const DATA = {"nodes": {"ActionTime": {"family": "jsu", "question": "How many seconds did the action take?", "next": "both clocks run down; a two or a three → Shooter; a turnover → TurnoverKind; a foul → Fouler", "reads": [{"name": "Action three", "basis": ""}, {"name": "Action turnover", "basis": ""}, {"name": "Action foul", "basis": ""}, {"name": "Late foul", "basis": ""}, {"name": "After timeout", "basis": ""}, {"name": "Late after timeout", "basis": ""}, {"name": "After period start", "basis": ""}, {"name": "After offensive rebound", "basis": ""}, {"name": "After made shot", "basis": ""}, {"name": "After made free throw", "basis": ""}, {"name": "After dead ball turnover", "basis": ""}, {"name": "After side out", "basis": ""}, {"name": "After awarded ball", "basis": ""}, {"name": "After team defensive rebound", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "After steal", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Bound", "basis": "spline in location, scale; linear in skew, tail; given in maximum"}, {"name": "Period clock binds", "basis": ""}, {"name": "Score margin", "basis": "spline in location, scale; linear in skew, tail"}, {"name": "Late in game", "basis": ""}, {"name": "Log of bound", "basis": "linear in skew, tail"}], "shares": {"0": 4188, "1": 7596, "2": 11352, "3": 14535, "4": 16758, "5": 18683, "6": 20509, "7": 21773, "8": 23361, "9": 25156, "10": 26165, "11": 26993, "12": 27475, "13": 26987, "14": 26560, "15": 24768, "16": 23263, "17": 21092, "18": 18830, "19": 16297, "20": 13875, "21": 11693, "22": 9579, "23": 7861, "24": 6439, "25": 5270, "26": 4267, "27": 3269, "28": 2608}, "perGame": 233.601, "note": ""}, "ActionType": {"family": "categorical", "question": "What does the team with the ball do?", "next": "→ ActionTime", "reads": [{"name": "Team points per possession", "basis": ""}, {"name": "Defence team fouls", "basis": ""}, {"name": "Shot clock", "basis": ""}, {"name": "Period clock", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "Late margin", "basis": "spline"}, {"name": "Late period clock", "basis": "spline"}, {"name": "Late trail3", "basis": ""}, {"name": "Late trail3 clock", "basis": "spline"}, {"name": "Late lead1 to3", "basis": ""}, {"name": "Late lead1 to3 clock", "basis": "spline"}, {"name": "Late lead4 to8", "basis": ""}, {"name": "Late lead4 to8 clock", "basis": "spline"}, {"name": "Late lead9 to12", "basis": ""}, {"name": "Late lead9 to12 clock", "basis": "spline"}, {"name": "After offensive rebound", "basis": ""}, {"name": "After team defensive rebound", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "After steal", "basis": ""}, {"name": "Defence steal rate", "basis": "spline"}, {"name": "Offence two rate", "basis": "spline"}, {"name": "Offence three rate", "basis": "spline"}, {"name": "Offence foul drawn rate", "basis": "spline"}], "shares": {"0": 234949, "1": 148531, "2": 53299, "3": 30423}, "perGame": 233.601, "note": ""}, "Assisted": {"family": "bernoulli", "question": "Was the made shot assisted?", "next": "yes → Assister; then the free throws if fouled, or the ball changes hands", "reads": [{"name": "Shot is three", "basis": ""}, {"name": "Shot clock", "basis": "spline"}, {"name": "Shooter assisted rate", "basis": "spline"}, {"name": "After offensive rebound", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}], "shares": {"0": 61030, "1": 115654}, "perGame": 88.342, "note": ""}, "Assister": {"family": "choice", "question": "Which of the shooter's four teammates on court assisted?", "next": "then the free throws if fouled, or the ball changes hands", "reads": [{"name": "Assist share", "basis": "spline"}], "shares": {"1": 115654}, "perGame": 57.827, "note": "one of the shooter's four teammates on court"}, "AwardedFouler": {"family": "choice", "question": "Who committed the take foul?", "next": "his personal foul → AwardedFreeThrowMade", "reads": [{"name": "Foul share", "basis": "spline"}, {"name": "In foul trouble", "basis": ""}, {"name": "On court now", "basis": ""}], "shares": {"1": 369}, "perGame": 0.1845, "note": "one of the other team's players on court at the dead ball"}, "AwardedFreeThrow": {"family": "categorical", "question": "Before the play, is a free throw outside the play awarded, of which kind, and to whom?", "next": "a free throw → AwardedShooter, then asked again; none → the play (PeriodRunsOut when the period clock is under the shot clock plus 4 seconds, else ActionType), or the ball changes hands after a flagrant or clear-path free throw to the defence", "reads": [{"name": "Score margin", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Previous technical offence", "basis": ""}, {"name": "Previous technical defence", "basis": ""}, {"name": "Previous flagrant offence", "basis": ""}, {"name": "Previous flagrant defence", "basis": ""}, {"name": "Previous clear path offence", "basis": ""}, {"name": "Previous take foul offence", "basis": ""}, {"name": "Previous take foul defence", "basis": ""}], "shares": {"0": 475347, "1": 1411, "2": 623, "3": 430, "4": 25, "5": 69, "6": 269, "7": 100}, "perGame": 239.137, "note": ""}, "AwardedFreeThrowMade": {"family": "bernoulli", "question": "Does the free throw outside the play go in?", "next": "made → +1 → AwardedFreeThrow again", "reads": [{"name": "Shooter margin", "basis": ""}, {"name": "Shooter points per possession", "basis": ""}, {"name": "Shooter at home", "basis": ""}, {"name": "Awarded flagrant", "basis": ""}, {"name": "Awarded clear path", "basis": ""}, {"name": "Awarded take foul", "basis": ""}, {"name": "Awarded shooter free throw rate", "basis": "spline"}], "shares": {"0": 589, "1": 2338}, "perGame": 1.4635, "note": ""}, "AwardedShooter": {"family": "choice", "question": "Who takes the awarded free throw?", "next": "a take foul → AwardedFouler; otherwise → AwardedFreeThrowMade", "reads": [{"name": "Awarded share", "basis": "spline"}, {"name": "Took previous awarded", "basis": ""}, {"name": "On court now", "basis": ""}], "shares": {"1": 2927}, "perGame": 1.4635, "note": "one of the team's players on court at the dead ball"}, "Blocked": {"family": "bernoulli", "question": "Was the missed shot blocked?", "next": "yes → Blocker; then the free throws if fouled, or the rebound", "reads": [{"name": "Shot is three", "basis": ""}, {"name": "Shooter blocked rate", "basis": "spline"}, {"name": "Shot clock", "basis": "spline"}], "shares": {"0": 160870, "1": 19859}, "perGame": 90.3645, "note": ""}, "Blocker": {"family": "choice", "question": "Which of the defence's five blocked it?", "next": "→ the rebound", "reads": [{"name": "Block share", "basis": "spline"}], "shares": {"1": 19859}, "perGame": 9.9295, "note": "one of the defence's five"}, "DefenceTimeout": {"family": "bernoulli", "question": "Then, does the team without the ball call one?", "next": "timeout → charged, back to OffenceTimeout; no → Substitutions", "reads": [{"name": "Before free throw", "basis": ""}, {"name": "Timeout just called", "basis": ""}, {"name": "Period", "basis": ""}, {"name": "After period start", "basis": ""}, {"name": "After offensive rebound", "basis": ""}, {"name": "After made shot", "basis": ""}, {"name": "After made free throw", "basis": ""}, {"name": "After dead ball turnover", "basis": ""}, {"name": "After side out", "basis": ""}, {"name": "After awarded ball", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "After steal", "basis": ""}, {"name": "Defence timeouts left", "basis": "spline"}, {"name": "None period timeouts", "basis": ""}, {"name": "None period timeouts clock", "basis": "spline"}, {"name": "One period timeouts", "basis": ""}, {"name": "One period timeouts clock", "basis": "spline"}, {"name": "Two or more period timeouts", "basis": ""}, {"name": "Two or more period timeouts clock", "basis": "spline"}], "shares": {"0": 545322, "1": 3777}, "perGame": 274.5495, "note": ""}, "FouledOnShot": {"family": "bernoulli", "question": "Is the shooter fouled on the shot?", "next": "fouled → Fouler; clean → ShotMade", "reads": [{"name": "Score margin", "basis": ""}, {"name": "Team points per possession", "basis": ""}, {"name": "Shot is three", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Shooter fouled ratio", "basis": "spline"}, {"name": "Defence shooting foul rate", "basis": "spline"}], "shares": {"0": 348056, "1": 35424}, "perGame": 191.74, "note": ""}, "FouledPlayer": {"family": "choice", "question": "Which of the offence's five was fouled?", "next": "→ InBonus", "reads": [{"name": "Foul drawn share", "basis": "spline"}], "shares": {"1": 30423}, "perGame": 15.2115, "note": "one of the offence's five"}, "Fouler": {"family": "choice", "question": "Which of the defence's five committed the foul?", "next": "on a shot → ShotMade; a non-shooting foul → FouledPlayer", "reads": [{"name": "Foul share", "basis": "spline"}, {"name": "Personal fouls", "basis": ""}, {"name": "In foul trouble", "basis": ""}], "shares": {"1": 65847}, "perGame": 32.9235, "note": "one of the defence's five"}, "FreeThrowMade": {"family": "bernoulli", "question": "Does the free throw go in?", "next": "more to come → the next free throw; the last made → the ball changes hands; the last missed → OffensiveRebound", "reads": [{"name": "Score margin", "basis": ""}, {"name": "Team points per possession", "basis": ""}, {"name": "Last free throw", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Shooter free throw rate", "basis": "spline"}], "shares": {"0": 18458, "1": 57997}, "perGame": 38.2275, "note": ""}, "InBonus": {"family": "bernoulli", "question": "Does this non-shooting foul give free throws?", "next": "free throws → two of them; a side-out → the play carries on", "reads": [{"name": "Defence in penalty", "basis": ""}, {"name": "Defence second foul in last two minutes", "basis": ""}], "shares": {"0": 23457, "1": 6966}, "perGame": 15.2115, "note": ""}, "JumpBall": {"family": "bernoulli", "question": "Does the home team win the tip?", "next": "→ the stoppage before the first play", "reads": [], "shares": {"0": 993, "1": 1076}, "perGame": 1.0345, "note": ""}, "OffenceTimeout": {"family": "bernoulli", "question": "Before a play or a free throw, does the team with the ball call a timeout?", "next": "timeout → charged, and asked again; no → DefenceTimeout if the defence has one left, else Substitutions", "reads": [{"name": "Before free throw", "basis": ""}, {"name": "Timeout just called", "basis": ""}, {"name": "Period", "basis": ""}, {"name": "After period start", "basis": ""}, {"name": "After offensive rebound", "basis": ""}, {"name": "After made shot", "basis": ""}, {"name": "After made free throw", "basis": ""}, {"name": "After dead ball turnover", "basis": ""}, {"name": "After side out", "basis": ""}, {"name": "After awarded ball", "basis": ""}, {"name": "After team defensive rebound", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "After steal", "basis": ""}, {"name": "Offence timeouts left", "basis": "spline"}, {"name": "None period timeouts", "basis": ""}, {"name": "None period timeouts clock", "basis": "spline"}, {"name": "One period timeouts", "basis": ""}, {"name": "One period timeouts clock", "basis": "spline"}, {"name": "Two or more period timeouts", "basis": ""}, {"name": "Two or more period timeouts clock", "basis": "spline"}, {"name": "Score margin", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "Late margin", "basis": "spline"}], "shares": {"0": 548542, "1": 17478}, "perGame": 283.01, "note": ""}, "OffensiveRebound": {"family": "bernoulli", "question": "Does the shooting team get the rebound?", "next": "→ TeamRebound", "reads": [{"name": "Score margin", "basis": ""}, {"name": "Team points per possession", "basis": ""}, {"name": "Missed three", "basis": ""}, {"name": "Missed free throw", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Offence rebound rate", "basis": "spline"}, {"name": "Defence rebound rate", "basis": "spline"}], "shares": {"0": 136170, "1": 52450}, "perGame": 94.31, "note": ""}, "PeriodRunsOut": {"family": "bernoulli", "question": "Does the period run out before anything else happens?", "next": "period ends → the next period or the end of the game; play on → ActionType, or the rebound after a miss at 0:00", "reads": [{"name": "Period clock", "basis": "spline"}, {"name": "Period", "basis": ""}, {"name": "After miss", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "Late margin", "basis": "spline"}, {"name": "Late trail10 or more", "basis": ""}, {"name": "Late trail10 or more clock", "basis": "spline"}, {"name": "Late trail4 to9", "basis": ""}, {"name": "Late trail4 to9 clock", "basis": "spline"}, {"name": "Late trail1 to3", "basis": ""}, {"name": "Late trail1 to3 clock", "basis": "spline"}, {"name": "Late lead1 to3", "basis": ""}, {"name": "Late lead1 to3 clock", "basis": "spline"}, {"name": "Late lead4 to8", "basis": ""}, {"name": "Late lead4 to8 clock", "basis": "spline"}, {"name": "Late lead9 or more", "basis": ""}, {"name": "Late lead9 or more clock", "basis": "spline"}], "shares": {"0": 14557, "1": 8069}, "perGame": 11.313, "note": ""}, "Rebounder": {"family": "choice", "question": "Which of the rebounding team's five got it?", "next": "an offensive rebound → a new play (shot clock 14); a defensive one → the ball changes hands", "reads": [{"name": "Rebound share", "basis": "spline"}, {"name": "Rebounds own miss", "basis": ""}], "shares": {"1": 169518}, "perGame": 84.759, "note": "one of the rebounding team's five"}, "Shooter": {"family": "choice", "question": "Which of the five on court takes the shot?", "next": "→ FouledOnShot", "reads": [{"name": "Shot share", "basis": "spline"}], "shares": {"1": 383480}, "perGame": 191.74, "note": "one of the offence's five"}, "ShotMade": {"family": "bernoulli", "question": "Does the shot go in?", "next": "made → +2 or +3 → Assisted; a clean miss → Blocked; fouled → free throws (1 after a make, otherwise 2 or 3)", "reads": [{"name": "Score margin", "basis": ""}, {"name": "Team points per possession", "basis": ""}, {"name": "Shot is three", "basis": ""}, {"name": "Shot fouled", "basis": ""}, {"name": "At home", "basis": ""}, {"name": "Shooter make rate", "basis": "spline"}, {"name": "Defence block rate", "basis": "spline"}], "shares": {"0": 206796, "1": 176684}, "perGame": 191.74, "note": ""}, "Starters": {"family": "choice", "question": "Which five of the team's active players start?", "next": "home first, then away → JumpBall", "reads": [{"name": "Start share", "basis": "spline"}, {"name": "Usual seconds", "basis": "spline"}, {"name": "Started last", "basis": ""}], "shares": {"5": 4000}, "perGame": 2.0, "note": "five of the team's active players"}, "Stealer": {"family": "choice", "question": "Which of the defence's five stole it?", "next": "the ball changes hands, live", "reads": [{"name": "Steal share", "basis": "spline"}], "shares": {"1": 29588}, "perGame": 14.794, "note": "one of the defence's five"}, "Stolen": {"family": "bernoulli", "question": "Was the turnover a steal (the ball stays live) rather than a dead ball?", "next": "stolen → Stealer; a dead ball → the ball changes hands", "reads": [{"name": "Shot clock", "basis": "spline"}, {"name": "Score margin", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "After made shot", "basis": ""}, {"name": "After side out", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "After steal", "basis": ""}, {"name": "Defence steal rate", "basis": "spline"}], "shares": {"0": 15068, "1": 29588}, "perGame": 22.328, "note": ""}, "SubstitutedOff": {"family": "choice", "question": "Which of the five, besides any forced off, come off?", "next": "the rest of the count, besides the fouled-out → SubstitutedOn", "reads": [{"name": "Log of since change", "basis": "spline"}, {"name": "Played against usual", "basis": "spline"}, {"name": "Usual seconds", "basis": "spline"}, {"name": "Started", "basis": ""}, {"name": "Started at period start", "basis": ""}, {"name": "Personal fouls", "basis": "spline"}, {"name": "In foul trouble", "basis": ""}, {"name": "Started late", "basis": ""}], "shares": {"0": 165, "1": 50476, "2": 19415, "3": 4998, "4": 853, "5": 417}, "perGame": 38.162, "note": "the count's players from the five on court"}, "SubstitutedOn": {"family": "choice", "question": "Which of the bench come on?", "next": "the five changes → the next changing team, or on with the moment", "reads": [{"name": "Log of since change", "basis": "spline"}, {"name": "Played against usual", "basis": "spline"}, {"name": "Usual seconds", "basis": "spline"}, {"name": "Started", "basis": ""}, {"name": "Started at period start", "basis": ""}, {"name": "Personal fouls", "basis": "spline"}, {"name": "In foul trouble", "basis": ""}], "shares": {"1": 50587, "2": 19461, "3": 5003, "4": 856, "5": 417}, "perGame": 38.162, "note": "as many from the bench"}, "SubstitutionCount": {"family": "choice", "question": "How many players does the team change?", "next": "at least the players who fouled out → SubstitutedOff", "reads": [{"name": "Count is2", "basis": ""}, {"name": "Count is3", "basis": ""}, {"name": "Count is4", "basis": ""}, {"name": "Count is5", "basis": ""}, {"name": "Count after timeout", "basis": ""}, {"name": "Count at period start", "basis": ""}, {"name": "Count before free throw", "basis": ""}], "shares": {"1": 50587, "2": 19461, "3": 5003, "4": 856, "5": 417}, "perGame": 38.162, "note": ""}, "Substitutions": {"family": "categorical", "question": "After this moment's timeouts, which teams change their five?", "next": "each changing team in turn, the offence first: SubstitutionCount → SubstitutedOff → SubstitutedOn. A team with a fouled-out player on court must change. Then, before a play → AwardedFreeThrow; before a free throw → FreeThrowMade", "reads": [{"name": "Before free throw", "basis": ""}, {"name": "Between free throws", "basis": ""}, {"name": "Timeout called here", "basis": ""}, {"name": "Period", "basis": ""}, {"name": "Late in game", "basis": ""}, {"name": "Offence must change", "basis": ""}, {"name": "Defence must change", "basis": ""}, {"name": "Defence in foul trouble", "basis": ""}, {"name": "After period start", "basis": ""}, {"name": "After made shot", "basis": ""}, {"name": "After dead ball turnover", "basis": ""}, {"name": "After side out", "basis": ""}, {"name": "After team defensive rebound", "basis": ""}, {"name": "After team offensive rebound", "basis": ""}, {"name": "Period clock", "basis": "spline"}, {"name": "Log of offence longest stint", "basis": "spline"}, {"name": "Log of defence longest stint", "basis": "spline"}], "shares": {"0": 494916, "1": 17493, "2": 19955, "3": 19438}, "perGame": 275.901, "note": ""}, "TeamRebound": {"family": "bernoulli", "question": "Is the rebound a team's (the ball out of bounds, a dead ball) rather than a player's?", "next": "a team's → a dead ball, no player; a player's → Rebounder. Then an offensive rebound is a new play (shot clock 14), a defensive one changes the ball's hands", "reads": [{"name": "Rebound to offence", "basis": ""}, {"name": "Missed free throw", "basis": ""}], "shares": {"0": 169518, "1": 19102}, "perGame": 94.31, "note": ""}, "TurnedOverBy": {"family": "choice", "question": "Which of the offence's five turned it over?", "next": "an offensive foul → his personal foul, and the ball changes hands; otherwise → Stolen", "reads": [{"name": "Turnover share", "basis": "spline"}], "shares": {"1": 50646}, "perGame": 25.323, "note": "one of the offence's five"}, "TurnoverKind": {"family": "categorical", "question": "Is the turnover a team's, an offensive foul, or another player's turnover?", "next": "a team's → the ball changes hands; otherwise → TurnedOverBy", "reads": [{"name": "Shot clock", "basis": "spline"}, {"name": "Period clock", "basis": "spline"}], "shares": {"0": 44656, "1": 2653, "2": 5990}, "perGame": 26.6495, "note": ""}}};
+
+const HOME = 0, AWAY = 1;
+const TEAM = ["HOME", "AWAY"];
+const W = 180, H = 44;
+const COL = [108, 348, 588, 828, 1068, 1318];
+const ROW = i => 88 + 80 * i;
+
+const LAYOUT = {
+  Starters: [0, 0], JumpBall: [0, 1], PeriodEnds: [0, 3], GameOver: [0, 4],
+  Stoppage: [1, 0], OffenceTimeout: [1, 1], DefenceTimeout: [1, 2], Substitutions: [1, 3], SubstitutionCount: [1, 4], SubstitutedOff: [1, 5], SubstitutedOn: [1, 6],
+  AwardedFreeThrow: [2, 1], AwardedShooter: [2, 2], AwardedFouler: [2, 3], AwardedFreeThrowMade: [2, 4],
+  PeriodRunsOut: [3, 0], ActionType: [3, 1], ActionTime: [3, 2], TurnoverKind: [3, 4], TurnedOverBy: [3, 5], Stolen: [3, 6], Stealer: [3, 7],
+  Shooter: [4, 1], FouledOnShot: [4, 2], ShotMade: [4, 3], Assisted: [4, 4], Blocked: [4, 5], FreeThrowMade: [4, 7], OffensiveRebound: [4, 8],
+  InBonus: [5, 0], FouledPlayer: [5, 1], Fouler: [5, 2], Assister: [5, 4], Blocker: [5, 5], TeamRebound: [5, 8], Rebounder: [5, 9],
+};
+const REGIONS = [
+  ["Game", ["Starters", "JumpBall", "PeriodEnds", "GameOver"]],
+  ["Before each play and free throw", ["Stoppage", "OffenceTimeout", "DefenceTimeout", "Substitutions", "SubstitutionCount", "SubstitutedOff", "SubstitutedOn"]],
+  ["Free throws outside the play", ["AwardedFreeThrow", "AwardedShooter", "AwardedFouler", "AwardedFreeThrowMade"]],
+  ["The play", ["PeriodRunsOut", "ActionType", "ActionTime"]],
+  ["Turnover", ["TurnoverKind", "TurnedOverBy", "Stolen", "Stealer"]],
+  ["Shot and foul", ["Shooter", "FouledOnShot", "ShotMade", "Assisted", "Blocked", "InBonus", "FouledPlayer", "Fouler", "Assister", "Blocker"]],
+  ["Free throws and rebounds", ["FreeThrowMade", "OffensiveRebound", "TeamRebound", "Rebounder"]],
+];
+const EDGES = [
+  ["Starters", "JumpBall"], ["OffenceTimeout", "DefenceTimeout"], ["DefenceTimeout", "Substitutions"], ["Stoppage", "OffenceTimeout"],
+  ["Substitutions", "SubstitutionCount"], ["SubstitutionCount", "SubstitutedOff"], ["SubstitutedOff", "SubstitutedOn"],
+  ["Substitutions", "AwardedFreeThrow"], ["AwardedFreeThrow", "AwardedShooter"], ["AwardedShooter", "AwardedFouler"], ["AwardedFouler", "AwardedFreeThrowMade"],
+  ["AwardedFreeThrow", "PeriodRunsOut"], ["AwardedFreeThrow", "ActionType"], ["PeriodRunsOut", "ActionType"], ["ActionType", "ActionTime"],
+  ["ActionTime", "Shooter"], ["ActionTime", "TurnoverKind"], ["ActionTime", "Fouler"], ["TurnoverKind", "TurnedOverBy"], ["TurnedOverBy", "Stolen"], ["Stolen", "Stealer"],
+  ["Shooter", "FouledOnShot"], ["FouledOnShot", "ShotMade"], ["FouledOnShot", "Fouler"], ["Fouler", "ShotMade"], ["Fouler", "FouledPlayer"], ["FouledPlayer", "InBonus"],
+  ["ShotMade", "Assisted"], ["ShotMade", "Blocked"], ["Assisted", "Assister"], ["Blocked", "Blocker"], ["Blocked", "OffensiveRebound"], ["Blocker", "OffensiveRebound"],
+  ["FreeThrowMade", "OffensiveRebound"], ["OffensiveRebound", "TeamRebound"], ["TeamRebound", "Rebounder"],
+  ["PeriodRunsOut", "PeriodEnds"], ["PeriodEnds", "GameOver"], ["PeriodEnds", "JumpBall"],
+];
+const RULES = {
+  Stoppage: { label: "next play or free throw", question: "Every play and every free throw starts here: first the timeouts, then the substitutions, then (before a play) any free throws outside the play.", next: "→ OffenceTimeout if the team with the ball has a timeout left, else DefenceTimeout, else Substitutions" },
+  PeriodEnds: { label: "period ends", question: "The period has run out.", next: "→ game over once the fourth period or an overtime ends with a winner; otherwise the next period: a jump ball before overtime, the alternating rule before the second, third and fourth" },
+  GameOver: { label: "game over", question: "The game is over.", next: "Restart for another game." },
+};
+const NAMES = {};
+for (const team of [HOME, AWAY]) for (let i = 1; i <= 12; i++) NAMES[team * 100 + i] = (team === HOME ? "H" : "A") + i;
+
+const $ = id => document.getElementById(id);
+const svgNS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(svgNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const center = id => { const [c, r] = LAYOUT[id]; return { x: COL[c], y: ROW(r) }; };
+const familyOf = id => RULES[id] ? "rule" : DATA.nodes[id].family;
+
+function drawDiagram() {
+  for (const [title, members] of REGIONS) {
+    const pts = members.map(center);
+    const x0 = Math.min(...pts.map(p => p.x)) - W / 2 - 14, x1 = Math.max(...pts.map(p => p.x)) + W / 2 + 14;
+    const y0 = Math.min(...pts.map(p => p.y)) - H / 2 - 30, y1 = Math.max(...pts.map(p => p.y)) + H / 2 + 12;
+    const g = el("g", { class: "region" }, $("regions"));
+    el("rect", { x: x0, y: y0, width: x1 - x0, height: y1 - y0, rx: 14 }, g);
+    el("text", { x: x0 + 12, y: y0 + 19 }, g).textContent = title;
+  }
+  for (const [a, b] of EDGES) el("path", { class: "edge", d: curve(a, b), "marker-end": "url(#arrow)" }, $("edges"));
+  for (const id of Object.keys(LAYOUT)) {
+    const { x, y } = center(id);
+    const g = el("g", { class: "node " + familyOf(id), id: "n-" + id }, $("nodes"));
+    const rule = RULES[id];
+    el("rect", { x: x - W / 2, y: y - H / 2, width: W, height: H, rx: rule ? 22 : 10 }, g);
+    const t = el("text", { x, y: y + 5, "text-anchor": "middle" }, g);
+    t.textContent = rule ? rule.label : id;
+    const tip = el("title", {}, g);
+    tip.textContent = rule ? rule.question : DATA.nodes[id].question;
+    g.addEventListener("click", () => { selected = id; renderAll(); showTab("Node"); });
+  }
+}
+
+function anchor(id, toward) {
+  const p = center(id), dx = toward.x - p.x, dy = toward.y - p.y;
+  if (Math.abs(dx) * H > Math.abs(dy) * W) return { x: p.x + Math.sign(dx) * W / 2, y: p.y + dy * (W / 2) / Math.max(Math.abs(dx), 1) };
+  return { x: p.x + dx * (H / 2) / Math.max(Math.abs(dy), 1), y: p.y + Math.sign(dy || 1) * H / 2 };
+}
+
+function curve(a, b) {
+  if (a === b) {
+    const p = center(a);
+    return `M ${p.x + W / 2} ${p.y - 8} C ${p.x + W / 2 + 46} ${p.y - 34}, ${p.x + W / 2 + 46} ${p.y + 34}, ${p.x + W / 2} ${p.y + 8}`;
+  }
+  const s = anchor(a, center(b)), e = anchor(b, center(a));
+  const mx = (s.x + e.x) / 2, my = (s.y + e.y) / 2, dx = e.x - s.x, dy = e.y - s.y;
+  const bend = Math.min(0.18, 40 / Math.hypot(dx, dy) + 0.06);
+  return `M ${s.x} ${s.y} Q ${mx - dy * bend} ${my + dx * bend} ${e.x} ${e.y}`;
+}
+
+let S, current, selected, playing = false, auto = true, busy = false, awaiting = null, picks = [], visited = new Set(), trail = [];
+
+function newGame() {
+  S = {
+    period: 0, clock: 720, shot: 24, team: HOME, score: [0, 0], teamFouls: [0, 0], timeoutsLeft: [7, 7], timeoutsThisPeriod: [0, 0], timeoutsLast3: [0, 0],
+    active: [[...Array(12)].map((_, i) => i + 1), [...Array(12)].map((_, i) => 101 + i)],
+    onCourt: [[], []], bench: [[], []], fouls: {}, played: {}, moment: null, action: null, shotPoints: 0, fouled: false, ftLeft: 0, lastMiss: false,
+    reboundToOffence: false, awarded: null, awardedTeam: null, ballToDefence: false, subTeams: 0, lineupTeam: HOME, forced: [], changeSize: 0,
+    shooter: null, turnoverKind: 0, firstStarter: HOME, over: false,
+  };
+  current = "Starters"; selected = "Starters"; awaiting = null; picks = []; visited = new Set(["Starters"]); trail = [];
+  $("log").innerHTML = ""; $("marks").innerHTML = ""; $("trail").innerHTML = ""; $("tokenLayer").innerHTML = "";
+  token = el("circle", { r: 10, class: "token", cx: center(current).x - W / 2, cy: center(current).y, fill: "var(--home)" }, $("tokenLayer"));
+  setPlaying(false);
+  renderAll();
+}
+let token;
+
+const opp = t => 1 - t;
+const fmtClock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+const periodName = p => p < 4 ? `Q${p + 1}` : (p === 4 ? "OT" : `OT${p - 3}`);
+const name = p => NAMES[p];
+const foulsOf = p => S.fouls[p] || 0;
+const fouledOut = p => foulsOf(p) >= 6;
+const forcesFoulOuts = () => S.moment === "Play" && S.clock > 0;
+
+function timeoutAvailable(team) {
+  return S.timeoutsLeft[team] > 0 && (S.period !== 3 || (S.timeoutsThisPeriod[team] < 4 && (S.clock > 180 || S.timeoutsLast3[team] < 2)));
+}
+function mustChange(team) {
+  return forcesFoulOuts() && S.onCourt[team].some(fouledOut) && S.bench[team].length > 0;
+}
+
+function startPlay() { S.action = null; S.shotPoints = 0; S.fouled = false; S.ftLeft = 0; S.lastMiss = false; S.reboundToOffence = false; }
+function startPossession() { S.shot = 24; startPlay(); }
+function askStoppage(moment) { S.moment = moment; return "Stoppage"; }
+function nextPlay() { return askStoppage("Play"); }
+function endOfPossession(why) {
+  S.team = opp(S.team); startPossession();
+  note(`Ball to ${TEAM[S.team]}${why ? " (" + why + ")" : ""}`);
+  return nextPlay();
+}
+function actionOrPeriodEnd() { return S.clock < S.shot + 4 ? "PeriodRunsOut" : "ActionType"; }
+function afterMiss() { return S.clock === 0 ? nextPlay() : "OffensiveRebound"; }
+function afterShot(made) {
+  if (S.fouled) { S.ftLeft = made ? 1 : S.shotPoints; note(`${S.ftLeft} free throw${S.ftLeft > 1 ? "s" : ""}`); return askStoppage("FreeThrow"); }
+  if (made) return endOfPossession("made shot");
+  S.lastMiss = true; return afterMiss();
+}
+function afterRebound(byTeam) {
+  if (!S.reboundToOffence) return endOfPossession(byTeam ? "team defensive rebound" : "defensive rebound");
+  S.shot = 14; startPlay(); return nextPlay();
+}
+function addFoul(player) { S.fouls[player] = foulsOf(player) + 1; if (fouledOut(player)) note(`${name(player)} fouls out`); }
+function defenceFouls() { S.teamFouls[opp(S.team)]++; }
+function score(team, points) { S.score[team] += points; }
+function callTimeout(team) {
+  S.timeoutsLeft[team]--; S.timeoutsThisPeriod[team]++; if (S.clock <= 180) S.timeoutsLast3[team]++;
+  note(`Timeout ${TEAM[team]}`);
+  return timeoutAvailable(S.team) ? "OffenceTimeout" : timeoutAvailable(opp(S.team)) ? "DefenceTimeout" : "Substitutions";
+}
+function nextChange() {
+  if (S.subTeams & 1) return change(1, S.team);
+  if (S.subTeams & 2) return change(2, opp(S.team));
+  const moment = S.moment; S.moment = null;
+  return moment === "Play" ? "AwardedFreeThrow" : "FreeThrowMade";
+}
+function change(bit, team) {
+  S.subTeams &= ~bit;
+  if (S.bench[team].length === 0) return nextChange();
+  S.lineupTeam = team;
+  S.forced = forcesFoulOuts() ? S.onCourt[team].filter(fouledOut).slice(0, S.bench[team].length) : [];
+  return "SubstitutionCount";
+}
+function endOfPeriod() {
+  note(`End of ${periodName(S.period)}: ${S.score[HOME]}–${S.score[AWAY]}`);
+  if (S.period >= 3 && S.score[HOME] !== S.score[AWAY]) { S.over = true; note(`Final: ${S.score[HOME]}–${S.score[AWAY]}, ${S.score[HOME] > S.score[AWAY] ? "HOME" : "AWAY"} wins`); return "GameOver"; }
+  S.period++;
+  S.clock = S.period < 4 ? 720 : 300;
+  S.teamFouls = [0, 0]; S.timeoutsThisPeriod = [0, 0]; S.timeoutsLast3 = [0, 0];
+  if (S.period >= 4) S.timeoutsLeft = [2, 2];
+  startPossession();
+  if (S.period >= 4) { S.team = HOME; return "JumpBall"; }
+  S.team = S.period === 3 ? S.firstStarter : opp(S.firstStarter);
+  return nextPlay();
+}
+
+const LABELS = {
+  JumpBall: ["away wins", "home wins"], OffenceTimeout: ["no timeout", "timeout"], DefenceTimeout: ["no timeout", "timeout"],
+  Substitutions: ["neither", "the offence", "the defence", "both"],
+  AwardedFreeThrow: ["none", "technical, to the offence", "technical, to the defence", "flagrant, to the offence", "flagrant, to the defence", "clear path, to the offence", "take foul, to the offence", "take foul, to the defence"],
+  AwardedFreeThrowMade: ["missed", "made"], PeriodRunsOut: ["play on", "period ends"],
+  ActionType: ["two-point attempt", "three-point attempt", "turnover", "non-shooting foul"], TurnoverKind: ["a player's", "a team's", "offensive foul"],
+  Stolen: ["dead ball", "stolen"], FouledOnShot: ["clean", "fouled"], ShotMade: ["missed", "made"], Assisted: ["no", "yes"], Blocked: ["no", "yes"],
+  InBonus: ["side-out", "free throws"], FreeThrowMade: ["missed", "made"], OffensiveRebound: ["defence", "offence"], TeamRebound: ["a player", "team (dead ball)"],
+};
+const KIND = ["None", "TechnicalOffence", "TechnicalDefence", "FlagrantOffence", "FlagrantDefence", "ClearPathOffence", "TakeFoulOffence", "TakeFoulDefence"];
+
+function options(id) {
+  const shares = DATA.nodes[id]?.shares || {};
+  const players = list => ({ players: list, k: 1 });
+  switch (id) {
+    case "Starters": return { players: S.active[S.lineupTeam], k: 5 };
+    case "SubstitutionCount": {
+      const bench = S.bench[S.lineupTeam].length, low = Math.max(S.forced.length, 1), high = Math.min(bench, 5), out = [];
+      for (let n = low; n <= high; n++) out.push({ label: String(n), value: n, weight: shares[n] || 0.1 });
+      return out;
+    }
+    case "SubstitutedOff": return { players: S.onCourt[S.lineupTeam].filter(p => !S.forced.includes(p)), k: S.changeSize - S.forced.length };
+    case "SubstitutedOn": return { players: S.bench[S.lineupTeam], k: S.changeSize };
+    case "AwardedShooter": return players(S.onCourt[S.awardedTeam]);
+    case "AwardedFouler": return players(S.onCourt[opp(S.awardedTeam)]);
+    case "PeriodRunsOut": { const yes = S.clock <= 1 ? 0.95 : S.clock <= 4 ? 0.3 : 0.01; return LABELS.PeriodRunsOut.map((label, value) => ({ label, value, weight: value ? yes : 1 - yes })); }
+    case "ActionTime": {
+      const bound = Math.min(S.shot + 4, S.clock), out = [];
+      for (let s = 0; s <= bound; s++) out.push({ label: s + " s", value: s, weight: shares[s] || 0.2 });
+      return out;
+    }
+    case "TurnedOverBy": case "Shooter": case "FouledPlayer": return players(S.onCourt[S.team]);
+    case "Stealer": case "Blocker": case "Fouler": return players(S.onCourt[opp(S.team)]);
+    case "Assister": return players(S.onCourt[S.team].filter(p => p !== S.shooter));
+    case "Rebounder": return players(S.onCourt[S.reboundToOffence ? S.team : opp(S.team)]);
+  }
+  if (LABELS[id]) return LABELS[id].map((label, value) => ({ label, value, weight: shares[value] || 0.5 }));
+  throw new Error("No options for " + id);
+}
+
+function apply(id, v) {
+  switch (id) {
+    case "Starters": {
+      const team = S.lineupTeam;
+      S.onCourt[team] = v; S.bench[team] = S.active[team].filter(p => !v.includes(p));
+      say(team, `starts ${v.map(name).join(" ")}`);
+      if (team === HOME) { S.lineupTeam = AWAY; return "Starters"; }
+      return "JumpBall";
+    }
+    case "JumpBall": S.team = v ? HOME : AWAY; if (S.period === 0) S.firstStarter = S.team; say(S.team, "wins the tip"); return nextPlay();
+    case "OffenceTimeout": if (v) return callTimeout(S.team); return timeoutAvailable(opp(S.team)) ? "DefenceTimeout" : "Substitutions";
+    case "DefenceTimeout": if (v) return callTimeout(opp(S.team)); return "Substitutions";
+    case "Substitutions": S.subTeams = v | (mustChange(S.team) ? 1 : 0) | (mustChange(opp(S.team)) ? 2 : 0); return nextChange();
+    case "SubstitutionCount": S.changeSize = v; return "SubstitutedOff";
+    case "SubstitutedOff": S.leaving = [...S.forced, ...v]; return "SubstitutedOn";
+    case "SubstitutedOn": {
+      const team = S.lineupTeam;
+      S.leaving.forEach((off, i) => { S.onCourt[team][S.onCourt[team].indexOf(off)] = v[i]; S.bench[team][S.bench[team].indexOf(v[i])] = off; });
+      S.bench[team] = S.bench[team].filter(p => !fouledOut(p));
+      say(team, `${S.leaving.map(name).join(" ")} off, ${v.map(name).join(" ")} on`);
+      S.forced = [];
+      return nextChange();
+    }
+    case "AwardedFreeThrow": {
+      if (v === 0) {
+        const ball = S.ballToDefence; S.awarded = null; S.ballToDefence = false;
+        return ball ? endOfPossession("awarded ball") : actionOrPeriodEnd();
+      }
+      const kind = KIND[v], toDefence = kind.endsWith("Defence");
+      S.awarded = kind; S.awardedTeam = toDefence ? opp(S.team) : S.team;
+      if (toDefence && (kind.startsWith("Flagrant") || kind.startsWith("ClearPath"))) S.ballToDefence = true;
+      return "AwardedShooter";
+    }
+    case "AwardedShooter": S.awardedShooter = v; return S.awarded.startsWith("TakeFoul") ? "AwardedFouler" : "AwardedFreeThrowMade";
+    case "AwardedFouler": addFoul(v); return "AwardedFreeThrowMade";
+    case "AwardedFreeThrowMade": if (v) score(S.awardedTeam, 1); say(S.awardedTeam, `${name(S.awardedShooter)} ${v ? "makes" : "misses"} a free throw (${LABELS.AwardedFreeThrow[KIND.indexOf(S.awarded)]})`); return "AwardedFreeThrow";
+    case "PeriodRunsOut": if (v) return "PeriodEnds"; return S.lastMiss ? "OffensiveRebound" : "ActionType";
+    case "ActionType": S.action = v; return "ActionTime";
+    case "ActionTime":
+      S.clock -= v; S.shot -= v;
+      if (S.action === 0 || S.action === 1) { S.shotPoints = S.action === 0 ? 2 : 3; return "Shooter"; }
+      if (S.action === 2) return "TurnoverKind";
+      defenceFouls(); return "Fouler";
+    case "TurnoverKind": S.turnoverKind = v; if (v === 1) { say(S.team, "team turnover"); return endOfPossession(); } return "TurnedOverBy";
+    case "TurnedOverBy":
+      if (S.turnoverKind !== 2) { say(S.team, `${name(v)} turns it over`); return "Stolen"; }
+      say(S.team, `${name(v)} offensive foul`); addFoul(v); return endOfPossession();
+    case "Stolen": return v ? "Stealer" : endOfPossession("dead ball");
+    case "Stealer": say(opp(S.team), `${name(v)} steals`); return endOfPossession("steal");
+    case "Shooter": S.shooter = v; return "FouledOnShot";
+    case "FouledOnShot": S.fouled = !!v; if (!v) return "ShotMade"; defenceFouls(); return "Fouler";
+    case "Fouler": addFoul(v); if (S.fouled) { say(opp(S.team), `${name(v)} fouls the shooter`); return "ShotMade"; } say(opp(S.team), `${name(v)} fouls`); return "FouledPlayer";
+    case "FouledPlayer": S.shooter = v; return "InBonus";
+    case "ShotMade":
+      if (!v) { say(S.team, `${name(S.shooter)} misses a ${S.shotPoints}`); return S.fouled ? afterShot(false) : "Blocked"; }
+      score(S.team, S.shotPoints); say(S.team, `${name(S.shooter)} makes a ${S.shotPoints} (+${S.shotPoints})`); return "Assisted";
+    case "Assisted": if (!v) return afterShot(true); return "Assister";
+    case "Assister": say(S.team, `assist ${name(v)}`); return afterShot(true);
+    case "Blocked": return v ? "Blocker" : afterShot(false);
+    case "Blocker": say(opp(S.team), `${name(v)} blocks it`); return afterShot(false);
+    case "InBonus":
+      if (v) { S.ftLeft = 2; note("2 free throws"); return askStoppage("FreeThrow"); }
+      S.shot = Math.max(S.shot, 14); startPlay(); note("Side-out"); return nextPlay();
+    case "FreeThrowMade":
+      if (v) score(S.team, 1);
+      say(S.team, `${name(S.shooter)} ${v ? "makes" : "misses"} a free throw`);
+      S.ftLeft--;
+      if (S.ftLeft > 0) return askStoppage("FreeThrow");
+      if (v) return endOfPossession("made free throw");
+      S.lastMiss = true; return afterMiss();
+    case "OffensiveRebound": S.reboundToOffence = !!v; return "TeamRebound";
+    case "TeamRebound": if (v) { say(S.reboundToOffence ? S.team : opp(S.team), "team rebound"); return afterRebound(true); } return "Rebounder";
+    case "Rebounder": say(S.reboundToOffence ? S.team : opp(S.team), `${name(v)} ${S.reboundToOffence ? "offensive" : "defensive"} rebound`); return afterRebound(false);
+  }
+  throw new Error("No rule for " + id);
+}
+
+function pass(id) {
+  if (id === "Stoppage") return timeoutAvailable(S.team) ? "OffenceTimeout" : timeoutAvailable(opp(S.team)) ? "DefenceTimeout" : "Substitutions";
+  if (id === "PeriodEnds") return endOfPeriod();
+  return null;
+}
+
+function draw(o) {
+  if (o.players) { const pool = [...o.players], out = []; for (let i = 0; i < o.k; i++) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]); return out; }
+  const total = o.reduce((a, b) => a + b.weight, 0); let u = Math.random() * total;
+  for (const opt of o) { u -= opt.weight; if (u <= 0) return opt.value; }
+  return o[o.length - 1].value;
+}
+
+function describe(id, v) {
+  const o = options(id);
+  if (o.players) return v.length ? v.map(name).join(" ") : "none";
+  return (o.find(x => x.value === v) || { label: String(v) }).label;
+}
+
+let log = [];
+function say(team, text) { addLog(`<span class="who ${team === HOME ? "home" : "away"}">${TEAM[team]}</span> ${text}`); }
+function note(text) { addLog(text, "rule"); toast(text); }
+function addLog(html, cls = "") {
+  const li = document.createElement("li"); li.className = cls;
+  li.innerHTML = `<span class="when">${periodName(Math.min(S.period, 9))} ${fmtClock(S.clock)}</span><span>${html} <span class="muted">${S.score[HOME]}–${S.score[AWAY]}</span></span>`;
+  $("log").prepend(li);
+  while ($("log").children.length > 400) $("log").lastChild.remove();
+}
+let toastTimer;
+function toast(text) { const t = $("toast"); t.textContent = text; t.classList.add("on"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("on"), 1100 / speed()); }
+
+const speed = () => Number($("speed").value);
+
+function decideAndMove(value) {
+  if (busy || RULES[current]) return;
+  const id = current;
+  const v = value !== undefined ? value : draw(options(id));
+  awaiting = null; picks = []; busy = true;
+  showNode(selected);
+  mark(id, describe(id, v));
+  const next = apply(id, v);
+  move(id, next);
+}
+
+function mark(id, text) {
+  const p = center(id);
+  const t = el("text", { x: p.x, y: p.y - H / 2 - 7, "text-anchor": "middle", class: "decision", fill: "var(--accent)" }, $("marks"));
+  t.textContent = text.length > 26 ? text.slice(0, 25) + "…" : text;
+  t.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], { duration: 1800 / speed(), fill: "forwards" }).onfinish = () => t.remove();
+}
+
+function move(from, to) {
+  busy = true;
+  const path = el("path", { d: curve(from, to), class: "trail" }, $("trail"));
+  trail.push(path);
+  while (trail.length > 7) trail.shift().remove();
+  trail.forEach((p, i) => p.style.opacity = (0.12 + 0.6 * (i + 1) / trail.length).toFixed(2));
+  token.setAttribute("fill", S.team === HOME ? "var(--home)" : "var(--away)");
+  const length = path.getTotalLength(), duration = Math.max(90, (260 + length * 0.9) / speed()), start = performance.now();
+  const step = now => {
+    const f = Math.min(1, (now - start) / duration), e = f < 0.5 ? 2 * f * f : 1 - Math.pow(-2 * f + 2, 2) / 2;
+    const pt = path.getPointAtLength(length * e);
+    token.setAttribute("cx", pt.x); token.setAttribute("cy", pt.y);
+    if (f < 1) return requestAnimationFrame(step);
+    arrive(to);
+  };
+  requestAnimationFrame(step);
+}
+
+function arrive(id) {
+  current = id; visited.add(id); busy = false;
+  if (RULES[id]) {
+    renderAll();
+    const next = pass(id);
+    if (next) { setTimeout(() => move(id, next), 120 / speed()); return; }
+    setPlaying(false); renderAll(); return;
+  }
+  selected = id;
+  if (!auto) { awaiting = id; renderAll(); return; }
+  renderAll();
+  if (playing) setTimeout(() => { if (playing && !busy && current === id) decideAndMove(); }, 260 / speed());
+}
+
+function setPlaying(on) {
+  playing = on && !S?.over;
+  $("play").textContent = playing ? "Pause" : "Play";
+  $("play").disabled = !!S?.over; $("step").disabled = !!S?.over;
+}
+
+function stepOnce() {
+  if (busy || S.over) return;
+  if (RULES[current]) { const next = pass(current); if (next) move(current, next); return; }
+  if (!auto) { if (awaiting) return; awaiting = current; renderAll(); return; }
+  decideAndMove();
+}
+
+function renderAll() {
+  $("homePoints").textContent = S.score[HOME]; $("awayPoints").textContent = S.score[AWAY];
+  $("clock").textContent = S.over ? "Final" : `${periodName(S.period)} ${fmtClock(S.clock)}`;
+  $("shotClock").textContent = S.over ? "–" : Math.max(S.shot, 0);
+  const ball = $("ball"); ball.textContent = TEAM[S.team]; ball.className = S.team === HOME ? "home-text" : "away-text";
+  for (const id of Object.keys(LAYOUT)) {
+    const g = $("n-" + id);
+    g.classList.toggle("current", id === current); g.classList.toggle("selected", id === selected && id !== current); g.classList.toggle("visited", visited.has(id));
+  }
+  showNode(selected);
+  renderCourt();
+}
+
+function pretty(s) { return s.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, c => c.toUpperCase()); }
+
+function showNode(id) {
+  const pane = $("paneNode");
+  const rule = RULES[id], node = DATA.nodes[id], family = familyOf(id);
+  const familyName = { bernoulli: "yes / no", categorical: "one of several", jsu: "seconds", choice: "players", rule: "rule" }[family];
+  let html = `<h2>${rule ? pretty(rule.label) : id}<span class="chip ${family}">${familyName}</span></h2><div class="question">${rule ? rule.question : node.question}</div>`;
+  if (awaiting === id) html += callBox(id);
+  if (!rule) {
+    html += sharesBlock(id);
+    if (node.reads.length) html += `<div class="section">Reads</div><ul class="reads">${node.reads.map(r => `<li>${r.name}${r.basis ? ` <span class="basis">${r.basis}</span>` : ""}</li>`).join("")}</ul>`;
+    else html += `<div class="section">Reads</div><div class="muted">nothing: a single fitted probability</div>`;
+  }
+  html += `<div class="section">Next</div><div>${rule ? rule.next : node.next}</div>`;
+  pane.innerHTML = html;
+  if (awaiting === id) { wireCall(id); showTab("Node"); }
+}
+
+function callBox(id) {
+  const o = options(id);
+  if (o.players) {
+    const chips = o.players.map(p => `<button data-player="${p}" class="${picks.includes(p) ? "picked" : ""}">${name(p)}</button>`).join("");
+    const need = o.k === 1 ? "Pick one." : o.k === 0 ? "Nobody else comes off." : `Pick ${o.k}.`;
+    return `<div class="call"><b>Your call</b> <span class="hint">${need}</span><div class="options">${chips}</div><div class="options"><button data-model="1">Let it draw</button>${o.k > 1 || o.k === 0 ? `<button data-confirm="1" ${picks.length === o.k ? "" : "disabled"}>Confirm</button>` : ""}</div></div>`;
+  }
+  const total = o.reduce((a, b) => a + b.weight, 0);
+  const shown = o.length > 14 ? o.filter(x => x.weight / total > 0.004 || x.value === o[o.length - 1].value) : o;
+  const buttons = shown.map(x => `<button data-value="${x.value}" title="${(100 * x.weight / total).toFixed(1)}% of the draws">${x.label}</button>`).join("");
+  return `<div class="call"><b>Your call</b> <span class="hint">hover an answer for its share</span><div class="options">${buttons}</div><div class="options"><button data-model="1">Let it draw</button></div></div>`;
+}
+
+function wireCall(id) {
+  const pane = $("paneNode"), o = options(id);
+  pane.querySelectorAll("[data-value]").forEach(b => b.onclick = () => decideAndMove(Number(b.dataset.value)));
+  pane.querySelectorAll("[data-model]").forEach(b => b.onclick = () => decideAndMove());
+  pane.querySelectorAll("[data-player]").forEach(b => b.onclick = () => {
+    const p = Number(b.dataset.player);
+    if (o.k === 1) return decideAndMove([p]);
+    picks = picks.includes(p) ? picks.filter(x => x !== p) : picks.length < o.k ? [...picks, p] : picks;
+    showNode(id);
+  });
+  pane.querySelectorAll("[data-confirm]").forEach(b => b.onclick = () => decideAndMove([...picks]));
+}
+
+function sharesBlock(id) {
+  const node = DATA.nodes[id], shares = node.shares, often = node.perGame >= 10 ? Math.round(node.perGame) : node.perGame.toFixed(node.perGame < 1 ? 2 : 1);
+  const head = `<div class="section">How often, in 2,000 simulated games</div><div class="muted" style="font-size:12px;margin-bottom:4px">asked about ${often} times a game${node.family === "choice" && id !== "SubstitutionCount" ? `; ${node.note}` : ""}</div>`;
+  if (node.family === "choice" && id !== "SubstitutionCount") return head;
+  const total = Object.values(shares).reduce((a, b) => a + b, 0);
+  let rows = Object.keys(shares).map(Number).sort((a, b) => a - b).map(k => ({ label: LABELS[id] ? LABELS[id][k] : id === "SubstitutionCount" ? `${k} player${k > 1 ? "s" : ""}` : `${k} s`, share: shares[k] / total }));
+  if (node.family === "jsu") {
+    const groups = [[0, 2], [3, 5], [6, 8], [9, 11], [12, 14], [15, 17], [18, 20], [21, 24], [25, 28]];
+    rows = groups.map(([a, b]) => ({ label: `${a}–${b} s`, share: Object.keys(shares).filter(k => k >= a && k <= b).reduce((s, k) => s + shares[k], 0) / total }));
+  }
+  const max = Math.max(...rows.map(r => r.share));
+  return head + `<div class="bars">${rows.map(r => `<span>${r.label}</span><div class="bar" style="width:${(100 * r.share / max).toFixed(1)}%"></div><span class="muted">${(100 * r.share).toFixed(r.share < 0.01 ? 2 : 1)}%</span>`).join("")}</div>`;
+}
+
+function renderCourt() {
+  const team = t => {
+    const cls = t === HOME ? "home-text" : "away-text";
+    const chips = S.active[t].map(p => `<span class="player ${S.onCourt[t].includes(p) ? "on" : ""} ${fouledOut(p) ? "out" : ""} ${cls}" title="${foulsOf(p)} fouls">${name(p)}${foulsOf(p) ? ` <span class="muted">${"•".repeat(foulsOf(p))}</span>` : ""}</span>`).join("");
+    return `<div class="lineup"><h3 class="${cls}">${TEAM[t]}</h3><div class="players">${chips}</div></div>`;
+  };
+  $("paneCourt").innerHTML = `${team(HOME)}${team(AWAY)}<div class="section">This period</div><div class="stats"><span></span><b class="home-text">HOME</b><b class="away-text">AWAY</b><span>team fouls</span><span>${S.teamFouls[HOME]}</span><span>${S.teamFouls[AWAY]}</span><span>timeouts left</span><span>${S.timeoutsLeft[HOME]}</span><span>${S.timeoutsLeft[AWAY]}</span></div><p class="muted" style="font-size:12px">Bold: on court. Dots: personal fouls; six foul a player out, and his team must change at the next play.</p>`;
+}
+
+function showTab(name) {
+  for (const t of ["Node", "Log", "Court"]) { $("tab" + t).classList.toggle("on", t === name); $("pane" + t).classList.toggle("on", t === name); }
+}
+
+$("tabNode").onclick = () => showTab("Node"); $("tabLog").onclick = () => showTab("Log"); $("tabCourt").onclick = () => showTab("Court");
+$("play").onclick = () => {
+  setPlaying(!playing);
+  if (playing && !busy) { if (auto) stepOnce(); else if (RULES[current]) stepOnce(); else { awaiting = current; renderAll(); } }
+};
+$("step").onclick = () => { setPlaying(false); stepOnce(); };
+$("restart").onclick = () => newGame();
+$("modeAuto").onclick = () => { auto = true; $("modeAuto").classList.add("on"); $("modeYou").classList.remove("on"); awaiting = null; renderAll(); if (playing && !busy) stepOnce(); };
+$("modeYou").onclick = () => { auto = false; $("modeYou").classList.add("on"); $("modeAuto").classList.remove("on"); if (!busy && !RULES[current]) { awaiting = current; } renderAll(); };
+$("helpButton").onclick = () => $("help").classList.add("on");
+$("helpClose").onclick = () => $("help").classList.remove("on");
+$("help").onclick = e => { if (e.target.id === "help") $("help").classList.remove("on"); };
+document.addEventListener("keydown", e => { if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); $("play").click(); } if (e.key === "ArrowRight") $("step").click(); });
+
+drawDiagram();
+newGame();
+if (!localStorage.getItem("gamegraph-help-seen")) { $("help").classList.add("on"); localStorage.setItem("gamegraph-help-seen", "1"); }
+</script>
+</body>
+</html>
