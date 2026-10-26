@@ -1,7 +1,7 @@
 using GameGraph.Engine;
 using GameGraph.Nba.Graph;
-using GameGraph.Nba.Observed;
 using GameGraph.Nba.Incidents;
+using GameGraph.Nba.Observed;
 
 namespace GameGraph.Nba.Replay;
 
@@ -9,33 +9,65 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 {
     private const double UnreadPointsPerPossession = 0;
 
-    private readonly ObservedDecision[] _decisions;
-    private int _next;
+    private readonly AcceptedGame _game;
+    private readonly Dictionary<NodeSpec<NbaState>, Func<NbaState, int>> _readers;
+    private ObservedActionCursor? _action;
+    private bool _afterRead;
+    private bool _nextBeforeRead;
+    private ObservedStoppage? _stoppage;
+    private AwardedFreeThrow? _awarded;
 
     public ObservedOutcomeDecider(AcceptedGame game)
     {
-        var possessions = game.Possessions;
-        var decisions = new List<ObservedDecision>();
-
-        foreach (var starters in game.Roster.Starters)
-            decisions.Add(new ObservedDecision(NbaNodes.Starters, s => Chosen(NbaNodes.Starters, s, starters), Sides.Home, 0));
-
-        for (var i = 0; i < possessions.Length; i++)
+        _game = game;
+        _readers = new()
         {
-            var possession = possessions[i];
+            [NbaNodes.Starters] = s => Chosen(NbaNodes.Starters, s, game.Roster.Starters[s.LineupTeam]),
+            [NbaNodes.JumpBall] = s => Number(NextPossession(s).TeamInPossession == Sides.Home),
+            [NbaNodes.OffenceTimeout] = s => Stoppage(s).Called(s.TeamInPossession),
+            [NbaNodes.DefenceTimeout] = s => Stoppage(s).Called(Sides.Opponent(s.TeamInPossession)),
+            [NbaNodes.Substitutions] = s => Stoppage(s).Teams(s.TeamInPossession),
+            [NbaNodes.SubstitutionCount] = s => Chosen(NbaNodes.SubstitutionCount, s, [ForcedAmong(s, Stoppage(s).Change(s.LineupTeam).Off).Length]),
+            [NbaNodes.SubstitutedOff] = s => Chosen(NbaNodes.SubstitutedOff, s, [.. Stoppage(s).Change(s.LineupTeam).Off.Except(s.Leaving.Take(s.ForcedOff))]),
+            [NbaNodes.SubstitutedOn] = s => Chosen(NbaNodes.SubstitutedOn, s, Stoppage(s).TakeChange(s.LineupTeam).On),
+            [NbaNodes.AwardedFreeThrow] = NextAwarded,
+            [NbaNodes.AwardedShooter] = s => Chosen(NbaNodes.AwardedShooter, s, [Awarded().Shooter]),
+            [NbaNodes.AwardedFouler] = s => Chosen(NbaNodes.AwardedFouler, s, [Awarded().Fouler ?? throw Disagree("The rules ask for the fouler of an awarded free throw that has none")]),
+            [NbaNodes.AwardedFreeThrowMade] = _ => Number(Awarded().Made),
+            [NbaNodes.PeriodRunsOut] = PeriodRunsOut,
+            [NbaNodes.ActionType] = s => ActionTypes.Category(NextAction(s).Action.Type),
+            [NbaNodes.ActionTime] = s => ActionTime(s, Action.Action.Clock),
+            [NbaNodes.Shooter] = s => Chosen(NbaNodes.Shooter, s, [Action.As<ObservedShot>().Shooter]),
+            [NbaNodes.FouledOnShot] = _ => Number(Action.As<ObservedShot>().Fouled),
+            [NbaNodes.Fouler] = s => Chosen(NbaNodes.Fouler, s, [Fouler()]),
+            [NbaNodes.ShotMade] = _ => Number(Action.As<ObservedShot>().Made),
+            [NbaNodes.Assisted] = _ => Number(Action.As<ObservedShot>().Assister is not null),
+            [NbaNodes.Assister] = s => Chosen(NbaNodes.Assister, s, [Action.As<ObservedShot>().Assister ?? throw Disagree("The rules ask for the assister of an unassisted shot")]),
+            [NbaNodes.Blocked] = _ => Number(Action.As<ObservedShot>().Blocker is not null),
+            [NbaNodes.Blocker] = s => Chosen(NbaNodes.Blocker, s, [Action.As<ObservedShot>().Blocker ?? throw Disagree("The rules ask for the blocker of an unblocked shot")]),
+            [NbaNodes.FouledPlayer] = s => Chosen(NbaNodes.FouledPlayer, s, [Action.As<ObservedFoul>().FouledPlayer]),
+            [NbaNodes.InBonus] = _ => Number(Action.As<ObservedFoul>().InBonus),
+            [NbaNodes.FreeThrowMade] = _ => FreeThrowMade(),
+            [NbaNodes.OffensiveRebound] = _ => Number(Action.ReadRebound().Offensive),
+            [NbaNodes.TeamRebound] = _ => Number(Action.Rebound.ByTeam),
+            [NbaNodes.Rebounder] = s => Chosen(NbaNodes.Rebounder, s, [Action.Rebound.Rebounder ?? throw Disagree("The rules ask for the rebounder of a team rebound")]),
+            [NbaNodes.TurnoverKind] = _ => Action.As<ObservedTurnover>().Kind,
+            [NbaNodes.TurnedOverBy] = s => Chosen(NbaNodes.TurnedOverBy, s, [Action.As<ObservedTurnover>().Player ?? throw Disagree("The rules ask for the player of a turnover that has none")]),
+            [NbaNodes.Stolen] = _ => Number(Action.As<ObservedTurnover>().Stolen),
+            [NbaNodes.Stealer] = s => Chosen(NbaNodes.Stealer, s, [Action.As<ObservedTurnover>().Stealer ?? throw Disagree("The rules ask for the stealer of a turnover that was not stolen")]),
+        };
 
-            if ((i == 0 || possessions[i - 1].Period != possession.Period) && (possession.Period == 0 || possession.Period >= Periods.Regulation))
-                decisions.Add(new ObservedDecision(NbaNodes.JumpBall, _ => Number(possession.TeamInPossession == Sides.Home), Sides.Home, possession.Period));
+        var unread = NbaGameSpec.Instance.Nodes.Where(n => !_readers.ContainsKey(n)).Select(n => n.Name).ToArray();
 
-            decisions.AddRange(Decisions(possession));
-        }
-
-        _decisions = [.. decisions];
+        if (unread.Length > 0)
+            throw new InvalidOperationException($"The replay reads no fact for {string.Join(", ", unread)}");
     }
 
     public int ActionTimes { get; private set; }
 
     public int ClampedActionTimes { get; private set; }
+
+    private ObservedActionCursor Action => _action ?? throw Disagree("The rules ask about an action before the game's first");
 
     public static bool Follows(AcceptedGame game)
     {
@@ -57,48 +89,172 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         }
     }
 
-    public int Decide(NodeSpec<NbaState> node, NbaState state, ReadOnlySpan<double> features)
-    {
-        if (node == NbaNodes.AwardedFreeThrow && !IsUpcoming(node, state))
-            return AwardedFreeThrows.None;
-
-        if ((node == NbaNodes.OffenceTimeout || node == NbaNodes.DefenceTimeout) && !IsUpcoming(node, state))
-            return 0;
-
-        if (node == NbaNodes.Substitutions && !IsUpcoming(node, state))
-            return SubstitutingTeams.None;
-
-        if (node == NbaNodes.PeriodRunsOut)
-            return Number(UpcomingIn(state.Period) is null);
-
-        var decision = Upcoming() ?? throw new RulesDisagreeWithDataException($"The rules asked for {node.Name} after the game's last observed decision");
-
-        if (decision.Node != node || decision.TeamInPossession != state.TeamInPossession || decision.Period != state.Period)
-            throw new RulesDisagreeWithDataException($"Decision {_next}: the data has {decision.Node.Name} for {Sides.Name(decision.TeamInPossession)} in period {decision.Period}, the rules ask for {node.Name} for {Sides.Name(state.TeamInPossession)} in period {state.Period}");
-
-        _next++;
-        return decision.Outcome(state);
-    }
+    public int Decide(NodeSpec<NbaState> node, NbaState state, ReadOnlySpan<double> features) => _readers[node](state);
 
     public void EnsureAllUsed()
     {
-        if (_next != _decisions.Length)
-            throw new RulesDisagreeWithDataException($"The game ended after {_next} of {_decisions.Length} observed decisions");
+        if (_stoppage is not null)
+            throw Disagree("The game ended inside a stoppage");
+
+        if (Next() is { } next)
+            throw Disagree($"The game ended before action {next.Action} of possession {next.Possession}");
+
+        if (_action is { IsRead: false })
+            throw Disagree("The game ended before its last action's free throws or rebound");
+
+        if (_action is { } last && !_afterRead && HasAfter(_game.Possessions[last.Possession]))
+            throw Disagree("The game ended before the stoppage after its last possession");
     }
 
-    private ObservedDecision? Upcoming() => _next < _decisions.Length ? _decisions[_next] : null;
+    private (int Possession, int Action)? Next()
+    {
+        if (_action is not { } current)
+            return _game.Possessions.Length > 0 ? (0, 0) : null;
 
-    private ObservedDecision? UpcomingIn(int period) => Upcoming() is { } next && next.Period == period ? next : null;
+        if (current.Index + 1 < _game.Possessions[current.Possession].Actions.Length)
+            return (current.Possession, current.Index + 1);
 
-    private bool IsUpcoming(NodeSpec<NbaState> node, NbaState state) =>
-        Upcoming() is { } next && next.Node == node && next.TeamInPossession == state.TeamInPossession && next.Period == state.Period;
+        return current.Possession + 1 < _game.Possessions.Length ? (current.Possession + 1, 0) : null;
+    }
+
+    private Possession NextPossession(NbaState state)
+    {
+        var next = Next() ?? throw Disagree("The rules ask for a possession after the game's last");
+        var possession = _game.Possessions[next.Possession];
+
+        return possession.Period == state.Period
+            ? possession
+            : throw Disagree($"The rules ask for a possession in period {state.Period}, the data's next is in period {possession.Period}");
+    }
+
+    private ObservedActionCursor NextAction(NbaState state)
+    {
+        var next = Next() ?? throw Disagree("The rules ask for an action after the game's last");
+        var possession = _game.Possessions[next.Possession];
+
+        if (_action is { IsRead: false })
+            throw Disagree("The rules left an action's free throws or rebound unread");
+
+        if (_action is { } current && next.Possession != current.Possession && !_afterRead && HasAfter(_game.Possessions[current.Possession]))
+            throw Disagree("The rules move to the next possession before the stoppage after this one");
+
+        if (!_nextBeforeRead)
+            throw Disagree("The rules ask for an action before its stoppage");
+
+        if (possession.TeamInPossession != state.TeamInPossession || possession.Period != state.Period)
+            throw Disagree($"The data's next action is {Sides.Name(possession.TeamInPossession)}'s in period {possession.Period}, the rules ask for {Sides.Name(state.TeamInPossession)}'s in period {state.Period}");
+
+        if (_action is null || next.Possession != _action.Possession)
+            _afterRead = false;
+
+        _action = new ObservedActionCursor(next.Possession, next.Action, possession.Actions[next.Action]);
+        _nextBeforeRead = false;
+
+        return _action;
+    }
+
+    private ObservedStoppage Stoppage(NbaState state) =>
+        _stoppage ??= state.Moment switch
+        {
+            Moment.FreeThrow => new ObservedStoppage(Action.BeforeNextFreeThrow(), []),
+            Moment.Play => PlayStoppage(state),
+            _ => throw new InvalidOperationException($"A stoppage is asked about outside one: {state.Moment}"),
+        };
+
+    private ObservedStoppage PlayStoppage(NbaState state)
+    {
+        if (_action is { } current)
+        {
+            var possession = _game.Possessions[current.Possession];
+
+            if (current.Index == possession.Actions.Length - 1 && !_afterRead && HasAfter(possession))
+            {
+                var last = possession.Actions[^1];
+                var team = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(possession.TeamInPossession) : possession.TeamInPossession;
+
+                if (team != state.TeamInPossession || possession.Period != state.Period)
+                    throw Disagree($"The stoppage after a possession is {Sides.Name(team)}'s in period {possession.Period}, the rules are at {Sides.Name(state.TeamInPossession)}'s in period {state.Period}");
+
+                _afterRead = true;
+                return new ObservedStoppage(possession.After, possession.AwardedAfter);
+            }
+        }
+
+        if (_nextBeforeRead || _action is { IsRead: false } || Next() is not { } next)
+            return ObservedStoppage.Empty;
+
+        var upcoming = _game.Possessions[next.Possession];
+
+        if (upcoming.Period != state.Period)
+            return ObservedStoppage.Empty;
+
+        if (upcoming.TeamInPossession != state.TeamInPossession)
+            throw Disagree($"The data's next action is {Sides.Name(upcoming.TeamInPossession)}'s, the rules are at a stoppage of {Sides.Name(state.TeamInPossession)}'s");
+
+        var action = upcoming.Actions[next.Action];
+
+        _nextBeforeRead = true;
+        return new ObservedStoppage(action.Before, action.AwardedBefore);
+    }
+
+    private int NextAwarded(NbaState state)
+    {
+        var stoppage = _stoppage ?? throw new InvalidOperationException("Awarded free throws are asked about outside a stoppage");
+
+        if (stoppage.NextAwarded() is { } awarded)
+        {
+            _awarded = awarded;
+            return AwardedFreeThrows.CategoryOf(awarded.Kind, awarded.Team != state.TeamInPossession)
+                ?? throw Disagree($"The rules have no category for a {awarded.Kind} free throw to the {(awarded.Team != state.TeamInPossession ? "defence" : "offence")}");
+        }
+
+        CloseStoppage();
+        return AwardedFreeThrows.None;
+    }
+
+    private AwardedFreeThrow Awarded() => _awarded ?? throw new InvalidOperationException("An awarded free throw is asked about before one was awarded");
+
+    private int FreeThrowMade()
+    {
+        var freeThrow = Action.TakeFreeThrow();
+
+        CloseStoppage();
+        return Number(freeThrow.Made);
+    }
+
+    private void CloseStoppage()
+    {
+        var stoppage = _stoppage ?? throw new InvalidOperationException("No stoppage to close");
+
+        if (!stoppage.IsRead)
+            throw Disagree("The rules left a stoppage's timeouts, substitutions or awarded free throws unread");
+
+        _stoppage = null;
+    }
+
+    private int PeriodRunsOut(NbaState state)
+    {
+        if (state.LastMiss != Miss.NotSet)
+            return Number(!Action.HasRebound);
+
+        return Number(Next() is not { } next || _game.Possessions[next.Possession].Period != state.Period);
+    }
+
+    private int Fouler() => Action.Action switch
+    {
+        ObservedShot shot => shot.Fouler ?? throw Disagree("The rules ask for the fouler of a clean shot"),
+        ObservedFoul foul => foul.Fouler,
+        var other => throw Disagree($"The rules ask for the fouler of a {other.GetType().Name}"),
+    };
+
+    private static bool HasAfter(Possession possession) => possession.After.Timeouts.Length > 0 || possession.After.Substitutions.Length > 0 || possession.AwardedAfter.Length > 0;
 
     private int ActionTime(NbaState state, int clock)
     {
         var seconds = state.PeriodClock - clock;
 
         if (seconds < 0)
-            throw new RulesDisagreeWithDataException($"An action at {clock} seconds left comes before the period clock's {state.PeriodClock}");
+            throw Disagree($"An action at {clock} seconds left comes before the period clock's {state.PeriodClock}");
 
         ActionTimes++;
 
@@ -109,167 +265,21 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         return state.Bound;
     }
 
-    private IEnumerable<ObservedDecision> Decisions(Possession possession)
-    {
-        var team = possession.TeamInPossession;
-
-        foreach (var action in possession.Actions)
-        {
-            foreach (var decision in Moment(action.Before, team))
-                yield return decision;
-
-            foreach (var decision in Awarded(action.AwardedBefore, team))
-                yield return decision;
-
-            yield return Decision(NbaNodes.ActionType, ActionTypes.Category(action.Type));
-            yield return new ObservedDecision(NbaNodes.ActionTime, s => ActionTime(s, action.Clock), team, possession.Period);
-
-            switch (action)
-            {
-                case ObservedShot shot:
-                    yield return Player(NbaNodes.Shooter, shot.Shooter);
-                    yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
-
-                    if (shot.Fouler is { } shootingFouler)
-                        yield return Player(NbaNodes.Fouler, shootingFouler);
-
-                    yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
-
-                    if (shot.Made)
-                    {
-                        yield return Decision(NbaNodes.Assisted, Number(shot.Assister is not null));
-
-                        if (shot.Assister is { } assister)
-                            yield return Player(NbaNodes.Assister, assister);
-                    }
-                    else if (!shot.Fouled)
-                    {
-                        yield return Decision(NbaNodes.Blocked, Number(shot.Blocker is not null));
-
-                        if (shot.Blocker is { } blocker)
-                            yield return Player(NbaNodes.Blocker, blocker);
-                    }
-
-                    foreach (var decision in shot.FreeThrows.SelectMany(FreeThrow))
-                        yield return decision;
-
-                    if (shot.Rebound is { } shotRebound)
-                    {
-                        foreach (var decision in Rebound(shotRebound))
-                            yield return decision;
-                    }
-
-                    break;
-                case ObservedFoul foul:
-                    yield return Player(NbaNodes.Fouler, foul.Fouler);
-                    yield return Player(NbaNodes.FouledPlayer, foul.FouledPlayer);
-                    yield return Decision(NbaNodes.InBonus, Number(foul.InBonus));
-
-                    foreach (var decision in foul.FreeThrows.SelectMany(FreeThrow))
-                        yield return decision;
-
-                    if (foul.Rebound is { } foulRebound)
-                    {
-                        foreach (var decision in Rebound(foulRebound))
-                            yield return decision;
-                    }
-
-                    break;
-                case ObservedTurnover turnover:
-                    yield return Decision(NbaNodes.TurnoverKind, turnover.Kind);
-
-                    if (turnover.Player is { } player)
-                        yield return Player(NbaNodes.TurnedOverBy, player);
-
-                    if (turnover.Kind == TurnoverKinds.Other)
-                        yield return Decision(NbaNodes.Stolen, Number(turnover.Stolen));
-
-                    if (turnover.Stealer is { } stealer)
-                        yield return Player(NbaNodes.Stealer, stealer);
-
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(possession), action.GetType().Name, "Not an observed action");
-            }
-        }
-
-        var last = possession.Actions[^1];
-        var after = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(team) : team;
-
-        foreach (var decision in Moment(possession.After, after))
-            yield return decision;
-
-        foreach (var decision in Awarded(possession.AwardedAfter, after))
-            yield return decision;
-
-        IEnumerable<ObservedDecision> Rebound(ObservedRebound rebound) =>
-            [
-                Decision(NbaNodes.OffensiveRebound, Number(rebound.Offensive)),
-                Decision(NbaNodes.TeamRebound, Number(rebound.ByTeam)),
-                .. rebound.Rebounder is { } rebounder ? [Player(NbaNodes.Rebounder, rebounder)] : Array.Empty<ObservedDecision>(),
-            ];
-
-        IEnumerable<ObservedDecision> FreeThrow(ObservedFreeThrow freeThrow) =>
-            [.. Moment(freeThrow.Before, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];
-
-        IEnumerable<ObservedDecision> Moment(ObservedMoment moment, int inPossession) =>
-            [.. Timeouts(moment.Timeouts, inPossession), .. Substitutions(moment.Substitutions, inPossession)];
-
-        IEnumerable<ObservedDecision> Substitutions(ObservedSubstitution[] substitutions, int inPossession)
-        {
-            if (substitutions.Length == 0)
-                yield break;
-
-            var offence = substitutions.Where(c => c.Team == inPossession).ToArray();
-            var defence = substitutions.Where(c => c.Team != inPossession).ToArray();
-
-            yield return new ObservedDecision(NbaNodes.Substitutions, _ => SubstitutingTeams.Of(offence.Length > 0, defence.Length > 0), inPossession, possession.Period);
-
-            foreach (var change in offence.Concat(defence))
-            {
-                yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [ForcedAmong(s, change.Off).Length]), inPossession, possession.Period);
-                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, [.. change.Off.Except(s.Leaving.Take(s.ForcedOff))]), inPossession, possession.Period);
-                yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
-            }
-        }
-
-        IEnumerable<ObservedDecision> Timeouts(int[] callers, int inPossession) =>
-            callers.Select(caller => new ObservedDecision(caller == inPossession ? NbaNodes.OffenceTimeout : NbaNodes.DefenceTimeout, _ => 1, inPossession, possession.Period));
-
-        IEnumerable<ObservedDecision> Awarded(AwardedFreeThrow[] awarded, int inPossession) =>
-            awarded.SelectMany(f => AwardedOne(f, inPossession));
-
-        IEnumerable<ObservedDecision> AwardedOne(AwardedFreeThrow f, int inPossession)
-        {
-            yield return new ObservedDecision(NbaNodes.AwardedFreeThrow, _ => AwardedFreeThrows.CategoryOf(f.Kind, f.Team != inPossession) ?? throw new RulesDisagreeWithDataException($"The rules have no category for a {f.Kind} free throw to the {(f.Team != inPossession ? "defence" : "offence")}"), inPossession, possession.Period);
-            yield return new ObservedDecision(NbaNodes.AwardedShooter, s => Chosen(NbaNodes.AwardedShooter, s, [f.Shooter]), inPossession, possession.Period);
-
-            if (f.Fouler is { } fouler)
-                yield return new ObservedDecision(NbaNodes.AwardedFouler, s => Chosen(NbaNodes.AwardedFouler, s, [fouler]), inPossession, possession.Period);
-
-            yield return new ObservedDecision(NbaNodes.AwardedFreeThrowMade, _ => Number(f.Made), inPossession, possession.Period);
-        }
-
-        ObservedDecision Decision(NodeSpec<NbaState> node, int outcome) =>
-            new(node, _ => outcome, team, possession.Period);
-
-        ObservedDecision Player(ChoiceNode<NbaState> node, int player) =>
-            new(node, s => Chosen(node, s, [player]), team, possession.Period);
-    }
-
     private static int[] ForcedAmong(NbaState state, int[] off)
     {
         var forced = state.Leaving.Take(state.ForcedOff).ToArray();
 
         return forced.All(off.Contains)
             ? off
-            : throw new RulesDisagreeWithDataException($"[{string.Join(", ", forced)}] fouled out in period {state.Period} at {state.PeriodClock} seconds left, but the change takes off [{string.Join(", ", off)}]");
+            : throw Disagree($"[{string.Join(", ", forced)}] fouled out in period {state.Period} at {state.PeriodClock} seconds left, but the change takes off [{string.Join(", ", off)}]");
     }
 
     private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int[] chosen) =>
         node.TryRowsOf(state, chosen, out var rows)
             ? rows
-            : throw new RulesDisagreeWithDataException($"{node.Name} chose [{string.Join(", ", chosen)}] in period {state.Period} at {state.PeriodClock} seconds left, but they are not among its candidates");
+            : throw Disagree($"{node.Name} chose [{string.Join(", ", chosen)}] in period {state.Period} at {state.PeriodClock} seconds left, but they are not among its candidates");
+
+    private static RulesDisagreeWithDataException Disagree(string message) => new(message);
 
     private static int Number(bool value) => value ? 1 : 0;
 }

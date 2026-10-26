@@ -31,7 +31,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
 | `src/Nba/GameGraph.Nba.Fixture` | Reads and writes the simulation fixture in `testdata/nba-simulation` |
-| `src/Nba/GameGraph.Nba.Tests.Unit` | The digest test (a fixed number of simulations of the fixture game, every decision and incident hashed and pinned) and the compiled walk's tests: its parameters bit for bit, its outcomes against the plain walk's, and one thread against many |
+| `src/Nba/GameGraph.Nba.Tests.Unit` | The digest test (a fixed number of simulations of the fixture game, every decision and incident hashed and pinned), the replay's tests on hand-made games, and the compiled walk's tests: its parameters bit for bit, its outcomes against the plain walk's, and one thread against many |
 | `src/Nba/GameGraph.Nba.Benchmark` | Times runs of 10,000 simulations of the fixture game on all threads, plain and compiled (Release only) |
 | `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | The audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game; `SimulationFixtureRefresh` rewrites the simulation fixture from the latest game and the fitted models. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
 | `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
