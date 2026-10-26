@@ -4,12 +4,13 @@ namespace GameGraph.Nba.Observed;
 
 public sealed record ObservedShot : ObservedAction
 {
-    public ObservedShot(int clock, int shooter, int points, bool fouled, bool made, ObservedFreeThrow[] freeThrows, ObservedRebound? rebound)
+    public ObservedShot(int clock, int shooter, int points, int? fouler, bool made, ObservedFreeThrow[] freeThrows, ObservedRebound? rebound)
         : base(clock)
     {
         if (points is not (2 or 3))
             throw new ArgumentOutOfRangeException(nameof(points), points, "A shot is worth 2 or 3");
 
+        var fouled = fouler is not null;
         var expected = !fouled ? 0 : made ? 1 : points;
 
         if (freeThrows.Length != expected)
@@ -19,7 +20,7 @@ public sealed record ObservedShot : ObservedAction
 
         Shooter = shooter;
         Points = points;
-        Fouled = fouled;
+        Fouler = fouler;
         Made = made;
         FreeThrows = freeThrows;
         Rebound = rebound;
@@ -29,7 +30,9 @@ public sealed record ObservedShot : ObservedAction
 
     public int Points { get; }
 
-    public bool Fouled { get; }
+    public int? Fouler { get; }
+
+    public bool Fouled => Fouler is not null;
 
     public bool Made { get; }
 

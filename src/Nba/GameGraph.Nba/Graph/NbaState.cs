@@ -8,8 +8,7 @@ public sealed class NbaState
     {
         Incidents = incidents;
         PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
-        LogTwoShares = context.LogTwoShares;
-        LogThreeShares = context.LogThreeShares;
+        LogShares = context.LogShares;
         UsualSeconds = context.UsualSeconds;
         StartShares = context.StartShares;
         StartedLastGame = context.StartedLastGame;
@@ -19,15 +18,16 @@ public sealed class NbaState
         Started = new bool[UsualSeconds.Length];
         ChangedAt = new int[UsualSeconds.Length];
         SecondsPlayed = new int[UsualSeconds.Length];
+        Rebounds = new int[UsualSeconds.Length];
+        Turnovers = new int[UsualSeconds.Length];
+        PersonalFouls = new int[UsualSeconds.Length];
     }
 
     public INbaIncidentCollector Incidents { get; }
 
     public double[] PointsPerPossession { get; }
 
-    public double[] LogTwoShares { get; }
-
-    public double[] LogThreeShares { get; }
+    public double[][] LogShares { get; }
 
     public double[] UsualSeconds { get; }
 
@@ -48,6 +48,16 @@ public sealed class NbaState
     public int[] ChangedAt { get; }
 
     public int[] SecondsPlayed { get; }
+
+    public int[] Rebounds { get; }
+
+    public int[] Turnovers { get; }
+
+    public int[] PersonalFouls { get; }
+
+    public int Shooter { get; set; }
+
+    public int TurnoverKind { get; set; }
 
     public int LineupTeam { get; set; } = Sides.Home;
 

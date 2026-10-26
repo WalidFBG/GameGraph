@@ -1,3 +1,3 @@
 namespace GameGraph.Nba.Tests.QualityAssurance.Definitions;
 
-internal readonly record struct PlayerTotals(bool Started, int Seconds);
+internal readonly record struct PlayerTotals(bool Started, int Seconds, int Rebounds, int Turnovers, int Fouls);

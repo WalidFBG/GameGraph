@@ -7,7 +7,7 @@ public sealed class PlayerHistory
 {
     public const int GamesKept = 20;
 
-    public const double PriorAttempts = 5;
+    public const double PriorEvents = 5;
 
     public const double PriorGames = 2;
 
@@ -15,9 +15,12 @@ public sealed class PlayerHistory
 
     private const double PriorShare = 1.0 / Lineups.Size;
 
+    private static readonly PlayerEvent[] Events = Enum.GetValues<PlayerEvent>();
+
     private readonly Dictionary<long, Queue<PlayerGame>> _games = [];
 
-    public double[] LogShares(AcceptedGame game, int points) => [.. game.Players.Select(id => Math.Log(Share(id, points)))];
+    public double[][] LogShares(AcceptedGame game) =>
+        [.. Events.Select(e => e == PlayerEvent.NotSet ? [] : game.Players.Select(id => Math.Log(Share(id, e))).ToArray())];
 
     public double[] UsualSeconds(AcceptedGame game) => [.. game.Players.Select(id => Shrunk(id, g => g.Seconds, PriorSeconds))];
 
@@ -27,25 +30,41 @@ public sealed class PlayerHistory
 
     public void Advance(AcceptedGame game)
     {
-        var games = new PlayerGame[game.Players.Length];
+        var games = game.Players.Select(_ => new PlayerGame()).ToArray();
         int[][] court = [.. game.Roster.Starters.Select(s => s.ToArray())];
 
         foreach (var possession in game.Possessions)
         {
+            var offence = possession.TeamInPossession;
+            var defence = Sides.Opponent(offence);
+
             foreach (var action in possession.Actions)
             {
                 Substitute(court, action.Before);
 
-                if (action is ObservedShot shot)
+                switch (action)
                 {
-                    foreach (var player in court[possession.TeamInPossession])
-                        games[player] = games[player].WithTeamAttempt(shot.Points);
+                    case ObservedShot shot:
+                        Credit(games, court[offence], shot.Shooter, shot.Points == 3 ? PlayerEvent.ThreePointAttempt : PlayerEvent.TwoPointAttempt);
 
-                    games[shot.Shooter] = games[shot.Shooter].WithAttempt(shot.Points);
+                        if (shot.Fouler is { } fouler)
+                            Credit(games, court[defence], fouler, PlayerEvent.Foul);
+
+                        break;
+                    case ObservedFoul foul:
+                        Credit(games, court[defence], foul.Fouler, PlayerEvent.Foul);
+                        Credit(games, court[offence], foul.FouledPlayer, PlayerEvent.FoulDrawn);
+                        break;
+                    case ObservedTurnover { Player: { } player } turnover:
+                        Credit(games, court[offence], player, turnover.Kind == TurnoverKinds.OffensiveFoul ? PlayerEvent.OffensiveFoul : PlayerEvent.Turnover);
+                        break;
                 }
 
                 foreach (var freeThrow in FreeThrowsOf(action))
                     Substitute(court, freeThrow.Before);
+
+                if (ReboundOf(action) is { Rebounder: { } rebounder } rebound)
+                    Credit(games, court[rebound.Offensive ? offence : defence], rebounder, rebound.Offensive ? PlayerEvent.OffensiveRebound : PlayerEvent.DefensiveRebound);
             }
 
             Substitute(court, possession.After);
@@ -54,8 +73,20 @@ public sealed class PlayerHistory
         for (var team = 0; team < game.Roster.Active.Length; team++)
         {
             foreach (var player in game.Roster.Active[team])
-                Add(game.Players[player], games[player] with { Seconds = game.Roster.SecondsPlayed[player], Started = game.Roster.Starters[team].Contains(player) });
+            {
+                games[player].Seconds = game.Roster.SecondsPlayed[player];
+                games[player].Started = game.Roster.Starters[team].Contains(player);
+                Add(game.Players[player], games[player]);
+            }
         }
+    }
+
+    private static void Credit(PlayerGame[] games, int[] court, int player, PlayerEvent e)
+    {
+        foreach (var teammate in court)
+            games[teammate].TeamEvents[(int)e]++;
+
+        games[player].Events[(int)e]++;
     }
 
     private static void Substitute(int[][] court, ObservedMoment moment)
@@ -75,6 +106,14 @@ public sealed class PlayerHistory
         _ => throw new ArgumentOutOfRangeException(nameof(action), action.GetType().Name, "Not an observed action"),
     };
 
+    private static ObservedRebound? ReboundOf(ObservedAction action) => action switch
+    {
+        ObservedShot shot => shot.Rebound,
+        ObservedFoul foul => foul.Rebound,
+        ObservedTurnover => null,
+        _ => throw new ArgumentOutOfRangeException(nameof(action), action.GetType().Name, "Not an observed action"),
+    };
+
     private double Shrunk(long player, Func<PlayerGame, double> value, double prior)
     {
         var (sum, games) = _games.TryGetValue(player, out var history) ? (history.Sum(value), history.Count) : (0.0, 0);
@@ -82,15 +121,15 @@ public sealed class PlayerHistory
         return (sum + PriorGames * prior) / (games + PriorGames);
     }
 
-    private double Share(long player, int points)
+    private double Share(long player, PlayerEvent e)
     {
         if (!_games.TryGetValue(player, out var history))
             return PriorShare;
 
-        var attempts = history.Sum(g => points == 3 ? g.Threes : g.Twos);
-        var teamAttempts = history.Sum(g => points == 3 ? g.TeamThrees : g.TeamTwos);
+        var events = history.Sum(g => g.Events[(int)e]);
+        var teamEvents = history.Sum(g => g.TeamEvents[(int)e]);
 
-        return (attempts + PriorAttempts * PriorShare) / (teamAttempts + PriorAttempts);
+        return (events + PriorEvents * PriorShare) / (teamEvents + PriorEvents);
     }
 
     private void Add(long player, PlayerGame game)
@@ -104,10 +143,14 @@ public sealed class PlayerHistory
             history.Dequeue();
     }
 
-    private readonly record struct PlayerGame(int Twos, int TeamTwos, int Threes, int TeamThrees, int Seconds, bool Started)
+    private sealed class PlayerGame
     {
-        public PlayerGame WithAttempt(int points) => points == 3 ? this with { Threes = Threes + 1 } : this with { Twos = Twos + 1 };
+        public int[] Events { get; } = new int[PlayerHistory.Events.Length];
 
-        public PlayerGame WithTeamAttempt(int points) => points == 3 ? this with { TeamThrees = TeamThrees + 1 } : this with { TeamTwos = TeamTwos + 1 };
+        public int[] TeamEvents { get; } = new int[PlayerHistory.Events.Length];
+
+        public int Seconds { get; set; }
+
+        public bool Started { get; set; }
     }
 }

@@ -107,28 +107,65 @@ public static class NbaTransitions
                 state.ShotPoints = 3;
                 return NbaNodes.Shooter;
             case Graph.ActionType.Turnover:
-                return NbaNodes.Stolen;
+                return NbaNodes.TurnoverKind;
             case Graph.ActionType.NonShootingFoul:
                 DefenceFouls(state);
-                return NbaNodes.InBonus;
+                return NbaNodes.Fouler;
             default:
                 throw new InvalidOperationException($"No action to time: {state.Action}");
         }
     }
 
+    public static Next<NbaState> TurnoverKind(NbaState state, int kind)
+    {
+        if (kind is < TurnoverKinds.Other or > TurnoverKinds.OffensiveFoul)
+            throw new ArgumentOutOfRangeException(nameof(kind), kind, "A turnover is another kind, a team's or an offensive foul");
+
+        state.TurnoverKind = kind;
+        return kind == TurnoverKinds.Team ? EndOfPossession(state, PlayStart.DeadBallTurnover) : NbaNodes.TurnedOverBy;
+    }
+
+    public static Next<NbaState> TurnedOverBy(NbaState state, ReadOnlySpan<int> player)
+    {
+        state.Turnovers[player[0]]++;
+
+        if (state.TurnoverKind != TurnoverKinds.OffensiveFoul)
+            return NbaNodes.Stolen;
+
+        state.PersonalFouls[player[0]]++;
+        return EndOfPossession(state, PlayStart.DeadBallTurnover);
+    }
+
     public static Next<NbaState> Stolen(NbaState state, int stolen) =>
         EndOfPossession(state, Yes(stolen) ? PlayStart.Steal : PlayStart.DeadBallTurnover);
 
-    public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter) => NbaNodes.FouledOnShot;
+    public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter)
+    {
+        state.Shooter = shooter[0];
+        return NbaNodes.FouledOnShot;
+    }
 
     public static Next<NbaState> FouledOnShot(NbaState state, int fouled)
     {
         state.Fouled = Yes(fouled);
 
-        if (state.Fouled)
-            DefenceFouls(state);
+        if (!state.Fouled)
+            return NbaNodes.ShotMade;
 
-        return NbaNodes.ShotMade;
+        DefenceFouls(state);
+        return NbaNodes.Fouler;
+    }
+
+    public static Next<NbaState> Fouler(NbaState state, ReadOnlySpan<int> fouler)
+    {
+        state.PersonalFouls[fouler[0]]++;
+        return state.Fouled ? NbaNodes.ShotMade : NbaNodes.FouledPlayer;
+    }
+
+    public static Next<NbaState> FouledPlayer(NbaState state, ReadOnlySpan<int> fouled)
+    {
+        state.Shooter = fouled[0];
+        return NbaNodes.InBonus;
     }
 
     public static Next<NbaState> ShotMade(NbaState state, int made)
@@ -188,14 +225,13 @@ public static class NbaTransitions
         return NbaNodes.TeamRebound;
     }
 
-    public static Next<NbaState> TeamRebound(NbaState state, int byTeam)
-    {
-        if (!state.ReboundToOffence)
-            return EndOfPossession(state, Yes(byTeam) ? PlayStart.TeamDefensiveRebound : PlayStart.DefensiveRebound);
+    public static Next<NbaState> TeamRebound(NbaState state, int byTeam) =>
+        Yes(byTeam) ? AfterRebound(state, byTeam: true) : NbaNodes.Rebounder;
 
-        state.ShotClock = Graph.ShotClock.OffensiveRebound;
-        StartPlay(state, Yes(byTeam) ? PlayStart.TeamOffensiveRebound : PlayStart.OffensiveRebound);
-        return NextPlay(state);
+    public static Next<NbaState> Rebounder(NbaState state, ReadOnlySpan<int> rebounder)
+    {
+        state.Rebounds[rebounder[0]]++;
+        return AfterRebound(state, byTeam: false);
     }
 
     public static Next<NbaState> Substitutions(NbaState state, int teams)
@@ -225,6 +261,16 @@ public static class NbaTransitions
             Swap(state, state.LineupTeam, state.Leaving[i], on[i]);
 
         return NextChange(state);
+    }
+
+    private static Next<NbaState> AfterRebound(NbaState state, bool byTeam)
+    {
+        if (!state.ReboundToOffence)
+            return EndOfPossession(state, byTeam ? PlayStart.TeamDefensiveRebound : PlayStart.DefensiveRebound);
+
+        state.ShotClock = Graph.ShotClock.OffensiveRebound;
+        StartPlay(state, byTeam ? PlayStart.TeamOffensiveRebound : PlayStart.OffensiveRebound);
+        return NextPlay(state);
     }
 
     private static Next<NbaState> NextPlay(NbaState state) => AskTimeouts(state, Moment.Play);
@@ -349,7 +395,7 @@ public static class NbaTransitions
         for (var team = 0; team < state.Active.Length; team++)
         {
             foreach (var player in state.Active[team])
-                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now)));
+                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now), state.Rebounds[player], state.Turnovers[player], state.PersonalFouls[player]));
         }
     }
 
