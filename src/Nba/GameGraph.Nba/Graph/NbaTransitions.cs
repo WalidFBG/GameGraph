@@ -127,17 +127,24 @@ public static class NbaTransitions
 
     public static Next<NbaState> TurnedOverBy(NbaState state, ReadOnlySpan<int> player)
     {
-        state.Turnovers[player[0]]++;
+        Report(state, player[0], Credit.Turnover);
 
         if (state.TurnoverKind != TurnoverKinds.OffensiveFoul)
             return NbaNodes.Stolen;
 
         state.PersonalFouls[player[0]]++;
+        Report(state, player[0], Credit.Foul);
         return EndOfPossession(state, PlayStart.DeadBallTurnover);
     }
 
     public static Next<NbaState> Stolen(NbaState state, int stolen) =>
-        EndOfPossession(state, Yes(stolen) ? PlayStart.Steal : PlayStart.DeadBallTurnover);
+        Yes(stolen) ? NbaNodes.Stealer : EndOfPossession(state, PlayStart.DeadBallTurnover);
+
+    public static Next<NbaState> Stealer(NbaState state, ReadOnlySpan<int> stealer)
+    {
+        Report(state, stealer[0], Credit.Steal);
+        return EndOfPossession(state, PlayStart.Steal);
+    }
 
     public static Next<NbaState> Shooter(NbaState state, ReadOnlySpan<int> shooter)
     {
@@ -159,6 +166,7 @@ public static class NbaTransitions
     public static Next<NbaState> Fouler(NbaState state, ReadOnlySpan<int> fouler)
     {
         state.PersonalFouls[fouler[0]]++;
+        Report(state, fouler[0], Credit.Foul);
         return state.Fouled ? NbaNodes.ShotMade : NbaNodes.FouledPlayer;
     }
 
@@ -170,20 +178,48 @@ public static class NbaTransitions
 
     public static Next<NbaState> ShotMade(NbaState state, int made)
     {
-        if (Yes(made))
-            Score(state, state.ShotPoints);
+        var three = state.ShotPoints == 3;
 
-        if (state.Fouled)
+        if (!Yes(made))
         {
-            state.FreeThrowsLeft = Yes(made) ? 1 : state.ShotPoints;
-            return AskTimeouts(state, Moment.FreeThrow);
+            Report(state, state.Shooter, three ? Credit.ThreeMissed : Credit.TwoMissed);
+            return state.Fouled ? AfterShot(state, made: false) : NbaNodes.Blocked;
         }
 
-        if (Yes(made))
-            return EndOfPossession(state, PlayStart.MadeShot);
+        Score(state, state.ShotPoints);
+        Report(state, state.Shooter, three ? Credit.ThreeMade : Credit.TwoMade);
+        return NbaNodes.Assisted;
+    }
 
-        state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
-        return AfterMiss(state);
+    public static Next<NbaState> Assisted(NbaState state, int assisted)
+    {
+        if (!Yes(assisted))
+            return AfterShot(state, made: true);
+
+        var teammates = 0;
+
+        foreach (var player in state.OnCourt[state.TeamInPossession])
+        {
+            if (player != state.Shooter)
+                state.Teammates[teammates++] = player;
+        }
+
+        return NbaNodes.Assister;
+    }
+
+    public static Next<NbaState> Assister(NbaState state, ReadOnlySpan<int> assister)
+    {
+        Report(state, assister[0], Credit.Assist);
+        return AfterShot(state, made: true);
+    }
+
+    public static Next<NbaState> Blocked(NbaState state, int blocked) =>
+        Yes(blocked) ? NbaNodes.Blocker : AfterShot(state, made: false);
+
+    public static Next<NbaState> Blocker(NbaState state, ReadOnlySpan<int> blocker)
+    {
+        Report(state, blocker[0], Credit.Block);
+        return AfterShot(state, made: false);
     }
 
     public static Next<NbaState> InBonus(NbaState state, int inBonus)
@@ -203,6 +239,8 @@ public static class NbaTransitions
     {
         if (Yes(made))
             Score(state, 1);
+
+        Report(state, state.Shooter, Yes(made) ? Credit.FreeThrowMade : Credit.FreeThrowMissed);
 
         state.FreeThrowsLeft--;
 
@@ -230,7 +268,7 @@ public static class NbaTransitions
 
     public static Next<NbaState> Rebounder(NbaState state, ReadOnlySpan<int> rebounder)
     {
-        state.Rebounds[rebounder[0]]++;
+        Report(state, rebounder[0], state.ReboundToOffence ? Credit.OffensiveRebound : Credit.DefensiveRebound);
         return AfterRebound(state, byTeam: false);
     }
 
@@ -267,6 +305,21 @@ public static class NbaTransitions
 
         state.ForcedOff = 0;
         return NextChange(state);
+    }
+
+    private static Next<NbaState> AfterShot(NbaState state, bool made)
+    {
+        if (state.Fouled)
+        {
+            state.FreeThrowsLeft = made ? 1 : state.ShotPoints;
+            return AskTimeouts(state, Moment.FreeThrow);
+        }
+
+        if (made)
+            return EndOfPossession(state, PlayStart.MadeShot);
+
+        state.LastMiss = state.ShotPoints == 3 ? Miss.Three : Miss.Two;
+        return AfterMiss(state);
     }
 
     private static Next<NbaState> AfterRebound(NbaState state, bool byTeam)
@@ -417,9 +470,12 @@ public static class NbaTransitions
         for (var team = 0; team < state.Active.Length; team++)
         {
             foreach (var player in state.Active[team])
-                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now), state.Rebounds[player], state.Turnovers[player], state.PersonalFouls[player]));
+                state.Incidents.Played(new PlayedIncident(player, team, state.Started[player], state.SecondsOnCourt(player, now)));
         }
     }
+
+    private static void Report(NbaState state, int player, Credit credit) =>
+        state.Incidents.Credited(new CreditIncident(player, credit));
 
     private static void ReportPossession(NbaState state) =>
         state.Incidents.Possession(new PossessionIncident(state.TeamInPossession, state.Period, state.PossessionPoints));

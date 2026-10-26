@@ -11,4 +11,7 @@ public enum PlayerEvent
     OffensiveFoul = 6,
     Foul = 7,
     FoulDrawn = 8,
+    Assist = 9,
+    Steal = 10,
+    Block = 11,
 }

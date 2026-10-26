@@ -13,6 +13,12 @@ public sealed class PlayerHistory
 
     public const double PriorSeconds = 600;
 
+    public const double PriorShots = 10;
+
+    public const double PriorAssisted = 0.63;
+
+    public const double PriorBlocked = 0.055;
+
     private const double PriorShare = 1.0 / Lineups.Size;
 
     private static readonly PlayerEvent[] Events = Enum.GetValues<PlayerEvent>();
@@ -21,6 +27,10 @@ public sealed class PlayerHistory
 
     public double[][] LogShares(AcceptedGame game) =>
         [.. Events.Select(e => e == PlayerEvent.NotSet ? [] : game.Players.Select(id => Math.Log(Share(id, e))).ToArray())];
+
+    public double[] AssistedRates(AcceptedGame game) => [.. game.Players.Select(id => Rate(id, g => g.AssistedMakes, g => g.Makes, PriorAssisted))];
+
+    public double[] BlockedRates(AcceptedGame game) => [.. game.Players.Select(id => Rate(id, g => g.BlockedShots, g => g.Shots, PriorBlocked))];
 
     public double[] UsualSeconds(AcceptedGame game) => [.. game.Players.Select(id => Shrunk(id, g => g.Seconds, PriorSeconds))];
 
@@ -46,9 +56,25 @@ public sealed class PlayerHistory
                 {
                     case ObservedShot shot:
                         Credit(games, court[offence], shot.Shooter, shot.Points == 3 ? PlayerEvent.ThreePointAttempt : PlayerEvent.TwoPointAttempt);
+                        games[shot.Shooter].Shots++;
 
                         if (shot.Fouler is { } fouler)
                             Credit(games, court[defence], fouler, PlayerEvent.Foul);
+
+                        if (shot.Made)
+                            games[shot.Shooter].Makes++;
+
+                        if (shot.Assister is { } assister)
+                        {
+                            Credit(games, court[offence], assister, PlayerEvent.Assist);
+                            games[shot.Shooter].AssistedMakes++;
+                        }
+
+                        if (shot.Blocker is { } blocker)
+                        {
+                            Credit(games, court[defence], blocker, PlayerEvent.Block);
+                            games[shot.Shooter].BlockedShots++;
+                        }
 
                         break;
                     case ObservedFoul foul:
@@ -57,6 +83,10 @@ public sealed class PlayerHistory
                         break;
                     case ObservedTurnover { Player: { } player } turnover:
                         Credit(games, court[offence], player, turnover.Kind == TurnoverKinds.OffensiveFoul ? PlayerEvent.OffensiveFoul : PlayerEvent.Turnover);
+
+                        if (turnover.Stealer is { } stealer)
+                            Credit(games, court[defence], stealer, PlayerEvent.Steal);
+
                         break;
                 }
 
@@ -132,6 +162,13 @@ public sealed class PlayerHistory
         return (events + PriorEvents * PriorShare) / (teamEvents + PriorEvents);
     }
 
+    private double Rate(long player, Func<PlayerGame, int> events, Func<PlayerGame, int> chances, double prior)
+    {
+        var (hits, tries) = _games.TryGetValue(player, out var history) ? (history.Sum(events), history.Sum(chances)) : (0, 0);
+
+        return (hits + PriorShots * prior) / (tries + PriorShots);
+    }
+
     private void Add(long player, PlayerGame game)
     {
         if (!_games.TryGetValue(player, out var history))
@@ -148,6 +185,14 @@ public sealed class PlayerHistory
         public int[] Events { get; } = new int[PlayerHistory.Events.Length];
 
         public int[] TeamEvents { get; } = new int[PlayerHistory.Events.Length];
+
+        public int Shots { get; set; }
+
+        public int Makes { get; set; }
+
+        public int AssistedMakes { get; set; }
+
+        public int BlockedShots { get; set; }
 
         public int Seconds { get; set; }
 

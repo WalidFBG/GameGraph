@@ -6,5 +6,7 @@ public interface INbaIncidentCollector
 
     void AwardedFreeThrow(in AwardedFreeThrowIncident incident);
 
+    void Credited(in CreditIncident incident);
+
     void Played(in PlayedIncident incident);
 }

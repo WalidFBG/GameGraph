@@ -39,7 +39,7 @@ public sealed class SimulationAudit(ITestOutputHelper output)
         var playersPath = Path.Combine(directory, "players.parquet");
         await PlayerComparisonWriter.Write(playersPath, comparisons);
 
-        output.WriteLine($"Each active player's seconds, rebounds, turnovers and fouls, real and simulated, written to {playersPath}");
+        output.WriteLine($"Each active player's seconds and box score, real and simulated, written to {playersPath}");
         output.WriteLine($"Run complete: {DataDirectories.Complete(directory)}");
     }
 }

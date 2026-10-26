@@ -51,7 +51,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
                 CloseAndOneWindow();
                 RequireNoOpenAction();
                 StartAction(TurnoverTeam(turnover));
-                _actions.Add(new ObservedTurnover(ActionClock(turnover), TurnoverPlayer(turnover), turnover.TurnoverType == TurnoverType.OffensiveFoul, Stolen(turnover)) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
+                _actions.Add(new ObservedTurnover(ActionClock(turnover), TurnoverPlayer(turnover), turnover.TurnoverType == TurnoverType.OffensiveFoul, SlotIfAny(turnover.Participants, ParticipationType.StolenBy)) { AwardedBefore = TakeAwarded(), Before = TakeMoment() });
                 break;
             case Foul foul:
                 Foul(foul);
@@ -122,7 +122,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         };
 
         StartAction(TeamOf(shot.Participants, ParticipationType.ShotBy));
-        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeMoment()) { Made = shot.Made, Shooter = SlotOf(shot.Participants, ParticipationType.ShotBy) };
+        _open = new OpenAction(ActionClock(shot), points, shot.Made ? Phase.AndOneWindow : Phase.Rebound, TakeAwarded(), TakeMoment()) { Made = shot.Made, Shooter = SlotOf(shot.Participants, ParticipationType.ShotBy), Assister = SlotIfAny(shot.Participants, ParticipationType.AssistedBy), Blocker = SlotIfAny(shot.Participants, ParticipationType.BlockedBy) };
     }
 
     private void Foul(Foul foul)
@@ -287,7 +287,7 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
 
         _actions.Add(open.Points == 0
             ? new ObservedFoul(open.Clock, open.Fouler ?? throw new InvalidOperationException("A non-shooting foul has its fouler"), open.FouledPlayer, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, Before = open.Before }
-            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouler, open.Made, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, Before = open.Before });
+            : new ObservedShot(open.Clock, open.Shooter, open.Points, open.Fouler, open.Made, open.Assister, open.Blocker, open.FreeThrows.ToArray(), rebound) { AwardedBefore = open.AwardedBefore, Before = open.Before });
         _open = null;
     }
 
@@ -370,13 +370,10 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
             ? TeamOf(turnover.Participants, ParticipationType.TurnoverCommittedBy)
             : Side(turnover.TeamInPossession);
 
-    private int? TurnoverPlayer(Turnover turnover) =>
-        turnover.Participants?.Any(p => p.Type == ParticipationType.TurnoverCommittedBy) == true
-            ? SlotOf(turnover.Participants, ParticipationType.TurnoverCommittedBy)
-            : null;
+    private int? TurnoverPlayer(Turnover turnover) => SlotIfAny(turnover.Participants, ParticipationType.TurnoverCommittedBy);
 
-    private static bool Stolen(Turnover turnover) =>
-        turnover.Participants?.Any(p => p.Type == ParticipationType.StolenBy) == true;
+    private int? SlotIfAny(Participant[]? participants, ParticipationType role) =>
+        participants?.Any(p => p.Type == role) == true ? SlotOf(participants, role) : null;
 
     private int TeamOf(Participant[]? participants, ParticipationType role)
     {
@@ -423,6 +420,10 @@ internal sealed class PossessionParser(Dictionary<long, TeamType> teams, Diction
         public bool Made { get; init; }
 
         public int Shooter { get; init; }
+
+        public int? Assister { get; init; }
+
+        public int? Blocker { get; init; }
 
         public int? Fouler { get; set; }
 

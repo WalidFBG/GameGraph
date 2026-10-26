@@ -9,6 +9,8 @@ public sealed class NbaState
         Incidents = incidents;
         PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
         LogShares = context.LogShares;
+        AssistedRates = context.AssistedRates;
+        BlockedRates = context.BlockedRates;
         UsualSeconds = context.UsualSeconds;
         StartShares = context.StartShares;
         StartedLastGame = context.StartedLastGame;
@@ -18,8 +20,6 @@ public sealed class NbaState
         Started = new bool[UsualSeconds.Length];
         ChangedAt = new int[UsualSeconds.Length];
         SecondsPlayed = new int[UsualSeconds.Length];
-        Rebounds = new int[UsualSeconds.Length];
-        Turnovers = new int[UsualSeconds.Length];
         PersonalFouls = new int[UsualSeconds.Length];
     }
 
@@ -28,6 +28,10 @@ public sealed class NbaState
     public double[] PointsPerPossession { get; }
 
     public double[][] LogShares { get; }
+
+    public double[] AssistedRates { get; }
+
+    public double[] BlockedRates { get; }
 
     public double[] UsualSeconds { get; }
 
@@ -49,11 +53,9 @@ public sealed class NbaState
 
     public int[] SecondsPlayed { get; }
 
-    public int[] Rebounds { get; }
-
-    public int[] Turnovers { get; }
-
     public int[] PersonalFouls { get; }
+
+    public int[] Teammates { get; } = new int[Lineups.Size - 1];
 
     public int Shooter { get; set; }
 

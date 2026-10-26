@@ -30,7 +30,18 @@ PLAYER_GROUPS = (
     ("bench started", 0, 1),
     ("bench benched", 0, 0),
 )
-PLAYER_COUNTS = ("rebounds", "turnovers", "fouls")
+PLAYER_COUNTS = (
+    "points",
+    "attempts",
+    "threes",
+    "free throws",
+    "rebounds",
+    "assists",
+    "steals",
+    "blocks",
+    "turnovers",
+    "fouls",
+)
 FOUL_OUT = 6
 QUARTILES = (0.25, 0.5, 0.75)
 REGULATION_PERIODS = 4
