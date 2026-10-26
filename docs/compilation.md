@@ -37,6 +37,11 @@ The benchmark's baseline for the plain walk: 2.47 s for 10,000 simulations (the 
 3. **The compiler**: done (`CompiledGame`). The features, the predictors in their final form, and calls to everything else (decisions below), with the bit-for-bit parameter test, the plain-against-compiled digest, the test that results do not depend on the number of threads, and the benchmark of both. Compiling the game takes 0.06 s. On one thread the compiled walk takes ~395 µs a simulation against the plain walk's ~665 µs (the plain walk itself gained from the struct step); the benchmark's median is 0.54 s against the plain walk's 1.04 s, 4.6 times as fast as the baseline, past the target. A planted error of 1e-15 in one intercept fails the bit-for-bit test at the first decision and passes the outcome digest, as decision 8 expected.
 4. **Generating a family's arithmetic**, only if the profile after compiling shows sampling dominating, in its own pull request.
 
+After the compiler, the families are the largest part of a simulation: replayed on recorded parameters, ~200 to 235 µs of ~400, of which the choices ~115 µs (`Shooter` 37, `Rebounder` 17, `SubstitutedOn` 16), the discrete Johnson SU ~40 µs (`ActionTime`, 170 ns a sample) and the categoricals ~50 µs; allocation is negligible (7 KB a simulation). So the families' algorithms come before their code:
+
+5. **A choice of one**: done. `Choice.Sample` takes a choice of one candidate (`Shooter`, `Rebounder`, `Assister`, `Fouler` and the like) as a softmax over the candidates in their order, one `exp` each, instead of the general choice of k (a table of log-sums, an `exp` and a log a cell). It picks the same candidate for the same uniform; only rounding differs, and the parity tests with Python and the digest are unchanged. The benchmark's compiled median, before and after on the same machine back to back: 0.55 s to 0.49 s.
+6. **The normal functions** of the discrete Johnson SU (`Normal.Cdf` is `exp` of `LogCdf`), next.
+
 The target: the compiled walk at least three times as fast as the plain walk was before step 1 (the benchmark's median under about 0.8 s). If steps 1 and 2 bring most of it, the compiler's remit shrinks accordingly.
 
 ## Decisions

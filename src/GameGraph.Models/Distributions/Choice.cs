@@ -33,6 +33,10 @@ internal sealed class Choice : IDistribution
         Uniforms.Require(uniform);
 
         var (candidates, size) = Decision(parameters);
+
+        if (size == 1)
+            return 1 << SampleOne(parameters, candidates, uniform);
+
         var width = size + 1;
         Span<double> suffixes = stackalloc double[(candidates + 1) * width];
         FillSuffixSets(parameters, candidates, size, suffixes);
@@ -110,6 +114,35 @@ internal sealed class Choice : IDistribution
     }
 
     private static double Utility(ReadOnlySpan<double> parameters, int candidate) => parameters[candidate * ParametersPerCandidate];
+
+    private static int SampleOne(ReadOnlySpan<double> parameters, int candidates, double uniform)
+    {
+        var max = double.NegativeInfinity;
+
+        for (var c = 0; c < candidates; c++)
+            max = Math.Max(max, Utility(parameters, c));
+
+        Span<double> weights = stackalloc double[candidates];
+        var total = 0.0;
+
+        for (var c = 0; c < candidates; c++)
+        {
+            weights[c] = Math.Exp(Utility(parameters, c) - max);
+            total += weights[c];
+        }
+
+        var cumulative = 0.0;
+
+        for (var c = 0; c < candidates - 1; c++)
+        {
+            cumulative += weights[c] / total;
+
+            if (uniform < cumulative)
+                return c;
+        }
+
+        return candidates - 1;
+    }
 
     private static void FillSuffixSets(ReadOnlySpan<double> parameters, int candidates, int size, Span<double> suffixes)
     {
