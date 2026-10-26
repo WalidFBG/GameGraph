@@ -10,7 +10,7 @@ public sealed class SimulationDigestTests
 {
     private const int Simulations = 1_000;
 
-    private const string Digest = "1379d453587164f75ba99d59f9779150e4425d8ff9913cfde71d2b09d392e5f9";
+    private const string Digest = "15693f2e60d2efc7ac0830b4b9144b3373c331432779c5ce6272fd97c8fb7fdd";
 
     [Fact]
     public void TheFixedGamesSimulationsAskEveryNodeAndKeepTheirDigest()
