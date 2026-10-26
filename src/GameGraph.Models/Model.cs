@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using GameGraph.Contract;
 using GameGraph.Contract.Distributions;
 using GameGraph.Models.Distributions;
@@ -53,6 +54,32 @@ public sealed class Model
         }
     }
 
+    internal Expression WriteParametersExpression(IReadOnlyList<Expression> row, Expression parameters, Expression at)
+    {
+        if (row.Count != _features)
+            throw new ArgumentException($"A row has {_features} features, given {row.Count}", nameof(row));
+
+        var segments = _lookups.Select(_ => Expression.Variable(typeof(int))).ToArray();
+        var located = _lookups.Select(_ => Expression.Variable(typeof(double))).ToArray();
+        var steps = new List<Expression>();
+        var offset = 0;
+
+        for (var l = 0; l < _lookups.Length; l++)
+            steps.Add(_lookups[l].LocateExpression(row, segments[l], located[l]));
+
+        foreach (var predictor in _predictors)
+            steps.Add(Expression.Assign(Expression.ArrayAccess(parameters, Expression.Add(at, Expression.Constant(offset++))), predictor.ValueExpression(row, segments, located)));
+
+        foreach (var column in _givenColumns)
+            steps.Add(Expression.Assign(Expression.ArrayAccess(parameters, Expression.Add(at, Expression.Constant(offset++))), row[column]));
+
+        steps.Add(Expression.Empty());
+
+        return Expression.Block([.. segments, .. located], steps);
+    }
+
+    internal int SampleFrom(double[] parameters, int count, double uniform) => _distribution.Sample(parameters.AsSpan(0, count), uniform);
+
     public double LogProbability(ReadOnlySpan<double> features, int outcome)
     {
         Span<double> parameters = stackalloc double[ParameterValueCount(features)];
@@ -93,7 +120,7 @@ public sealed class Model
         _ => throw new ArgumentOutOfRangeException(nameof(declaration), declaration.GetType().Name, "Not a distribution"),
     };
 
-    private int ParametersPerRow => _predictors.Length + _givenColumns.Length;
+    internal int ParametersPerRow => _predictors.Length + _givenColumns.Length;
 
     private int ParameterValueCount(ReadOnlySpan<double> features) => Rows(features) * ParametersPerRow;
 

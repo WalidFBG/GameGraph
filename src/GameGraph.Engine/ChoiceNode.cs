@@ -51,6 +51,14 @@ public sealed class ChoiceNode<TState> : NodeSpec<TState>
 
     public int[] CandidatesIn(TState state) => _candidates(state);
 
+    public Expression CandidatesInline(Expression state) => ParameterSubstitution.Inline(Candidates, state);
+
+    public void RequireSize(double size, int candidates)
+    {
+        if (size < 0 || size > candidates)
+            throw new InvalidOperationException($"{Name} chooses {size} of {candidates} candidates");
+    }
+
     public bool TryRowsOf(TState state, ReadOnlySpan<int> chosen, out int rows)
     {
         var candidates = CandidatesIn(state);
@@ -82,8 +90,7 @@ public sealed class ChoiceNode<TState> : NodeSpec<TState>
         var candidates = CandidatesIn(state);
         var size = Size.Compute(state);
 
-        if (size < 0 || size > candidates.Length)
-            throw new InvalidOperationException($"{Name} chooses {size} of {candidates.Length} candidates");
+        RequireSize(size, candidates.Length);
 
         var width = Features.Length + 1;
         var features = Sized(ref buffer, candidates.Length * width);
