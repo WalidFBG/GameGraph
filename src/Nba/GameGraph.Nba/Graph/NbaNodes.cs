@@ -99,7 +99,7 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> AwardedFreeThrowMade = Node(
         nameof(AwardedFreeThrowMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ShooterMargin, NbaFeatures.ShooterPointsPerPossession, NbaFeatures.ShooterAtHome, .. NbaFeatures.KindAwarded],
+        [.. new[] { NbaFeatures.ShooterMargin, NbaFeatures.ShooterPointsPerPossession, NbaFeatures.ShooterAtHome }.Concat(NbaFeatures.KindAwarded).Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.AwardedShooterFreeThrowRate, 4)],
         NbaTransitions.AwardedFreeThrowMade);
 
     public static readonly NodeSpec<NbaState> PeriodRunsOut = Node(
@@ -123,6 +123,10 @@ public static class NbaNodes
             FeatureTerm.Spline(NbaFeatures.LatePeriodClock, 6),
             .. ClockByBand(FoulingBands, 4),
             .. new[] { PlayStart.OffensiveRebound, PlayStart.TeamDefensiveRebound, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
+            FeatureTerm.Spline(NbaFeatures.DefenceStealRate, 4),
+            FeatureTerm.Spline(NbaFeatures.OffenceTwoRate, 4),
+            FeatureTerm.Spline(NbaFeatures.OffenceThreeRate, 4),
+            FeatureTerm.Spline(NbaFeatures.OffenceFoulDrawnRate, 4),
         ],
         NbaTransitions.ActionType);
 
@@ -160,6 +164,7 @@ public static class NbaNodes
             FeatureTerm.Linear(NbaFeatures.ScoreMargin),
             FeatureTerm.Linear(NbaFeatures.LateInGame),
             .. new[] { PlayStart.MadeShot, PlayStart.SideOut, PlayStart.TeamOffensiveRebound, PlayStart.Steal }.Select(NbaFeatures.After).Select(FeatureTerm.Linear),
+            FeatureTerm.Spline(NbaFeatures.DefenceStealRate, 4),
         ],
         NbaTransitions.Stolen);
 
@@ -194,13 +199,13 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> FouledOnShot = Node(
         nameof(FouledOnShot),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.AtHome],
+        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterFouledRatio, 4), FeatureTerm.Spline(NbaFeatures.DefenceShootingFoulRate, 4)],
         NbaTransitions.FouledOnShot);
 
     public static readonly NodeSpec<NbaState> ShotMade = Node(
         nameof(ShotMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome],
+        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.ShotIsThree, NbaFeatures.ShotFouled, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterMakeRate, 4), FeatureTerm.Spline(NbaFeatures.DefenceBlockRate, 4)],
         NbaTransitions.ShotMade);
 
     public static readonly NodeSpec<NbaState> Assisted = Node(
@@ -243,13 +248,13 @@ public static class NbaNodes
     public static readonly NodeSpec<NbaState> FreeThrowMade = Node(
         nameof(FreeThrowMade),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.LastFreeThrow, NbaFeatures.AtHome],
+        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.LastFreeThrow, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.ShooterFreeThrowRate, 4)],
         NbaTransitions.FreeThrowMade);
 
     public static readonly NodeSpec<NbaState> OffensiveRebound = Node(
         nameof(OffensiveRebound),
         new BernoulliDistribution(),
-        [NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow, NbaFeatures.AtHome],
+        [.. new[] { NbaFeatures.ScoreMargin, NbaFeatures.TeamPointsPerPossession, NbaFeatures.MissedThree, NbaFeatures.MissedFreeThrow, NbaFeatures.AtHome }.Select(FeatureTerm.Linear), FeatureTerm.Spline(NbaFeatures.OffenceReboundRate, 4), FeatureTerm.Spline(NbaFeatures.DefenceReboundRate, 4)],
         NbaTransitions.OffensiveRebound);
 
     public static readonly NodeSpec<NbaState> TeamRebound = Node(

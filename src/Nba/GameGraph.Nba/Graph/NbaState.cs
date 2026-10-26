@@ -9,8 +9,8 @@ public sealed class NbaState
         Incidents = incidents;
         PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
         LogShares = context.LogShares;
-        AssistedRates = context.AssistedRates;
-        BlockedRates = context.BlockedRates;
+        Rates = context.Rates;
+        _lineupSources = LineupRate.Sources(context.Rates);
         UsualSeconds = context.UsualSeconds;
         StartShares = context.StartShares;
         StartedLastGame = context.StartedLastGame;
@@ -23,15 +23,19 @@ public sealed class NbaState
         PersonalFouls = new int[UsualSeconds.Length];
     }
 
+    private readonly double[][] _lineupSources;
+
     public INbaIncidentCollector Incidents { get; }
 
     public double[] PointsPerPossession { get; }
 
     public double[][] LogShares { get; }
 
-    public double[] AssistedRates { get; }
+    public PlayerRates Rates { get; }
 
-    public double[] BlockedRates { get; }
+    public double[][] LineupRates { get; } = [new double[LineupRate.Count], new double[LineupRate.Count]];
+
+    public int[] InFoulTroubleOnCourt { get; } = new int[2];
 
     public double[] UsualSeconds { get; }
 
@@ -147,7 +151,35 @@ public sealed class NbaState
 
     public bool IsInFoulTrouble(int player) => PersonalFouls[player] >= Math.Min(Period, Periods.Regulation - 1) + 2;
 
-    public int InFoulTrouble(int team) => OnCourt[team].Count(IsInFoulTrouble);
+    public void RecountLineup(int team)
+    {
+        var sums = LineupRates[team];
+
+        for (var rate = 0; rate < sums.Length; rate++)
+        {
+            var sum = 0.0;
+
+            foreach (var player in OnCourt[team])
+                sum += _lineupSources[rate][player];
+
+            sums[rate] = sum;
+        }
+
+        RecountFoulTrouble(team);
+    }
+
+    public void RecountFoulTrouble(int team)
+    {
+        var count = 0;
+
+        foreach (var player in OnCourt[team])
+        {
+            if (IsInFoulTrouble(player))
+                count++;
+        }
+
+        InFoulTroubleOnCourt[team] = count;
+    }
 
     public bool FouledOut(int player) => PersonalFouls[player] >= Lineups.FoulOut;
 

@@ -89,7 +89,7 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
    - lean nodes: every feature or block stays only if dropping it costs at least 0.0001 in validation per visit. The four nodes that had grown crossed 0/1 cells now have spline-per-band features instead: `OffenceTimeout` 117 features to 20, `DefenceTimeout` 117 to 17, `ActionType` 82 to 15, `PeriodRunsOut` 57 to 17; validation is worse by 0.0006 to 0.0023 a visit.
 6. Players and substitutions: who shoots, rebounds, turns it over and is fouled (the Choice family), and the five on court come from the simulation, not the real game.
 
-   **The player layer is a one-way consumer of the team graph.** Team state (margin, clock, period, fouls, timeouts, stoppages) feeds the player and substitution nodes; who is on court, who shoots, who fouls and who is fouled change nothing in a team node, so the team graph prices exactly as before. Players still affect players (a player's fouls drive foul trouble and foul-outs, his minutes fatigue). How the five on court changes the team nodes (their strength as team context, and the shooter's own rates) waits for slice 4 below. The cost falls on player markets: `FouledOnShot`, `ShotMade` and `FreeThrowMade` never know the shooter, so every player converts at his team's rate for the situation (a 38% and a 62% shooter of the same team's twos alike, a 90% and a 55% free-throw shooter alike), and a player's points are his share times his team's efficiency: calibrated in total, biased for each player. The shooter-dependent rates (fouled, made, free throws) are the first candidates to lift the rule for at the tuning; `Shooter` already comes before them, so the order allows it. All in one graph and one walk: the player nodes need the live state, but never write what a team node reads.
+   **Players reach the team nodes through a few measured rates, and nothing else.** Slices 1 to 3 kept the player layer a one-way consumer of the team graph: team state fed the player and substitution nodes, and no team node read a player. Slice 4 lifts that for the features that earned their place: the shooter's own make, fouled and free-throw rates (`ShotMade`, `FouledOnShot`, `FreeThrowMade`, `AwardedFreeThrowMade`), and rates of the fives on court (the twos/threes mix, fouls drawn and steals for `ActionType`, steals for `Stolen`, rebounding for `OffensiveRebound`, blocks for `ShotMade`, shooting fouls for `FouledOnShot`). Each is a rate over the player's last 20 games shrunk towards the league's over its last 300 games (`PlayerRates`, in the context). Players still affect players (a player's fouls drive foul trouble and foul-outs). All in one graph and one walk.
 
    One slice at a time, each its own pull request:
    1. the Choice family and the lineup state, with the first player node, `Shooter`, end to end:
@@ -121,8 +121,37 @@ The next model is the team-level possession tree in `possession-tree.html`: ever
       - **steals, assists and blocks**: done. `Stealer` after a steal; `Assisted` then `Assister` (one of the other four) after a made shot; `Blocked` then `Blocker` after a missed shot; each player choice with one share feature; `Assisted` and `Blocked` read the shooter's own assisted and blocked rates (shrunk towards 0.63 and 0.055 by 10 shots). The player audit adds each player's points, attempts, threes, free throws, assists, steals and blocks: in total they match real (points 8.71 against 8.74, assists 2.02 against 2.03, steals 0.59 against 0.60), except blocks, 5% high (0.393 against 0.375): big men miss more often simulated than real, because `ShotMade` does not know the shooter, which slice 4 takes up.
       - **awarded free throws and the remaining fouls**: done. `AwardedShooter` picks who takes each awarded free throw, from everyone on the team's court in that dead ball (the graph asks the dead ball's substitutions first, but about 5% of awarded shooters leave right after their free throw), by his share of the team's awarded free throws, whether he took the previous one and whether he is on court now. `AwardedFouler` picks the take foul's fouler, who gains the foul. A flagrant's fouler is not credited: its free throws point at the foul it upgraded, often one the tree already counts. A player's technical fouls only matter for an ejection at two, and stay out.
    4. players affect the team: the rule above ends here, and only through features that earn their place.
-      - **the investigation** first: candidate features per team node from the five on court and from the player deciding (the five's shooting quality for `ShotMade`, their rebounding share for `OffensiveRebound`, their turnover rate for `TurnoverKind` and `ActionType`, the shooter's own rates for `ShotMade`, `FouledOnShot` and `FreeThrowMade`, with make rates as new shrunk history), each measured as usual (kept only if dropping it costs at least 0.0001 in validation per visit). The result is a short list written here before any change.
-      - **then one or two pull requests** for what survives: the shooter's own rates and the strength of the five touch different nodes, so they may be two.
+      - **the investigation**: done. Candidate features per team node from the player deciding and from the fives on court, each a rate over his last 20 games shrunk towards the league's, measured as usual (kept only if dropping it costs at least 0.0001 in validation per visit):
+
+        | Node | Feature | Prior | Dropping it costs |
+        |---|---|---|---|
+        | `FreeThrowMade` | the shooter's free-throw rate | 0.78, 20 free throws | 0.0116 |
+        | `FouledOnShot` | the shooter's rate of being fouled, for the shot type (in the pull request the log of its ratio to the league's, which puts twos and threes on one scale: 0.0004 better) | 0.16 or 0.011, 20 attempts | 0.0040 |
+        | `OffensiveRebound` | the offence five's offensive rebounds per rebound chance, summed | 0.045 a player, 50 chances | 0.0037 |
+        | `AwardedFreeThrowMade` | the awarded shooter's free-throw rate | as above | 0.0033 |
+        | `ShotMade` | the shooter's make rate, for the shot type | 0.48 or 0.36, 20 attempts | 0.0016 |
+        | `Stolen` | the defence five's steals per action, summed | 0.017 a player, 100 actions | 0.0010 |
+        | `OffensiveRebound` | the defence five's defensive rebounds per rebound chance, summed | 0.135 a player, 50 chances | 0.0007 |
+        | `ActionType` | the defence five's steals per action, summed | as above | 0.0006 |
+        | `ActionType` | the offence five's turnovers per action, summed | 0.024 a player, 100 actions | none (dropped) |
+
+        A single simulation cannot show the gain per player (one game's box score is too noisy: points' mean absolute error moves from 6.22 to 6.20), and blocks stay 5% high. The team totals are unchanged.
+
+        These make players change how efficiently a shot converts and who rebounds, but not what a team tries: `ActionType`'s two, three, turnover or foul still comes from team context, so a five of non-shooters takes as many threes as a five of shooters, and how well a five scores still comes from the team's season-long points per possession.
+
+        A third round tested the rest, the same way:
+
+        | Node | Feature | Prior | Dropping it costs |
+        |---|---|---|---|
+        | `ActionType` | the offence five's three-point attempts per action, summed | 0.062 a player, 100 actions | 0.0019 |
+        | `ActionType` | the offence five's two-point attempts per action, summed | 0.102 a player, 100 actions | 0.0012 (both together 0.0055) |
+        | `ActionType` | the offence five's fouls drawn per action, summed | 0.012 a player, 100 actions | 0.0003 |
+        | `ShotMade` | the defence five's blocks per opponent shot, summed | 0.013 a player, 100 shots | 0.0003 |
+        | `FouledOnShot` | the defence five's shooting fouls per opponent shot, summed | 0.021 a player, 100 shots | 0.0002 |
+        | `ActionType`, `ShotMade` | the offence five's points per action, averaged (a lineup scoring rating) | 0.96, 100 actions | none (dropped) |
+
+        `ActionType` gains 0.0059 a visit in all (1.1143 to 1.1084): the five on court now sets the twos/threes mix.
+      - **then one pull request** for the 14 that survive the three rounds (13 rates on 7 team nodes): done. The shooter's own rates and the fives' rates share the history and the context (`PlayerRates`, which also holds the assisted and blocked rates), so they went together. The priors in the tables above were fixed for the investigation; in the code each is the league's rate over its last 300 games (`PlayerHistory`), so it follows the league's drift, and only the shrinkage weights are set by hand. The fives' sums are state, recounted when the five or a player's fouls change, so a feature is one array read; the older lineup features (the longest stint, a team that must change) still compute on read, and move to state with compilation.
 
    The data's lineups are clean: every team has one starting lineup and no change ever takes off a player who is not on, puts on one who is, or leaves other than five. Per-player history brings small samples (rookies, trades, returns from injury), which need explicit shrinkage (see "Augmentation").
 
