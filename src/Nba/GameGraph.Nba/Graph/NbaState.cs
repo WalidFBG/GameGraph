@@ -9,8 +9,7 @@ public sealed class NbaState
         Incidents = incidents;
         PointsPerPossession = [context.HomePointsPerPossession, context.AwayPointsPerPossession];
         LogShares = context.LogShares;
-        AssistedRates = context.AssistedRates;
-        BlockedRates = context.BlockedRates;
+        Rates = context.Rates;
         UsualSeconds = context.UsualSeconds;
         StartShares = context.StartShares;
         StartedLastGame = context.StartedLastGame;
@@ -29,9 +28,7 @@ public sealed class NbaState
 
     public double[][] LogShares { get; }
 
-    public double[] AssistedRates { get; }
-
-    public double[] BlockedRates { get; }
+    public PlayerRates Rates { get; }
 
     public double[] UsualSeconds { get; }
 

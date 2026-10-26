@@ -42,7 +42,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         var decider = new ObservedOutcomeDecider(game);
         var unread = new double[game.Players.Length];
         double[][] unreadShares = [.. Enum.GetValues<PlayerEvent>().Select(_ => unread)];
-        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unreadShares, unread, unread, unread, unread, unread, game.Roster.Active);
+        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unreadShares, new PlayerRates(unread, unread, unread, unread, unread, unread, unread, unread, unread, unread, unread, unread, unread, unread, unread), unread, unread, unread, game.Roster.Active);
         var state = new NbaState(new EmptyIncidentCollector(), context);
 
         try

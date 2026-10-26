@@ -478,7 +478,7 @@ tr:last-child td { border-bottom: none; }
         <h3>AwardedFreeThrowMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the free throw outside the play go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's points per possession (context)</li><li>whether the shooting team is at home</li><li>the free throw's kind (against a technical)</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>the shooting team's margin</li><li>the shooting team's points per possession (context)</li><li>whether the shooting team is at home</li><li>the free throw's kind (against a technical)</li><li>the shooter's free-throw rate (as for <a href="#FreeThrowMade">FreeThrowMade</a>)</li></ul></dd>
           <dt>Transition</dt><dd>score +1 for the shooting team if made → <a href="#AwardedFreeThrow">AwardedFreeThrow</a></dd>
           <dt>Incidents</dt><dd>an awarded free throw: team, period, made</dd>
         </dl>
@@ -500,7 +500,7 @@ tr:last-child td { border-bottom: none; }
         <p class="question">What does the team with the ball do?</p>
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: TwoPointAttempt (reference), ThreePointAttempt, Turnover, NonShootingFoul</dd>
-          <dt>Features</dt><dd><ul><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline) and the seconds left (a spline)</li><li>for each late margin band (trailing by 3; leading by 1 to 3, 4 to 8, 9 to 12), whether the play is in it and its seconds left (a spline): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li><li>after an offensive rebound, a team rebound at either end, or a steal (against every other start): after a team rebound only 51% (offensive) and 61% (defensive) of actions are shots, against about 75%</li></ul> 19 features; the other play starts, the score margin, at home, after a timeout and whether the clock binds each gained less than 0.0001 in validation and were dropped</dd>
+          <dt>Features</dt><dd><ul><li>team points per possession (context)</li><li>the defence's team fouls</li><li>seconds left on the shot clock and the period clock</li><li>late in the game (the fourth period or later, at most 120 seconds left), and there the score margin (a spline) and the seconds left (a spline)</li><li>for each late margin band (trailing by 3; leading by 1 to 3, 4 to 8, 9 to 12), whether the play is in it and its seconds left (a spline): a trailing defence fouls to stop the clock, from about 30 seconds when down 1 to 3 and about a minute when down 4 to 8, and gives up from 11</li><li>after an offensive rebound, a team rebound at either end, or a steal (against every other start): after a team rebound only 51% (offensive) and 61% (defensive) of actions are shots, against about 75%</li><li>the five on court: the offence five's two-point attempts, three-point attempts and fouls drawn per action, and the defence five's steals per action, each summed (splines): the five sets the twos/threes mix</li></ul> 23 features; the other play starts, the score margin, at home, after a timeout and whether the clock binds each gained less than 0.0001 in validation and were dropped</dd>
           <dt>Transition</dt><dd>→ <a href="#ActionTime">ActionTime</a>, which then follows the action</dd>
           <dt>Observed as</dt><dd>the next action: a field-goal attempt by its points, a turnover, a non-shooting foul</dd>
         </dl>
@@ -543,7 +543,7 @@ tr:last-child td { border-bottom: none; }
         <h3>Stolen <span class="tag">Bernoulli</span></h3>
         <p class="question">Was the turnover a steal (the ball stays live) rather than a dead ball?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>seconds left on the shot clock after the action (a spline)</li><li>score margin, late in the game</li><li>how the play started: after a made shot, a side-out, a team offensive rebound or a steal (against every other start)</li></ul> 7 features; whether the shot clock has run out (a violation is now a team's turnover), after the period start and after an offensive rebound gained less than 0.0001 in validation once <a href="#TurnoverKind">TurnoverKind</a> took the team turnovers and offensive fouls, and were dropped, as were team points per possession, at home and the other play starts</dd>
+          <dt>Features</dt><dd><ul><li>seconds left on the shot clock after the action (a spline)</li><li>score margin, late in the game</li><li>how the play started: after a made shot, a side-out, a team offensive rebound or a steal (against every other start)</li><li>the defence five's steals per action, summed (a spline)</li></ul> 8 features; whether the shot clock has run out (a violation is now a team's turnover), after the period start and after an offensive rebound gained less than 0.0001 in validation once <a href="#TurnoverKind">TurnoverKind</a> took the team turnovers and offensive fouls, and were dropped, as were team points per possession, at home and the other play starts</dd>
           <dt>Exists when</dt><dd>a player's turnover that is not an offensive foul</dd>
           <dt>Transition</dt><dd>a steal → <a href="#Stealer">Stealer</a>; a dead ball → <a href="#EndOfPossession">EndOfPossession</a>, the next play after a dead-ball turnover</dd>
           <dt>Observed as</dt><dd>whether the turnover names a player who stole it (<code>StolenBy</code>): 66% of these turnovers</dd>
@@ -567,7 +567,7 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: the bit of the shooter's place among the team's five</dd>
           <dt>Features</dt><dd>its size, <code>OnePlayer</code>, always 1; and one per candidate: the log of his share of the team's attempts of this type (two or three) while he was on court over his last 20 games, shrunk towards 1/5 by 5 attempts (a spline). The share in the last two minutes of the game and the other type's share each gained less than 0.0001 in validation and were dropped.</dd>
-          <dt>Transition</dt><dd>→ <a href="#FouledOnShot">FouledOnShot</a>; no team decision reads the shooter</dd>
+          <dt>Transition</dt><dd>→ <a href="#FouledOnShot">FouledOnShot</a>; his own rates feed <a href="#FouledOnShot">FouledOnShot</a>, <a href="#ShotMade">ShotMade</a> and <a href="#FreeThrowMade">FreeThrowMade</a></dd>
           <dt>Observed as</dt><dd>the shot's <code>ShotBy</code>, or the <code>FoulDrawnBy</code> of a shooting foul that stands in for a missed fouled shot</dd>
         </dl>
       </article>
@@ -576,7 +576,7 @@ tr:last-child td { border-bottom: none; }
         <h3>FouledOnShot <span class="tag">Bernoulli</span></h3>
         <p class="question">Is the shooter fouled on the shot?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type (2 or 3)</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type (2 or 3)</li><li>at home</li><li>the log of the shooter's rate of being fouled for the shot type over his last 20 games, shrunk towards the league's (0.16 or 0.011, by 20 attempts), against the league's: one scale for twos and threes (a spline)</li><li>the defence five's shooting fouls per opponent shot, summed (a spline)</li></ul></dd>
           <dt>Transition</dt><dd>no → <a href="#ShotMade">ShotMade</a>; yes → adds one to the defence's team fouls → <a href="#Fouler">Fouler</a></dd>
           <dt>Observed as</dt><dd>a shooting foul on the attempt</dd>
         </dl>
@@ -601,7 +601,7 @@ tr:last-child td { border-bottom: none; }
           <dt>Exists when</dt><dd>after a non-shooting foul; on a shooting foul the shooter was fouled</dd>
           <dt>Outcome</dt><dd><code>int</code>: the bit of his place among the five</dd>
           <dt>Features</dt><dd>its size, <code>OnePlayer</code>; and one per candidate: the log of his share of the non-shooting fouls his team drew while he was on court over his last 20 games, shrunk towards 1/5 by 5 fouls (a spline)</dd>
-          <dt>Transition</dt><dd>he takes any free throws → <a href="#InBonus">InBonus</a>; no team decision reads him</dd>
+          <dt>Transition</dt><dd>he takes any free throws → <a href="#InBonus">InBonus</a></dd>
           <dt>Observed as</dt><dd>the foul's <code>FoulDrawnBy</code></dd>
         </dl>
       </article>
@@ -610,7 +610,7 @@ tr:last-child td { border-bottom: none; }
         <h3>ShotMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shot go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>shot type</li><li>fouled on the shot</li><li>at home</li><li>the shooter's make rate for the shot type over his last 20 games, shrunk towards the league's (0.48 or 0.36, by 20 attempts; a spline)</li><li>the defence five's blocks per opponent shot, summed (a spline)</li></ul></dd>
           <dt>Transition</dt><dd>made → score +2 or +3, his points too → <a href="#Assisted">Assisted</a>; a clean miss → <a href="#Blocked">Blocked</a>; a fouled miss goes straight on. Then fouled → <a href="#FreeThrowsDue">FreeThrowsDue</a>; made → <a href="#EndOfPossession">EndOfPossession</a>; missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>whether the field-goal attempt was made</dd>
         </dl>
@@ -674,7 +674,7 @@ tr:last-child td { border-bottom: none; }
         <h3>FreeThrowMade <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the free throw go in?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>whether it is the last of the set</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>whether it is the last of the set</li><li>at home</li><li>the shooter's free-throw rate over his last 20 games, shrunk towards the league's (0.78, by 20 free throws; a spline)</li></ul></dd>
           <dt>Transition</dt><dd>score +1 if made; more to take → FreeThrowMade again; last made → <a href="#EndOfPossession">EndOfPossession</a>; last missed → <a href="#OffensiveRebound">OffensiveRebound</a></dd>
           <dt>Observed as</dt><dd>the regular free throws the action was waiting for, in order</dd>
         </dl>
@@ -684,7 +684,7 @@ tr:last-child td { border-bottom: none; }
         <h3>OffensiveRebound <span class="tag">Bernoulli</span></h3>
         <p class="question">Does the shooting team get the rebound?</p>
         <dl>
-          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>whether a three or a free throw was missed (against a two)</li><li>at home</li></ul></dd>
+          <dt>Features</dt><dd><ul><li>score margin</li><li>team points per possession (context)</li><li>whether a three or a free throw was missed (against a two)</li><li>at home</li><li>the offence five's offensive rebounds per rebound chance, and the defence five's defensive rebounds per rebound chance, each summed over the five (splines)</li></ul></dd>
           <dt>Transition</dt><dd>→ <a href="#TeamRebound">TeamRebound</a>, which then follows the side</dd>
           <dt>Observed as</dt><dd>the rebound after the miss; after a miss at 0:00, only if play follows</dd>
         </dl>
@@ -785,6 +785,7 @@ tr:last-child td { border-bottom: none; }
       <tr><td>Free throws left, what was missed, who shoots an awarded free throw</td><td>the free-throw and shot transitions</td><td><a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
       <tr><td>The previous awarded free throw of the play, and whether one gave the defence the ball</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset when the play's awarded free throws end</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Context: each team's points per possession over its last 20 games (every point it scored, awarded free throws included)</td><td>augmentation, before the game</td><td>features</td></tr>
+      <tr><td>Context: each player's rates over his last 20 games, shrunk towards the league's (<code>PlayerRates</code>): made and fouled for twos and threes, free throws made, two- and three-point attempts and fouls drawn per action, offensive and defensive rebounds per chance, steals per action, blocks and shooting fouls per opponent shot</td><td>augmentation, before the game</td><td><a href="#ShotMade">ShotMade</a>, <a href="#FouledOnShot">FouledOnShot</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#OffensiveRebound">OffensiveRebound</a>, <a href="#Stolen">Stolen</a>, <a href="#ActionType">ActionType</a></td></tr>
       <tr><td>Context: each player's share of his team's twos, threes, offensive and defensive rebounds, turnovers, offensive fouls, fouls, fouls drawn, assists, steals and blocks while on court, and the share of his made shots assisted and of his attempts blocked, over his last 20 games</td><td>augmentation, before the game</td><td>the player nodes, <a href="#Assisted">Assisted</a>, <a href="#Blocked">Blocked</a></td></tr>
       <tr><td>Each player's fouls so far, and the offence's player who last shot (the shooter, or the fouled player taking free throws)</td><td><a href="#Fouler">Fouler</a>, <a href="#TurnedOverBy">TurnedOverBy</a> (an offensive foul), <a href="#Shooter">Shooter</a>, <a href="#FouledPlayer">FouledPlayer</a></td><td><a href="#Fouler">Fouler</a>, the substitutions (foul trouble and foul-outs), <a href="#Rebounder">Rebounder</a>, <a href="#Assisted">Assisted</a>, <a href="#Blocked">Blocked</a></td></tr>
       <tr><td>The five on court and the bench of each team, who started, and each player's seconds played and the game second of his last change</td><td><code>Starters</code>, then <code>SubstitutedOff</code> and <code>SubstitutedOn</code> at every play and free throw</td><td><a href="#Shooter">Shooter</a>'s candidates, the substitution nodes, the players' seconds incident at the game's end</td></tr>
@@ -806,7 +807,7 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: players affecting the team (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
+      <li>Players: <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
       <li>Foul types, the finer turnover types, shot zones</li>
