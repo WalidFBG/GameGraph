@@ -30,7 +30,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `src/Nba/GameGraph.Nba.Sportradar` | Reads Sportradar ValidatedData into observed games |
 | `src/Nba/GameGraph.Nba.Augmentation` | Team history and each game's context |
 | `src/Nba/GameGraph.Nba.TrainingDataGeneration` | Walks observed games into training data |
-| `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | Analyses as tests (simulate real games, compare, write CSVs) and the audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
+| `src/Nba/GameGraph.Nba.Tests.QualityAssurance` | The audits (`docs/plan.md`), explicit facts that only write data: the calibration audit writes every example with the C# model's probabilities, the simulation audit every simulated decision and game. Entry points at the root, readers and writers in `Infrastructure`, the data written in `Definitions`, the logic in `Domain` |
 | `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
 | `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game), `GameGraph.Models.Tests.Unit` (the forward pass and the parity with Python) and `GameGraph.Contract.Files.Tests.Unit` (the contract and its files) |
 | `src/GameGraph.Host` | Command line: generates the training data and writes it |

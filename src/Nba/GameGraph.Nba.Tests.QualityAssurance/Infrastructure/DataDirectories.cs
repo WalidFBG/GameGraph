@@ -13,14 +13,6 @@ internal static class DataDirectories
 
     public static string FittedModel(string node) => Path.Combine(Root, "fitted-models", $"{node}.json");
 
-    public static string QualityAssurance(string test)
-    {
-        var directory = Path.Combine(Root, "quality-assurance", test);
-        Directory.CreateDirectory(directory);
-
-        return directory;
-    }
-
     public static string NewRun(string audit)
     {
         var run = Path.Combine(Root, "audit", audit, DateTime.UtcNow.ToString("yyMMdd-HHmm", CultureInfo.InvariantCulture));
