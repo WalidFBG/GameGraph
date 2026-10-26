@@ -8,18 +8,18 @@ namespace GameGraph.Models;
 public sealed class Model
 {
     private readonly IDistribution _distribution;
-    private readonly DesignColumns _design;
+    private readonly KnotLookups _lookups;
     private readonly IParameterValue[] _parameters;
     private readonly int _features;
     private readonly bool _choosesAmongCandidates;
 
-    private Model(IDistribution distribution, DesignColumns design, IParameterValue[] parameters, int features, bool choosesAmongCandidates)
+    private Model(IDistribution distribution, KnotLookups lookups, IParameterValue[] parameters, int features, bool choosesAmongCandidates)
     {
         if (choosesAmongCandidates && features == 0)
             throw new ArgumentException("A choice needs a feature to tell its candidates apart", nameof(features));
 
         _distribution = distribution;
-        _design = design;
+        _lookups = lookups;
         _parameters = parameters;
         _features = features;
         _choosesAmongCandidates = choosesAmongCandidates;
@@ -32,16 +32,17 @@ public sealed class Model
         if (values.Length != rows * _parameters.Length)
             throw new ArgumentException($"Expected {rows * _parameters.Length} parameter values, got {values.Length}", nameof(values));
 
-        Span<double> design = stackalloc double[_design.Count];
+        Span<int> segments = stackalloc int[_lookups.Count];
+        Span<double> located = stackalloc double[_lookups.Count];
 
         for (var r = 0; r < rows; r++)
         {
             var row = features.Slice(r * _features, _features);
 
-            _design.Expand(row, design);
+            _lookups.Locate(row, segments, located);
 
             for (var p = 0; p < _parameters.Length; p++)
-                values[r * _parameters.Length + p] = _parameters[p].Value(row, design);
+                values[r * _parameters.Length + p] = _parameters[p].Value(row, segments, located);
         }
     }
 
@@ -69,14 +70,11 @@ public sealed class Model
     public static Model FromFitted(FittedModel fitted, IReadOnlyList<string> features)
     {
         var model = fitted.Model;
-        var predicted = model.Distribution.Predicted()
-            .Select(p => (p.Link, Fit: fitted.Fit[p.Name], Terms: model.Terms[p.Name].Select(t => TermColumns.FromFit(t.Feature, fitted.Fit[p.Name].Terms[t.Feature], features)).ToArray(), Declared: model.Terms[p.Name]))
-            .ToArray();
-        var design = new DesignColumns([.. predicted.SelectMany(p => p.Terms).Distinct()]);
-        var predictors = predicted.Select(p => new Predictor(p.Link, [.. p.Terms.SelectMany(design.ColumnsOf)], p.Fit.Intercept, [.. p.Declared.SelectMany(t => p.Fit.Terms[t.Feature].Coefficients)]));
-        var given = model.Distribution.Given().Select(n => new GivenColumn(TermColumns.ColumnOf(model.Given[n], features)));
+        var lookups = new KnotLookups();
+        var predictors = model.Distribution.Predicted().Select(p => Predictor.FromFit(p.Link, model.Terms[p.Name], fitted.Fit[p.Name], features, lookups)).ToArray();
+        var given = model.Distribution.Given().Select(n => new GivenColumn(FeatureColumns.Of(model.Given[n], features)));
 
-        return new(DistributionFor(model.Distribution), design, [.. predictors, .. given], features.Count, model.Distribution.ChoosesAmongCandidates());
+        return new(DistributionFor(model.Distribution), lookups, [.. predictors, .. given], features.Count, model.Distribution.ChoosesAmongCandidates());
     }
 
     private static IDistribution DistributionFor(DistributionDeclaration declaration) => declaration switch

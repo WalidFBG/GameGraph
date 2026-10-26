@@ -27,50 +27,49 @@ public sealed class ForwardPassTests
     [Fact]
     public void ALinearTermCentresAndScalesItsFeature()
     {
-        var term = LinearColumns.FromFit("b", new LinearFit(1, 2, [0.5]), ["a", "b"]);
+        string[] features = ["a", "b"];
+        var predictor = IdentityPredictor([new LinearTerm("b")], new Dictionary<string, TermFit> { ["b"] = new LinearFit(1, 2, [0.5]) }, features, out var lookups);
 
-        Span<double> columns = stackalloc double[1];
-
-        term.Expand([9, 5], columns);
-        Assert.Equal(2.0, columns[0]);
-
-        term.Expand([9, -1], columns);
-        Assert.Equal(-1.0, columns[0]);
+        Assert.Equal(0.5 * (5 - 1) / 2, Evaluate(predictor, lookups, [9, 5]), 1e-15);
+        Assert.Equal(0.5 * (-1 - 1) / 2, Evaluate(predictor, lookups, [9, -1]), 1e-15);
     }
 
     [Fact]
     public void ALinearSplineTermMeasuresEachSegmentAndIsFlatBeyondItsEndKnots()
     {
-        var term = LinearSplineColumns.FromFit("x", new LinearSplineFit([0, 10, 20], [0, 0], [1, 1], [0, 0]), ["x"]);
-        Span<double> columns = stackalloc double[2];
-
         foreach (var (value, first, second) in new[] { (-5.0, 0.0, 0.0), (0.0, 0.0, 0.0), (4.0, 4.0, 0.0), (10.0, 10.0, 0.0), (15.0, 10.0, 5.0), (20.0, 10.0, 10.0), (99.0, 10.0, 10.0) })
         {
-            term.Expand([value], columns);
+            var predictor = IdentityPredictor([new LinearSplineTerm("x", 3)], new Dictionary<string, TermFit> { ["x"] = new LinearSplineFit([0, 10, 20], [0, 0], [1, 1], [2, 3]) }, ["x"], out var lookups);
 
-            Assert.Equal(first, columns[0]);
-            Assert.Equal(second, columns[1]);
+            Assert.Equal(2 * first + 3 * second, Evaluate(predictor, lookups, [value]), 1e-13);
         }
     }
 
     [Fact]
     public void ALinearSplineTermCentresAndScalesEachSegment()
     {
-        var term = LinearSplineColumns.FromFit("x", new LinearSplineFit([0, 10, 20], [2, 1], [4, 0.5], [0, 0]), ["x"]);
-        Span<double> columns = stackalloc double[2];
+        var predictor = IdentityPredictor([new LinearSplineTerm("x", 3)], new Dictionary<string, TermFit> { ["x"] = new LinearSplineFit([0, 10, 20], [2, 1], [4, 0.5], [0.7, -1.3]) }, ["x"], out var lookups);
 
-        term.Expand([12], columns);
-
-        Assert.Equal((10 - 2) / 4.0, columns[0]);
-        Assert.Equal((2 - 1) / 0.5, columns[1]);
+        Assert.Equal(0.7 * (10 - 2) / 4.0 - 1.3 * (2 - 1) / 0.5, Evaluate(predictor, lookups, [12]), 1e-14);
     }
 
     [Fact]
     public void ALinearTermWhoseFeatureIsMissingFails()
     {
-        var error = Assert.Throws<ArgumentException>(() => LinearColumns.FromFit("c", new LinearFit(0, 1, [0.5]), ["a", "b"]));
+        var error = Assert.Throws<ArgumentException>(() => IdentityPredictor([new LinearTerm("c")], new Dictionary<string, TermFit> { ["c"] = new LinearFit(0, 1, [0.5]) }, ["a", "b"], out _));
 
         Assert.Contains("No feature c", error.Message);
+    }
+
+    [Fact]
+    public void TermsOnTheSameFeatureAndKnotsShareOneLookup()
+    {
+        var lookups = new KnotLookups();
+
+        Assert.Equal(0, lookups.Of(2, [0, 1, 2]));
+        Assert.Equal(1, lookups.Of(2, [0, 1, 3]));
+        Assert.Equal(2, lookups.Of(1, [0, 1, 2]));
+        Assert.Equal(0, lookups.Of(2, [0, 1, 2]));
     }
 
     [Fact]
@@ -319,4 +318,21 @@ public sealed class ForwardPassTests
 
     [Fact]
     public void TheIdentityLinkLeavesEtaAsItIs() => Assert.Equal(-1.25, Links.Inverse(Link.Identity, -1.25));
+
+    private static Predictor IdentityPredictor(Term[] terms, Dictionary<string, TermFit> fits, string[] features, out KnotLookups lookups)
+    {
+        lookups = new KnotLookups();
+
+        return Predictor.FromFit(Link.Identity, terms, new PredictorFit(0, fits), features, lookups);
+    }
+
+    private static double Evaluate(Predictor predictor, KnotLookups lookups, double[] features)
+    {
+        Span<int> segments = stackalloc int[lookups.Count];
+        Span<double> located = stackalloc double[lookups.Count];
+
+        lookups.Locate(features, segments, located);
+
+        return predictor.Value(features, segments, located);
+    }
 }

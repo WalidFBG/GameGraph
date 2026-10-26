@@ -23,12 +23,16 @@ Of the 45 spline terms, 29 have 4 knots (3 columns); the large ones (16 to 24 kn
 
 The benchmark's baseline for the plain walk: 2.47 s for 10,000 simulations (the median of ten runs) on the 22 threads of an Ultra 9 185H.
 
-After step 1 (the exact fixes), on the same thread and fixture: 836 µs a simulation, of which the predictors are ~520 µs and the families ~180 µs; the benchmark's median is 1.37 s, 1.8 times as fast, with the digest unchanged.
+| After | µs a simulation, one thread | Predictors | Families | Benchmark median |
+|---|---|---|---|---|
+| Nothing (the baseline) | 1,310 | ~980 | ~185 | 2.47 s |
+| Step 1, the exact fixes | 836 | ~520 | ~180 | 1.37 s |
+| Step 2, the piecewise form | 715 | ~355 | ~135 | 1.08 s |
 
 ## Order
 
-1. **Exact fixes in `Model`**, digest unchanged: done. A node's distinct terms are expanded once into its design columns (`DesignColumns`), shared by all its predictors (the same values, summed in the same order); `Categorical.Sample` keeps the `exp` values it takes for the total; `DiscreteJohnsonSu.Sample` takes each normal CDF once. Terms are shared only where they are the same columns: a feature can be a spline in one predictor and linear in another (`ActionTime`'s `Bound` and `ScoreMargin`).
-2. **The form of a spline term**, decided from that measurement. A standardised linear spline is piecewise linear in its feature, so each term reduces to finding the feature's segment, then one intercept and one slope (`a[segment] + b[segment] * x`), and a categorical node's predictors share the one lookup. It changes rounding, so it goes into `Model`, in its own pull request, with the digest re-pinned once on purpose, after checking that the simulations' output does not move. Done before the compiler, the compiler generates the short form once instead of being rewritten for it.
+1. **Exact fixes in `Model`**, digest unchanged: done. A node's distinct terms were expanded once into its design columns (`DesignColumns`, gone again in step 2), shared by all its predictors (the same values, summed in the same order); `Categorical.Sample` keeps the `exp` values it takes for the total; `DiscreteJohnsonSu.Sample` takes each normal CDF once. Terms are shared only where they are the same columns: a feature can be a spline in one predictor and linear in another (`ActionTime`'s `Bound` and `ScoreMargin`).
+2. **The form of a term**: done. A standardised linear spline is piecewise linear in its feature, so each spline term is a lookup of the feature's segment (`KnotLookups`, shared by every term on the same feature and knots, so a categorical node's predictors share it) and one intercept and one slope for that segment (`a[segment] + b[segment] * x`); a linear term folds its centre and scale into its slope and the intercept. The columns are gone: each term's centring and scaling is folded into its coefficients when the model is loaded. It changes rounding: over the 885,669 decisions of 300 simulations of the fixture, the parameter values differ from step 1's by at most 5e-14 absolute (3e-12 on `ActionTime`'s values in the thousands), the parity tests with Python still hold to 1e-12, and not one sampled outcome of the digest's 1,000 simulations changed, so the digest needed no re-pin.
 3. **The compiler**, one pull request: the features, the predictors in their final form, and calls to everything else. It comes with the plain-against-compiled digest, the benchmark of both, and the test that results do not depend on the number of threads.
 4. **Generating a family's arithmetic**, only if the profile after compiling shows sampling dominating, in its own pull request.
 
