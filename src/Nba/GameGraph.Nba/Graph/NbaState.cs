@@ -20,16 +20,7 @@ public sealed class NbaState
         Started = new bool[UsualSeconds.Length];
         ChangedAt = new int[UsualSeconds.Length];
         SecondsPlayed = new int[UsualSeconds.Length];
-        Rebounds = new int[UsualSeconds.Length];
-        Turnovers = new int[UsualSeconds.Length];
         PersonalFouls = new int[UsualSeconds.Length];
-        Points = new int[UsualSeconds.Length];
-        FieldGoalAttempts = new int[UsualSeconds.Length];
-        ThreePointAttempts = new int[UsualSeconds.Length];
-        FreeThrowAttempts = new int[UsualSeconds.Length];
-        Assists = new int[UsualSeconds.Length];
-        Steals = new int[UsualSeconds.Length];
-        Blocks = new int[UsualSeconds.Length];
     }
 
     public INbaIncidentCollector Incidents { get; }
@@ -62,25 +53,7 @@ public sealed class NbaState
 
     public int[] SecondsPlayed { get; }
 
-    public int[] Rebounds { get; }
-
-    public int[] Turnovers { get; }
-
     public int[] PersonalFouls { get; }
-
-    public int[] Points { get; }
-
-    public int[] FieldGoalAttempts { get; }
-
-    public int[] ThreePointAttempts { get; }
-
-    public int[] FreeThrowAttempts { get; }
-
-    public int[] Assists { get; }
-
-    public int[] Steals { get; }
-
-    public int[] Blocks { get; }
 
     public int[] Teammates { get; } = new int[Lineups.Size - 1];
 

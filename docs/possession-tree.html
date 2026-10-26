@@ -762,7 +762,7 @@ tr:last-child td { border-bottom: none; }
       <tr><td>The previous awarded free throw of the play, and whether one gave the defence the ball</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset when the play's awarded free throws end</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Context: each team's points per possession over its last 20 games (every point it scored, awarded free throws included)</td><td>augmentation, before the game</td><td>features</td></tr>
       <tr><td>Context: each player's share of his team's twos, threes, offensive and defensive rebounds, turnovers, offensive fouls, fouls, fouls drawn, assists, steals and blocks while on court, and the share of his made shots assisted and of his attempts blocked, over his last 20 games</td><td>augmentation, before the game</td><td>the player nodes, <a href="#Assisted">Assisted</a>, <a href="#Blocked">Blocked</a></td></tr>
-      <tr><td>Each player's box score so far (points, attempts, threes, free throws, rebounds, assists, steals, blocks, turnovers, fouls), and the offence's player who last shot (the shooter, or the fouled player taking free throws)</td><td>the player nodes</td><td><a href="#Fouler">Fouler</a>, <a href="#Rebounder">Rebounder</a>, the players' incident at the game's end</td></tr>
+      <tr><td>Each player's fouls so far, and the offence's player who last shot (the shooter, or the fouled player taking free throws)</td><td><a href="#Fouler">Fouler</a>, <a href="#TurnedOverBy">TurnedOverBy</a> (an offensive foul), <a href="#Shooter">Shooter</a>, <a href="#FouledPlayer">FouledPlayer</a></td><td><a href="#Fouler">Fouler</a>, the substitutions (foul trouble and foul-outs), <a href="#Rebounder">Rebounder</a>, <a href="#Assisted">Assisted</a>, <a href="#Blocked">Blocked</a></td></tr>
       <tr><td>The five on court and the bench of each team, who started, and each player's seconds played and the game second of his last change</td><td><code>Starters</code>, then <code>SubstitutedOff</code> and <code>SubstitutedOn</code> at every play and free throw</td><td><a href="#Shooter">Shooter</a>'s candidates, the substitution nodes, the players' seconds incident at the game's end</td></tr>
     </table>
   </section>
@@ -774,16 +774,18 @@ tr:last-child td { border-bottom: none; }
       <tr><th>Incident</th><th>Fields</th><th>Reported by</th></tr>
       <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a>, <a href="#PeriodEnds">PeriodEnds</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Awarded free throw</td><td>team, period, made</td><td><a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
+      <tr><td>Credit</td><td>player, credit: a two or three made or missed, a free throw made or missed, an offensive or defensive rebound, an assist, a steal, a block, a turnover, a foul</td><td><a href="#ShotMade">ShotMade</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#Rebounder">Rebounder</a>, <a href="#Assister">Assister</a>, <a href="#Stealer">Stealer</a>, <a href="#Blocker">Blocker</a>, <a href="#TurnedOverBy">TurnedOverBy</a>, <a href="#Fouler">Fouler</a></td></tr>
+      <tr><td>Played</td><td>player, team, started, seconds</td><td>the game's end</td></tr>
     </table>
   </section>
 
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: foul trouble in the substitutions and the forced foul-out (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
+      <li>Players: who shoots awarded free throws and who commits flagrant and take fouls, and players affecting the team (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
-      <li>Foul types, the finer turnover types, shot zones, assists, blocks</li>
+      <li>Foul types, the finer turnover types, shot zones</li>
     </ul>
   </section>
 </main>

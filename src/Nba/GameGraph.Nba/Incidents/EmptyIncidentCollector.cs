@@ -10,6 +10,10 @@ public sealed class EmptyIncidentCollector : INbaIncidentCollector
     {
     }
 
+    public void Credited(in CreditIncident incident)
+    {
+    }
+
     public void Played(in PlayedIncident incident)
     {
     }
