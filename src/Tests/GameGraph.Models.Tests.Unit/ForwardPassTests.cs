@@ -205,6 +205,19 @@ public sealed class ForwardPassTests
     }
 
     [Fact]
+    public void AChoiceOfNoneIsTheEmptySetForCertain()
+    {
+        var choice = new Choice();
+
+        foreach (double[] parameters in new[] { [0.3, 0, -1.1, 0], Array.Empty<double>() })
+        {
+            Assert.Equal(0, choice.LogProbability(parameters, 0));
+            Assert.Equal(0, choice.Sample(parameters, 0.5));
+            Assert.All(choice.Probabilities(parameters), p => Assert.Equal(0, p));
+        }
+    }
+
+    [Fact]
     public void AChoiceRejectsAnOutcomeOutsideItsCandidates() =>
         Assert.Throws<ArgumentOutOfRangeException>(() => new Choice().LogProbability([0, 1, 0, 1], 0b100));
 

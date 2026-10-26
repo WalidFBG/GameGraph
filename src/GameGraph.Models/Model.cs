@@ -84,8 +84,8 @@ public sealed class Model
     {
         var rows = _choosesAmongCandidates ? features.Length / _features : 1;
 
-        if (features.Length != rows * _features || rows == 0)
-            throw new ArgumentException($"{features.Length} feature values are not {(_choosesAmongCandidates ? "one or more candidates" : "one row")} of {_features} features", nameof(features));
+        if (features.Length != rows * _features || (rows == 0 && !_choosesAmongCandidates))
+            throw new ArgumentException($"{features.Length} feature values are not {(_choosesAmongCandidates ? "rows of candidates" : "one row")} of {_features} features", nameof(features));
 
         return rows;
     }

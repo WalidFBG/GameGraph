@@ -335,7 +335,7 @@ tr:last-child td { border-bottom: none; }
       <li><strong>A period ends only through <a href="#PeriodRunsOut">PeriodRunsOut</a></strong>: asked at the start of a play when the period clock is the bound; a miss with 0 on the clock starts a play (whole seconds: 0:00 can mean up to a second left, and 2.5% of misses at 0:00 are followed by more play).</li>
       <li><strong>Shot-clock violations are turnovers</strong>: a turnover whose time uses up the bound.</li>
       <li><strong>Free throws take no time.</strong></li>
-      <li><strong>A choice with one outcome is still asked but never recorded</strong>: when a choice's size equals its number of candidates (a bench of one, all five off, the whole bench on) every candidate is chosen, so the engine leaves it out of the training data.</li>
+      <li><strong>A choice with one outcome is still asked but never recorded</strong>: when a choice's size equals its number of candidates (a bench of one, all five off, the whole bench on) every candidate is chosen, and when its size is 0 (only the forced off leave) none is, so the engine leaves it out of the training data.</li>
     </ul>
   </section>
 
@@ -407,7 +407,7 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: the row of the count among the candidates from the number forced off (at least 1) to the smaller of 5 and the bench: a number chosen as a Choice of one, so that a count the bench cannot fill has no row. Before a play with time left, a player with six fouls on court is forced off, as many as the bench can replace</dd>
           <dt>Features</dt><dd>its size, <code>OneCount</code>, always 1; and one per candidate count: whether it is 2, 3, 4 or 5 (against 1), and the count times whether a timeout was called, whether it is a period's start, whether it is before a free throw</dd>
-          <dt>Transition</dt><dd>more than the forced → <a href="#SubstitutedOff">SubstitutedOff</a>; only the forced → <a href="#SubstitutedOn">SubstitutedOn</a></dd>
+          <dt>Transition</dt><dd>→ <a href="#SubstitutedOff">SubstitutedOff</a>, a choice of none when only the forced leave</dd>
           <dt>Observed as</dt><dd>the number of players the net change takes off; a player forced off whom the change does not take off rejects the game (<code>RulesDisagreeWithData</code>)</dd>
         </dl>
       </article>

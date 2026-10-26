@@ -71,9 +71,6 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         if (node == NbaNodes.PeriodRunsOut)
             return Number(UpcomingIn(state.Period) is null);
 
-        while (Upcoming() is { } skipped && !skipped.AskedWhen(state))
-            _next++;
-
         var decision = Upcoming() ?? throw new RulesDisagreeWithDataException($"The rules asked for {node.Name} after the game's last observed decision");
 
         if (decision.Node != node || decision.TeamInPossession != state.TeamInPossession || decision.Period != state.Period)
@@ -213,7 +210,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             foreach (var change in offence.Concat(defence))
             {
                 yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [ForcedAmong(s, change.Off).Length]), inPossession, possession.Period);
-                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, [.. change.Off.Except(s.Leaving.Take(s.ForcedOff))]), inPossession, possession.Period) { AskedWhen = s => s.ChangeSize > s.ForcedOff };
+                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, [.. change.Off.Except(s.Leaving.Take(s.ForcedOff))]), inPossession, possession.Period);
                 yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
             }
         }

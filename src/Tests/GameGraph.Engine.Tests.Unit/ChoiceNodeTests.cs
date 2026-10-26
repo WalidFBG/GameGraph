@@ -16,6 +16,8 @@ public sealed class ChoiceNodeTests
 
     private static readonly Feature<ToyState> Two = new(nameof(Two), _ => 2);
 
+    private static readonly Feature<ToyState> None = new(nameof(None), _ => 0);
+
     [Fact]
     public void AChoiceNodeWritesOneRowOfFeaturesPerCandidateEachWithItsSize()
     {
@@ -47,6 +49,21 @@ public sealed class ChoiceNodeTests
         Assert.False(pick.HasOneOutcome(state));
         Assert.Empty(collector.GamesFor(forced)[0].Examples);
         Assert.Single(collector.GamesFor(pick)[0].Examples);
+    }
+
+    [Fact]
+    public void AChoiceOfNoneHasOneOutcomeAndIsNotRecorded()
+    {
+        var none = new ChoiceNode<ToyState>("None", _ => Candidates, None, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+        var collector = new RecordingDecisionCollector<ToyState>(new GameSpec<ToyState>([none], none));
+        var state = new ToyState();
+        var buffer = Array.Empty<double>();
+
+        collector.BeginGame("game", DateTime.UnixEpoch);
+        collector.Collect(none, state, none.WriteFeatures(state, ref buffer), 0);
+
+        Assert.True(none.HasOneOutcome(state));
+        Assert.Empty(collector.GamesFor(none)[0].Examples);
     }
 
     [Fact]

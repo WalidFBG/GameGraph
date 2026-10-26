@@ -246,7 +246,7 @@ public static class NbaTransitions
     public static Next<NbaState> SubstitutionCount(NbaState state, ReadOnlySpan<int> count)
     {
         state.ChangeSize = count[0];
-        return state.ChangeSize > state.ForcedOff ? NbaNodes.SubstitutedOff : NbaNodes.SubstitutedOn;
+        return NbaNodes.SubstitutedOff;
     }
 
     public static Next<NbaState> SubstitutedOff(NbaState state, ReadOnlySpan<int> off)
