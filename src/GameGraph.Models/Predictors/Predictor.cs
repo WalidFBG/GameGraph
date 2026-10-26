@@ -4,7 +4,7 @@ using GameGraph.Contract.Terms;
 
 namespace GameGraph.Models.Predictors;
 
-internal sealed class Predictor : IParameterValue
+internal sealed class Predictor
 {
     private readonly Link _link;
     private readonly double _intercept;
@@ -43,7 +43,7 @@ internal sealed class Predictor : IParameterValue
         return Links.Inverse(_link, eta);
     }
 
-    public static Predictor FromFit(Link link, Term[] terms, PredictorFit fit, IReadOnlyList<string> features, KnotLookups lookups)
+    public static Predictor FromFit(Link link, Term[] terms, PredictorFit fit, IReadOnlyList<string> features, List<KnotLookup> lookups)
     {
         var intercept = fit.Intercept;
         var linearColumns = new List<int>();
@@ -66,7 +66,7 @@ internal sealed class Predictor : IParameterValue
                     break;
                 case LinearSplineFit spline:
                     var (pieceIntercepts, pieceSlopes) = Pieces(spline);
-                    splineLookups.Add(lookups.Of(column, spline.KnotPositions));
+                    splineLookups.Add(KnotLookup.IndexIn(lookups, column, spline.KnotPositions));
                     splineIntercepts.Add(pieceIntercepts);
                     splineSlopes.Add(pieceSlopes);
                     break;

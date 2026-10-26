@@ -64,12 +64,13 @@ public sealed class ForwardPassTests
     [Fact]
     public void TermsOnTheSameFeatureAndKnotsShareOneLookup()
     {
-        var lookups = new KnotLookups();
+        var lookups = new List<KnotLookup>();
 
-        Assert.Equal(0, lookups.Of(2, [0, 1, 2]));
-        Assert.Equal(1, lookups.Of(2, [0, 1, 3]));
-        Assert.Equal(2, lookups.Of(1, [0, 1, 2]));
-        Assert.Equal(0, lookups.Of(2, [0, 1, 2]));
+        Assert.Equal(0, KnotLookup.IndexIn(lookups, 2, [0, 1, 2]));
+        Assert.Equal(1, KnotLookup.IndexIn(lookups, 2, [0, 1, 3]));
+        Assert.Equal(2, KnotLookup.IndexIn(lookups, 1, [0, 1, 2]));
+        Assert.Equal(0, KnotLookup.IndexIn(lookups, 2, [0, 1, 2]));
+        Assert.Equal(3, lookups.Count);
     }
 
     [Fact]
@@ -319,19 +320,20 @@ public sealed class ForwardPassTests
     [Fact]
     public void TheIdentityLinkLeavesEtaAsItIs() => Assert.Equal(-1.25, Links.Inverse(Link.Identity, -1.25));
 
-    private static Predictor IdentityPredictor(Term[] terms, Dictionary<string, TermFit> fits, string[] features, out KnotLookups lookups)
+    private static Predictor IdentityPredictor(Term[] terms, Dictionary<string, TermFit> fits, string[] features, out List<KnotLookup> lookups)
     {
-        lookups = new KnotLookups();
+        lookups = [];
 
         return Predictor.FromFit(Link.Identity, terms, new PredictorFit(0, fits), features, lookups);
     }
 
-    private static double Evaluate(Predictor predictor, KnotLookups lookups, double[] features)
+    private static double Evaluate(Predictor predictor, List<KnotLookup> lookups, double[] features)
     {
         Span<int> segments = stackalloc int[lookups.Count];
         Span<double> located = stackalloc double[lookups.Count];
 
-        lookups.Locate(features, segments, located);
+        for (var l = 0; l < lookups.Count; l++)
+            lookups[l].Locate(features, out segments[l], out located[l]);
 
         return predictor.Value(features, segments, located);
     }
