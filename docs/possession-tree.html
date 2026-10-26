@@ -140,9 +140,14 @@ tr:last-child td { border-bottom: none; }
   <a href="#incidents">Incidents</a>
   <a href="#later">Not in the tree yet</a>
   <h2>Decisions</h2>
+  <a href="#Starters"><span class="swatch choice"></span>Starters</a>
   <a href="#JumpBall"><span class="swatch bernoulli"></span>JumpBall</a>
   <a href="#OffenceTimeout"><span class="swatch bernoulli"></span>OffenceTimeout</a>
   <a href="#DefenceTimeout"><span class="swatch bernoulli"></span>DefenceTimeout</a>
+  <a href="#Substitutions"><span class="swatch categorical"></span>Substitutions</a>
+  <a href="#SubstitutionCount"><span class="swatch choice"></span>SubstitutionCount</a>
+  <a href="#SubstitutedOff"><span class="swatch choice"></span>SubstitutedOff</a>
+  <a href="#SubstitutedOn"><span class="swatch choice"></span>SubstitutedOn</a>
   <a href="#AwardedFreeThrow"><span class="swatch categorical"></span>AwardedFreeThrow</a>
   <a href="#AwardedFreeThrowMade"><span class="swatch bernoulli"></span>AwardedFreeThrowMade</a>
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
@@ -325,12 +330,25 @@ tr:last-child td { border-bottom: none; }
       <li><strong>A period ends only through <a href="#PeriodRunsOut">PeriodRunsOut</a></strong>: asked at the start of a play when the period clock is the bound; a miss with 0 on the clock starts a play (whole seconds: 0:00 can mean up to a second left, and 2.5% of misses at 0:00 are followed by more play).</li>
       <li><strong>Shot-clock violations are turnovers</strong>: a turnover whose time uses up the bound.</li>
       <li><strong>Free throws take no time.</strong></li>
+      <li><strong>A choice with one outcome is still asked but never recorded</strong>: when a choice's size equals its number of candidates (a bench of one, all five off, the whole bench on) every candidate is chosen, so the engine leaves it out of the training data.</li>
     </ul>
   </section>
 
   <section id="decisions">
     <h2>Decisions</h2>
     <div class="cards">
+
+      <article class="card choice" id="Starters">
+        <h3>Starters <span class="tag">Choice</span></h3>
+        <p class="question">Which five of the team's active players start?</p>
+        <dl>
+          <dt>Exists when</dt><dd>the game starts, for the home team and then the away team, before <a href="#JumpBall">JumpBall</a></dd>
+          <dt>Outcome</dt><dd><code>int</code>: the rows of the five among the active players (played, a coach's decision, or active but unused)</dd>
+          <dt>Features</dt><dd>its size, <code>FiveStarters</code>, always 5; and one per candidate: his share of starts over his last 20 games (a spline), his usual seconds (a spline), whether he started his last game (both shrunk towards a bench player's: 2 games of 0 starts and 600 seconds)</dd>
+          <dt>Transition</dt><dd>the five go on court and the rest to the bench, each marked as a starter or not; home → Starters for the away team; away → <a href="#JumpBall">JumpBall</a></dd>
+          <dt>Observed as</dt><dd>the team's starting <code>LineupChange</code></dd>
+        </dl>
+      </article>
 
       <article class="card bernoulli" id="JumpBall">
         <h3>JumpBall <span class="tag">Bernoulli · no terms</span></h3>
@@ -362,6 +380,52 @@ tr:last-child td { border-bottom: none; }
           <dt>Features</dt><dd>the same, with the defence's timeouts left and without the margins and a team defensive rebound (each gained less than 0.0001): 19 features</dd>
           <dt>Transition</dt><dd>yes → the team's timeouts left, its timeouts this period (and in the fourth period's last 3 minutes) are counted, a play after it is marked as after a timeout, and both teams are asked again; no → back to the play (<a href="#AwardedFreeThrow">AwardedFreeThrow</a>) or the free throw (<a href="#FreeThrowMade">FreeThrowMade</a>)</dd>
           <dt>Observed as</dt><dd>timeouts charged to the defence, 1.8 a game: icing a free-throw shooter, and some of the mandatory ones</dd>
+        </dl>
+      </article>
+
+      <article class="card categorical" id="Substitutions">
+        <h3>Substitutions <span class="tag">Categorical</span></h3>
+        <p class="question">After this moment's timeouts, which teams change their five?</p>
+        <dl>
+          <dt>Exists when</dt><dd>before every play and every free throw, once the timeouts are done</dd>
+          <dt>Outcome</dt><dd><code>int</code>: None (reference), Offence, Defence, Both</dd>
+          <dt>Features</dt><dd><ul><li>before a free throw, and between free throws</li><li>whether a timeout was called at this moment</li><li>the period, its seconds left (a spline), late in the game</li><li>how the play started: after the period start, a made shot, a dead-ball turnover, a side-out, or a team rebound at either end (against every other start)</li><li>each five's longest stint, the log of its seconds plus one (a spline)</li></ul> 14 features</dd>
+          <dt>Transition</dt><dd>each changing team in turn, the offence first → <a href="#SubstitutionCount">SubstitutionCount</a>; then the moment carries on to <a href="#AwardedFreeThrow">AwardedFreeThrow</a> or <a href="#FreeThrowMade">FreeThrowMade</a></dd>
+          <dt>Observed as</dt><dd>the lineup changes in event order, netted per team over the moment they come before: the next play or free throw, or after a period's last action, the moment before it ends. A team that changes and changes back has not changed. A change after the game's last moment rejects the game (<code>UnmatchedMoment</code>)</dd>
+          <dt>Why no rule</dt><dd>substitutions need a dead ball, but 0.3 to 0.6% of moments after a live start change without a timeout: a dead ball inside the play (the ball out of bounds off a deflection, a kicked ball) that the graph does not model</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="SubstitutionCount">
+        <h3>SubstitutionCount <span class="tag">Choice</span></h3>
+        <p class="question">How many players does the team change?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the row of the count among the candidates 1 to the smaller of 5 and the bench: a number chosen as a Choice of one, so that a count the bench cannot fill has no row</dd>
+          <dt>Features</dt><dd>its size, <code>OneCount</code>, always 1; and one per candidate count: whether it is 2, 3, 4 or 5 (against 1), and the count times whether a timeout was called, whether it is a period's start, whether it is before a free throw</dd>
+          <dt>Transition</dt><dd>→ <a href="#SubstitutedOff">SubstitutedOff</a></dd>
+          <dt>Observed as</dt><dd>the number of players the net change takes off</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="SubstitutedOff">
+        <h3>SubstitutedOff <span class="tag">Choice</span></h3>
+        <p class="question">Which of the five come off?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the rows of the players taken off among the team's five</dd>
+          <dt>Features</dt><dd>its size, <code>ChangeSize</code>, the count; and one per candidate: the log of the seconds since his last change plus one (a spline of 16 knots), his seconds played against his usual pace (a spline), his usual seconds (a spline), whether he started, a starter at a period's start, a starter late in the game</dd>
+          <dt>Transition</dt><dd>→ <a href="#SubstitutedOn">SubstitutedOn</a></dd>
+          <dt>Observed as</dt><dd>the players the net change takes off</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="SubstitutedOn">
+        <h3>SubstitutedOn <span class="tag">Choice</span></h3>
+        <p class="question">Which of the bench come on?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the rows of the players put on among the team's bench</dd>
+          <dt>Features</dt><dd>its size, the count; and the same as <a href="#SubstitutedOff">SubstitutedOff</a>'s without the late-game term (it gained less than 0.0001)</dd>
+          <dt>Transition</dt><dd>each leaving player swaps places with a joining one; the seconds he played are added up and both are stamped with the game second; → the next changing team, or the moment carries on</dd>
+          <dt>Observed as</dt><dd>the players the net change puts on</dd>
         </dl>
       </article>
 
@@ -576,7 +640,7 @@ tr:last-child td { border-bottom: none; }
       <tr><td>The previous awarded free throw of the play, and whether one gave the defence the ball</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>; reset when the play's awarded free throws end</td><td><a href="#AwardedFreeThrow">AwardedFreeThrow</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Context: each team's points per possession over its last 20 games (every point it scored, awarded free throws included)</td><td>augmentation, before the game</td><td>features</td></tr>
       <tr><td>Context: each player's share of his team's twos and threes while on court, over his last 20 games</td><td>augmentation, before the game</td><td><a href="#Shooter">Shooter</a></td></tr>
-      <tr><td>The five on court for each team: until substitutions are simulated, the real game's five at the same period and clock, before that second's changes (a simulated overtime the real game did not have reads its last period)</td><td><a href="#ActionTime">ActionTime</a>'s transition</td><td><a href="#Shooter">Shooter</a>'s candidates</td></tr>
+      <tr><td>The five on court and the bench of each team, who started, and each player's seconds played and the game second of his last change</td><td><code>Starters</code>, then <code>SubstitutedOff</code> and <code>SubstitutedOn</code> at every play and free throw</td><td><a href="#Shooter">Shooter</a>'s candidates, the substitution nodes, the players' seconds incident at the game's end</td></tr>
     </table>
   </section>
 
@@ -593,7 +657,7 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: who rebounds, turns it over, fouls and is fouled, and substitutions (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a> is not in the diagram yet</li>
+      <li>Players: who rebounds, turns it over, fouls and is fouled (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a> and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
       <li>Foul types, the finer turnover types, shot zones, assists, blocks</li>

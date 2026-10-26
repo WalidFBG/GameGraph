@@ -35,6 +35,11 @@ public sealed class SimulationAudit(ITestOutputHelper output)
         await GameComparisonWriter.Write(gamesPath, comparisons);
 
         output.WriteLine($"{comparisons.Length} games, each simulated once, written to {gamesPath}");
+
+        var playersPath = Path.Combine(directory, "players.parquet");
+        await PlayerComparisonWriter.Write(playersPath, comparisons);
+
+        output.WriteLine($"Each active player's seconds, real and simulated, written to {playersPath}");
         output.WriteLine($"Run complete: {DataDirectories.Complete(directory)}");
     }
 }

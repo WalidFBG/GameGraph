@@ -28,6 +28,8 @@ public abstract class NodeSpec<TState>
 
     public abstract ReadOnlySpan<double> WriteFeatures(TState state, ref double[] buffer);
 
+    public virtual bool HasOneOutcome(TState state) => false;
+
     internal abstract Next<TState> Apply(TState state, int outcome);
 
     internal void JoinGame(int index) => _index = index;

@@ -15,7 +15,7 @@ internal static class Simulations
         Simulator.Run(
             fitted,
             Seeds.Draw(simulations),
-            s => new NbaState(scores[s], context, game.Rotation),
+            s => new NbaState(scores[s], context),
             new EmptyDecisionCollector<NbaState>());
 
         return [.. scores.Select(s => s.Totals())];

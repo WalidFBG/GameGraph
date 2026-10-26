@@ -7,6 +7,7 @@ namespace GameGraph.Nba.Tests.QualityAssurance.Domain;
 internal sealed class GameScore : INbaIncidentCollector
 {
     private readonly int[] _points = new int[2];
+    private readonly Dictionary<int, PlayerTotals> _players = [];
     private int _possessions;
     private int _periods;
 
@@ -23,5 +24,7 @@ internal sealed class GameScore : INbaIncidentCollector
             _points[incident.Team]++;
     }
 
-    public GameTotals Totals() => new(_points[Sides.Home], _points[Sides.Away], _possessions, _periods);
+    public void Played(in PlayedIncident incident) => _players.Add(incident.Player, new PlayerTotals(incident.Started, incident.Seconds));
+
+    public GameTotals Totals() => new(_points[Sides.Home], _points[Sides.Away], _possessions, _periods, _players);
 }

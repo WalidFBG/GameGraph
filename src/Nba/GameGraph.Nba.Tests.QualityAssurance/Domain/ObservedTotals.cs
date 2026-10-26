@@ -12,7 +12,7 @@ internal static class ObservedTotals
     {
         var score = new GameScore();
 
-        ObservedWalk.Walk(game, new NbaState(score, context, game.Rotation), new EmptyDecisionCollector<NbaState>());
+        ObservedWalk.Walk(game, new NbaState(score, context), new EmptyDecisionCollector<NbaState>());
 
         var totals = score.Totals();
 

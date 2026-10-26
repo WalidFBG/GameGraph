@@ -8,14 +8,14 @@ public sealed class AcceptedGame(
     long homeTeamId,
     long awayTeamId,
     long[] players,
-    Rotation rotation,
+    Roster roster,
     Possession[] possessions,
     int possessionsCutByPeriodEnd)
     : ObservedGame(id, startUtc, homeTeamId, awayTeamId)
 {
     public long[] Players { get; } = players;
 
-    public Rotation Rotation { get; } = rotation;
+    public Roster Roster { get; } = roster;
 
     public Possession[] Possessions { get; } = possessions;
 

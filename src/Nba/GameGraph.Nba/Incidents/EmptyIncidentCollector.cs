@@ -9,4 +9,8 @@ public sealed class EmptyIncidentCollector : INbaIncidentCollector
     public void AwardedFreeThrow(in AwardedFreeThrowIncident incident)
     {
     }
+
+    public void Played(in PlayedIncident incident)
+    {
+    }
 }

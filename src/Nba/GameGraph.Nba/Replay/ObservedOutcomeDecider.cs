@@ -12,9 +12,13 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
     private readonly ObservedDecision[] _decisions;
     private int _next;
 
-    public ObservedOutcomeDecider(Possession[] possessions)
+    public ObservedOutcomeDecider(AcceptedGame game)
     {
+        var possessions = game.Possessions;
         var decisions = new List<ObservedDecision>();
+
+        foreach (var starters in game.Roster.Starters)
+            decisions.Add(new ObservedDecision(NbaNodes.Starters, s => Chosen(NbaNodes.Starters, s, starters), Sides.Home, 0));
 
         for (var i = 0; i < possessions.Length; i++)
         {
@@ -35,10 +39,10 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
     public static bool Follows(AcceptedGame game)
     {
-        var decider = new ObservedOutcomeDecider(game.Possessions);
+        var decider = new ObservedOutcomeDecider(game);
         var unread = new double[game.Players.Length];
-        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unread, unread);
-        var state = new NbaState(new EmptyIncidentCollector(), context, game.Rotation);
+        var context = new GameContext(UnreadPointsPerPossession, UnreadPointsPerPossession, unread, unread, unread, unread, unread, game.Roster.Active);
+        var state = new NbaState(new EmptyIncidentCollector(), context);
 
         try
         {
@@ -59,6 +63,9 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         if ((node == NbaNodes.OffenceTimeout || node == NbaNodes.DefenceTimeout) && !IsUpcoming(node, state))
             return 0;
+
+        if (node == NbaNodes.Substitutions && !IsUpcoming(node, state))
+            return SubstitutingTeams.None;
 
         if (node == NbaNodes.PeriodRunsOut)
             return Number(UpcomingIn(state.Period) is null);
@@ -107,7 +114,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
 
         foreach (var action in possession.Actions)
         {
-            foreach (var decision in Timeouts(action.TimeoutsBefore, team))
+            foreach (var decision in Moment(action.Before, team))
                 yield return decision;
 
             foreach (var decision in Awarded(action.AwardedBefore, team))
@@ -119,7 +126,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             switch (action)
             {
                 case ObservedShot shot:
-                    yield return new ObservedDecision(NbaNodes.Shooter, s => Chosen(NbaNodes.Shooter, s, shot.Shooter), team, possession.Period);
+                    yield return new ObservedDecision(NbaNodes.Shooter, s => Chosen(NbaNodes.Shooter, s, [shot.Shooter]), team, possession.Period);
                     yield return Decision(NbaNodes.FouledOnShot, Number(shot.Fouled));
                     yield return Decision(NbaNodes.ShotMade, Number(shot.Made));
 
@@ -157,7 +164,7 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
         var last = possession.Actions[^1];
         var after = last.EndsPossession && !last.PeriodEndedBeforeRebound ? Sides.Opponent(team) : team;
 
-        foreach (var decision in Timeouts(possession.TimeoutsAfter, after))
+        foreach (var decision in Moment(possession.After, after))
             yield return decision;
 
         foreach (var decision in Awarded(possession.AwardedAfter, after))
@@ -167,7 +174,28 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             [Decision(NbaNodes.OffensiveRebound, Number(rebound.Offensive)), Decision(NbaNodes.TeamRebound, Number(rebound.ByTeam))];
 
         IEnumerable<ObservedDecision> FreeThrow(ObservedFreeThrow freeThrow) =>
-            [.. Timeouts(freeThrow.TimeoutsBefore, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];
+            [.. Moment(freeThrow.Before, team), Decision(NbaNodes.FreeThrowMade, Number(freeThrow.Made))];
+
+        IEnumerable<ObservedDecision> Moment(ObservedMoment moment, int inPossession) =>
+            [.. Timeouts(moment.Timeouts, inPossession), .. Substitutions(moment.Substitutions, inPossession)];
+
+        IEnumerable<ObservedDecision> Substitutions(ObservedSubstitution[] substitutions, int inPossession)
+        {
+            if (substitutions.Length == 0)
+                yield break;
+
+            var offence = substitutions.Where(c => c.Team == inPossession).ToArray();
+            var defence = substitutions.Where(c => c.Team != inPossession).ToArray();
+
+            yield return new ObservedDecision(NbaNodes.Substitutions, _ => SubstitutingTeams.Of(offence.Length > 0, defence.Length > 0), inPossession, possession.Period);
+
+            foreach (var change in offence.Concat(defence))
+            {
+                yield return new ObservedDecision(NbaNodes.SubstitutionCount, s => Chosen(NbaNodes.SubstitutionCount, s, [change.Off.Length]), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutedOff, s => Chosen(NbaNodes.SubstitutedOff, s, change.Off), inPossession, possession.Period);
+                yield return new ObservedDecision(NbaNodes.SubstitutedOn, s => Chosen(NbaNodes.SubstitutedOn, s, change.On), inPossession, possession.Period);
+            }
+        }
 
         IEnumerable<ObservedDecision> Timeouts(int[] callers, int inPossession) =>
             callers.Select(caller => new ObservedDecision(caller == inPossession ? NbaNodes.OffenceTimeout : NbaNodes.DefenceTimeout, _ => 1, inPossession, possession.Period));
@@ -183,10 +211,10 @@ public sealed class ObservedOutcomeDecider : IOutcomeDecider<NbaState>
             new(node, _ => outcome, team, possession.Period);
     }
 
-    private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int player) =>
-        node.TryRowsOf(state, [player], out var rows)
+    private static int Chosen(ChoiceNode<NbaState> node, NbaState state, int[] chosen) =>
+        node.TryRowsOf(state, chosen, out var rows)
             ? rows
-            : throw new RulesDisagreeWithDataException($"Player {player} acts in period {state.Period} at {state.PeriodClock} seconds left, but is not among the candidates of {node.Name}");
+            : throw new RulesDisagreeWithDataException($"{node.Name} chose [{string.Join(", ", chosen)}] in period {state.Period} at {state.PeriodClock} seconds left, but they are not among its candidates");
 
     private static int Number(bool value) => value ? 1 : 0;
 }

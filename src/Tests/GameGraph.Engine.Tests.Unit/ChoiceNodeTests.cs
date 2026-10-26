@@ -31,6 +31,25 @@ public sealed class ChoiceNodeTests
     }
 
     [Fact]
+    public void AChoiceOfEveryCandidateHasOneOutcomeAndIsNotRecorded()
+    {
+        var forced = new ChoiceNode<ToyState>("Forced", _ => Pair, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+        var pick = new ChoiceNode<ToyState>("Pick", _ => Candidates, Two, [CandidateTerm.Linear(Distance)], (_, _) => Next<ToyState>.GameOver);
+        var collector = new RecordingDecisionCollector<ToyState>(new GameSpec<ToyState>([forced, pick], forced));
+        var state = new ToyState();
+        var buffer = Array.Empty<double>();
+
+        collector.BeginGame("game", DateTime.UnixEpoch);
+        collector.Collect(forced, state, forced.WriteFeatures(state, ref buffer), 0b11);
+        collector.Collect(pick, state, pick.WriteFeatures(state, ref buffer), 0b011);
+
+        Assert.True(forced.HasOneOutcome(state));
+        Assert.False(pick.HasOneOutcome(state));
+        Assert.Empty(collector.GamesFor(forced)[0].Examples);
+        Assert.Single(collector.GamesFor(pick)[0].Examples);
+    }
+
+    [Fact]
     public void TheWalkPassesTheChosenRowsCandidatesToTheTransition()
     {
         int[] chosen = [];

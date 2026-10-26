@@ -7,6 +7,8 @@ public static class NbaFeatures
 {
     public const int LateSeconds = 120;
 
+    private const double RegulationGameSeconds = Periods.Regulation * Periods.RegulationSeconds;
+
     public static readonly Feature<NbaState> ScoreMargin =
         new(nameof(ScoreMargin), s => s.Score[s.TeamInPossession] - s.Score[Sides.Opponent(s.TeamInPossession)]);
 
@@ -95,7 +97,64 @@ public static class NbaFeatures
         new(nameof(LateAfterTimeout), s => s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds && s.AfterTimeout ? 1 : 0);
 
     public static readonly Feature<NbaState> BeforeFreeThrow =
-        new(nameof(BeforeFreeThrow), s => s.TimeoutMoment == TimeoutMoment.FreeThrow ? 1 : 0);
+        new(nameof(BeforeFreeThrow), s => s.Moment == Moment.FreeThrow ? 1 : 0);
+
+    public static readonly Feature<NbaState> BetweenFreeThrows =
+        new(nameof(BetweenFreeThrows), s => s.BetweenFreeThrows ? 1 : 0);
+
+    public static readonly Feature<NbaState> TimeoutCalledHere =
+        new(nameof(TimeoutCalledHere), s => s.TimeoutCalledHere ? 1 : 0);
+
+    public static readonly Feature<NbaState> LogOffenceLongestStint =
+        new(nameof(LogOffenceLongestStint), s => Math.Log(s.LongestStint(s.TeamInPossession) + 1));
+
+    public static readonly Feature<NbaState> LogDefenceLongestStint =
+        new(nameof(LogDefenceLongestStint), s => Math.Log(s.LongestStint(Sides.Opponent(s.TeamInPossession)) + 1));
+
+    public static readonly Feature<NbaState> FiveStarters =
+        new(nameof(FiveStarters), _ => Lineups.Size);
+
+    public static readonly Feature<NbaState> OneCount =
+        new(nameof(OneCount), _ => 1);
+
+    public static readonly Feature<NbaState> ChangeSize =
+        new(nameof(ChangeSize), s => s.ChangeSize);
+
+    public static readonly CandidateFeature<NbaState> StartShare =
+        new(nameof(StartShare), (s, player) => s.StartShares[player]);
+
+    public static readonly CandidateFeature<NbaState> StartedLast =
+        new(nameof(StartedLast), (s, player) => s.StartedLastGame[player]);
+
+    public static readonly CandidateFeature<NbaState> UsualSeconds =
+        new(nameof(UsualSeconds), (s, player) => s.UsualSeconds[player]);
+
+    public static readonly CandidateFeature<NbaState> LogSinceChange =
+        new(nameof(LogSinceChange), (s, player) => Math.Log(s.Elapsed - s.ChangedAt[player] + 1));
+
+    public static readonly CandidateFeature<NbaState> PlayedAgainstUsual =
+        new(nameof(PlayedAgainstUsual), (s, player) => s.SecondsOnCourt(player, s.Elapsed) - s.UsualSeconds[player] * s.Elapsed / RegulationGameSeconds);
+
+    public static readonly CandidateFeature<NbaState> Started =
+        new(nameof(Started), (s, player) => s.Started[player] ? 1 : 0);
+
+    public static readonly CandidateFeature<NbaState> StartedLate =
+        new(nameof(StartedLate), (s, player) => s.Started[player] && s.Period >= Periods.Regulation - 1 && s.PeriodClock <= LateSeconds ? 1 : 0);
+
+    public static readonly CandidateFeature<NbaState> StartedAtPeriodStart =
+        new(nameof(StartedAtPeriodStart), (s, player) => s.Started[player] && s.Start == PlayStart.PeriodStart && s.Moment == Moment.Play ? 1 : 0);
+
+    public static readonly IReadOnlyList<CandidateFeature<NbaState>> CountIs =
+        [.. Enumerable.Range(2, Lineups.Size - 1).Select(c => new CandidateFeature<NbaState>($"CountIs{c}", (_, count) => count == c ? 1 : 0))];
+
+    public static readonly CandidateFeature<NbaState> CountAfterTimeout =
+        new(nameof(CountAfterTimeout), (s, count) => s.TimeoutCalledHere ? count : 0);
+
+    public static readonly CandidateFeature<NbaState> CountAtPeriodStart =
+        new(nameof(CountAtPeriodStart), (s, count) => s.Start == PlayStart.PeriodStart && s.Moment == Moment.Play ? count : 0);
+
+    public static readonly CandidateFeature<NbaState> CountBeforeFreeThrow =
+        new(nameof(CountBeforeFreeThrow), (s, count) => s.Moment == Moment.FreeThrow ? count : 0);
 
     public static readonly Feature<NbaState> TimeoutJustCalled =
         new(nameof(TimeoutJustCalled), s => s.TimeoutJustCalled ? 1 : 0);
