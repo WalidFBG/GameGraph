@@ -123,6 +123,16 @@ public sealed class NbaState
 
     public int AwardedTeam { get; set; }
 
+    public int AwardedShooter { get; set; }
+
+    public int[][] FiveAtDeadBall { get; } = [new int[Lineups.Size], new int[Lineups.Size]];
+
+    public int[] AwardedShooters { get; set; } = [];
+
+    public int[] AwardedFoulers { get; set; } = [];
+
+    public bool AwardedShooterKnown { get; set; }
+
     public int LastAwarded { get; set; } = AwardedFreeThrows.None;
 
     public bool BallAwardedToDefence { get; set; }
@@ -144,6 +154,8 @@ public sealed class NbaState
     public bool ForcesFoulOuts => Moment == Moment.Play && PeriodClock > 0;
 
     public bool MustChange(int team) => ForcesFoulOuts && Bench[team].Length > 0 && OnCourt[team].Any(FouledOut);
+
+    public int[] OnCourtInDeadBall(int team) => [.. FiveAtDeadBall[team].Union(OnCourt[team])];
 
     public int LongestStint(int team) => Elapsed - OnCourt[team].Min(p => ChangedAt[p]);
 }

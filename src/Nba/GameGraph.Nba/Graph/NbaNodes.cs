@@ -82,6 +82,20 @@ public static class NbaNodes
         [NbaFeatures.ScoreMargin, NbaFeatures.LateInGame, NbaFeatures.AtHome, .. NbaFeatures.PreviousAwarded],
         NbaTransitions.AwardedFreeThrow);
 
+    public static readonly ChoiceNode<NbaState> AwardedShooter = new(
+        nameof(AwardedShooter),
+        s => s.AwardedShooters,
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.AwardedShare, 4), CandidateTerm.Linear(NbaFeatures.TookPreviousAwarded), CandidateTerm.Linear(NbaFeatures.OnCourtNow)],
+        NbaTransitions.AwardedShooter);
+
+    public static readonly ChoiceNode<NbaState> AwardedFouler = new(
+        nameof(AwardedFouler),
+        s => s.AwardedFoulers,
+        NbaFeatures.OnePlayer,
+        [CandidateTerm.Spline(NbaFeatures.FoulShare, 4), CandidateTerm.Linear(NbaFeatures.InFoulTrouble), CandidateTerm.Linear(NbaFeatures.OnCourtNow)],
+        NbaTransitions.AwardedFouler);
+
     public static readonly NodeSpec<NbaState> AwardedFreeThrowMade = Node(
         nameof(AwardedFreeThrowMade),
         new BernoulliDistribution(),

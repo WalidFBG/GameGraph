@@ -14,4 +14,5 @@ public enum PlayerEvent
     Assist = 9,
     Steal = 10,
     Block = 11,
+    AwardedFreeThrow = 12,
 }

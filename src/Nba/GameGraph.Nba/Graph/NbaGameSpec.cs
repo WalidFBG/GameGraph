@@ -15,6 +15,8 @@ public static class NbaGameSpec
             NbaNodes.SubstitutedOff,
             NbaNodes.SubstitutedOn,
             NbaNodes.AwardedFreeThrow,
+            NbaNodes.AwardedShooter,
+            NbaNodes.AwardedFouler,
             NbaNodes.AwardedFreeThrowMade,
             NbaNodes.PeriodRunsOut,
             NbaNodes.ActionType,

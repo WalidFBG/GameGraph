@@ -149,6 +149,8 @@ tr:last-child td { border-bottom: none; }
   <a href="#SubstitutedOff"><span class="swatch choice"></span>SubstitutedOff</a>
   <a href="#SubstitutedOn"><span class="swatch choice"></span>SubstitutedOn</a>
   <a href="#AwardedFreeThrow"><span class="swatch categorical"></span>AwardedFreeThrow</a>
+  <a href="#AwardedShooter"><span class="swatch choice"></span>AwardedShooter</a>
+  <a href="#AwardedFouler"><span class="swatch choice"></span>AwardedFouler</a>
   <a href="#AwardedFreeThrowMade"><span class="swatch bernoulli"></span>AwardedFreeThrowMade</a>
   <a href="#PeriodRunsOut"><span class="swatch bernoulli"></span>PeriodRunsOut</a>
   <a href="#ActionType"><span class="swatch categorical"></span>ActionType</a>
@@ -445,8 +447,30 @@ tr:last-child td { border-bottom: none; }
         <dl>
           <dt>Outcome</dt><dd><code>int</code>: None (reference); a technical, flagrant or take-foul free throw to the offence or the defence; a clear-path one to the offence (the kinds and teams that occur)</dd>
           <dt>Features</dt><dd><ul><li>score margin</li><li>late in the game (the fourth period or later, at most 120 seconds left)</li><li>whether the team with the ball is at home</li><li>the previous free throw of the play, its kind and team (none for the first), so a flagrant's second free throw follows its first</li></ul></dd>
-          <dt>Transition</dt><dd>a free throw → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, then asked again; none → <a href="#AwardedBall">AwardedBall</a> if a flagrant or clear-path free throw went to the defence, otherwise <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
+          <dt>Transition</dt><dd>a free throw → <a href="#AwardedShooter">AwardedShooter</a>, then asked again; none → <a href="#AwardedBall">AwardedBall</a> if a flagrant or clear-path free throw went to the defence, otherwise <a href="#PeriodRunsOut">PeriodRunsOut</a> if the period clock is the bound, otherwise <a href="#ActionType">ActionType</a></dd>
           <dt>Observed as</dt><dd>technical, flagrant and clear-path free throws, and those of take fouls (about 1.5 a game), each attached to the next play of its period, or asked before the period ends after its last play</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="AwardedShooter">
+        <h3>AwardedShooter <span class="tag">Choice</span></h3>
+        <p class="question">Who takes the awarded free throw?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the bit of his place among the awarded team's players on court in this dead ball: its five before the dead ball's substitutions and its five after (5 to 10 players)</dd>
+          <dt>Features</dt><dd>its size, <code>OnePlayer</code>; and one per candidate: the log of his share of his team's awarded free throws while he was on court over his last 20 games, shrunk towards 1/5 by 5 free throws (a spline); whether he took the previous awarded free throw (the rest of a set, 0.29 in validation); whether he is on court now, after the substitutions</dd>
+          <dt>Transition</dt><dd>a take foul → <a href="#AwardedFouler">AwardedFouler</a>; otherwise → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a>, which credits him with the free throw</dd>
+          <dt>Observed as</dt><dd>the free throw's <code>shooterId</code>. The graph asks a dead ball's substitutions before its awarded free throws, but in the data about 5% of awarded shooters are taken off right after their free throw. So the candidates are everyone on court in the dead ball: the five before its changes hold the shooter 98.6% of the time, and the five after hold most of the rest (substitutes who come on to shoot a technical)</dd>
+        </dl>
+      </article>
+
+      <article class="card choice" id="AwardedFouler">
+        <h3>AwardedFouler <span class="tag">Choice</span></h3>
+        <p class="question">Who committed the take foul?</p>
+        <dl>
+          <dt>Outcome</dt><dd><code>int</code>: the bit of his place among the other team's players on court in this dead ball, as for <a href="#AwardedShooter">AwardedShooter</a></dd>
+          <dt>Features</dt><dd>its size, <code>OnePlayer</code>; and one per candidate: his foul share (as for <a href="#Fouler">Fouler</a>), whether he is in foul trouble, whether he is on court now. His fouls so far did worse than none on 494 examples, and was dropped</dd>
+          <dt>Transition</dt><dd>adds one to his fouls → <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></dd>
+          <dt>Observed as</dt><dd>the take foul's <code>FoulCommittedBy</code>. A flagrant's fouler is not credited: a flagrant's free throws point at the foul it upgraded, often a shooting or personal foul the tree already counts</dd>
         </dl>
       </article>
 
@@ -774,7 +798,7 @@ tr:last-child td { border-bottom: none; }
       <tr><th>Incident</th><th>Fields</th><th>Reported by</th></tr>
       <tr><td>Possession</td><td>team, period, points</td><td><a href="#EndOfPossession">EndOfPossession</a>, <a href="#PeriodEnds">PeriodEnds</a>, <a href="#AwardedBall">AwardedBall</a></td></tr>
       <tr><td>Awarded free throw</td><td>team, period, made</td><td><a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
-      <tr><td>Credit</td><td>player, credit: a two or three made or missed, a free throw made or missed, an offensive or defensive rebound, an assist, a steal, a block, a turnover, a foul</td><td><a href="#ShotMade">ShotMade</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#Rebounder">Rebounder</a>, <a href="#Assister">Assister</a>, <a href="#Stealer">Stealer</a>, <a href="#Blocker">Blocker</a>, <a href="#TurnedOverBy">TurnedOverBy</a>, <a href="#Fouler">Fouler</a></td></tr>
+      <tr><td>Credit</td><td>player, credit: a two or three made or missed, a free throw made or missed, an offensive or defensive rebound, an assist, a steal, a block, a turnover, a foul</td><td><a href="#ShotMade">ShotMade</a>, <a href="#FreeThrowMade">FreeThrowMade</a>, <a href="#Rebounder">Rebounder</a>, <a href="#Assister">Assister</a>, <a href="#Stealer">Stealer</a>, <a href="#Blocker">Blocker</a>, <a href="#TurnedOverBy">TurnedOverBy</a>, <a href="#Fouler">Fouler</a>, <a href="#AwardedFouler">AwardedFouler</a>, <a href="#AwardedFreeThrowMade">AwardedFreeThrowMade</a></td></tr>
       <tr><td>Played</td><td>player, team, started, seconds</td><td>the game's end</td></tr>
     </table>
   </section>
@@ -782,7 +806,7 @@ tr:last-child td { border-bottom: none; }
   <section id="later">
     <h2>Not in the tree yet</h2>
     <ul>
-      <li>Players: who shoots awarded free throws and who commits flagrant and take fouls, and players affecting the team (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
+      <li>Players: players affecting the team (<code>plan.md</code>, step 6); <a href="#Shooter">Shooter</a>, the other player nodes and the lineup nodes (<code>Starters</code>, <code>Substitutions</code>, <code>SubstitutionCount</code>, <code>SubstitutedOff</code>, <code>SubstitutedOn</code>) are not in the diagram yet</li>
       <li>Competing risks: one clock per kind of action, the earliest wins, so time and action decide each other</li>
       <li>A continuous time, once the data has tenths of a second</li>
       <li>Foul types, the finer turnover types, shot zones</li>
