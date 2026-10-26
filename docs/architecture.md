@@ -122,5 +122,5 @@ In production, augmentation runs one game at a time: the latest histories are sa
 
 ## Not yet
 
-- No compilation and no speed work until the full flow runs and its output is pinned by a test.
+- No compilation and no speed work until the full flow runs and its output is pinned by a test: both now hold, and `compilation.md` holds the plan.
 - No generality without a use: each new model family, outcome type or feature shape arrives with the node that needs it.

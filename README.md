@@ -37,7 +37,7 @@ In progress. See `docs/plan.md`, and `docs/models.md` for the models (trained in
 | `python/src/gamegraph/audit` | Analyses of the audits' data: calibration and simulation buckets, game statistics |
 | `src/Tests` | Unit tests: `GameGraph.Engine.Tests.Unit` (the walk, on a toy game), `GameGraph.Models.Tests.Unit` (the forward pass and the parity with Python), `GameGraph.Contract.Files.Tests.Unit` (the contract and its files) and `GameGraph.Simulation.Tests.Unit` (the random numbers) |
 | `src/GameGraph.Host` | Command line: generates the training data and writes it |
-| `docs/` | Architecture, plan, data, lessons, and the possession tree as built (`possession-tree.html`) |
+| `docs/` | Architecture, plan, compilation (the speed work and its decisions), data, lessons, and the possession tree as built (`possession-tree.html`) |
 
 ## Build
 
