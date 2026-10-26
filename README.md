@@ -19,7 +19,7 @@ The NBA is the only sport so far. Open [`docs/graph.html`](docs/graph.html) in a
 
 ## Data
 
-The real games are Sportradar's validated play-by-play, in the quants blob storage under `data-nba`. Copy them to `C:\Data\Basketball\ValidatedData\PlayByPlay`, where the Host and the audits read them (see [`docs/data.md`](docs/data.md)). The tests and the benchmark need no data: they run on the fixture in `testdata/`.
+The real games are Sportradar's validated play-by-play, in the quants blob storage under `data-nba`. Copy them to `C:\Data\Basketball\ValidatedData\PlayByPlay`, where generating the training data and the audits read them (see [`docs/data.md`](docs/data.md)). The tests and the benchmark need no data: they run on the fixture in `testdata/`.
 
 ## Build and test
 
@@ -45,7 +45,7 @@ uv run pyright
 1. **Generate the training data** from the real games:
 
    ```
-   dotnet run -c Release --project src/GameGraph.Host
+   dotnet run -c Release --project src/Nba/GameGraph.Nba.TrainingDataGeneration
    ```
 
 2. **Train** every node whose training data or trainer changed since its last fit (`--all` retrains every node), from `python/`:
@@ -79,7 +79,7 @@ uv run pyright
 
 - **The NBA's graph**: `src/Nba/GameGraph.Nba/Graph`, in `NbaNodes.cs` (each node and its model), `NbaTransitions.cs` (the rules between nodes) and `NbaFeatures.cs`.
 - **The walk**: `src/GameGraph.Engine/GameWalker.cs`.
-- **Simulating a game**: `Simulator.Run` in `src/GameGraph.Simulation`, given a `FittedGame` (the plain walk) or a `CompiledGame` (the fast one).
+- **Simulating a game**: `Simulator.Run` in `src/GameGraph.Simulation`, given a `FittedGraph` (the plain walk) or a `CompiledGraph` (the fast one).
 - **Training**: `python/src/gamegraph/train_nodes.py`.
 
 ## Data in this repository
